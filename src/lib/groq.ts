@@ -411,3 +411,89 @@ export async function generatePracticeQuestion(
     };
   }
 }
+
+// ── LISTENING EXERCISE GENERATION ────────────────────────────
+
+export async function generateListeningExercise(
+  cefrLevel: string,
+  difficulty: string,
+  userVocabulary: string[],
+): Promise<import('./validations').ListeningExercise> {
+  const { listeningExerciseSchema } = await import('./validations');
+
+  const vocabSample = userVocabulary.length > 30
+    ? userVocabulary.sort(() => Math.random() - 0.5).slice(0, 30)
+    : userVocabulary;
+
+  const difficultyInstructions: Record<string, string> = {
+    very_easy: 'Use very short, simple sentences (2-3 sentences total). Basic present tense only. Direct, clear statements. All vocabulary should be from the user list.',
+    easy: 'Use short sentences (3-4 sentences). Simple grammar. Clear pronunciation-friendly text. Mostly user vocabulary with max 1 new word.',
+    normal: 'Use moderate-length text (4-6 sentences). Mix of tenses allowed. Natural conversation flow. Max 1-2 new words beyond user vocabulary.',
+    hard: 'Use longer text (5-7 sentences). Complex sentence structures, subordinate clauses. Indirect speech. Max 2 new words. Include some idiomatic expressions.',
+    very_hard: 'Use complex dialogue or monologue (6-8 sentences). Advanced grammar, subjunctive mood, passive voice. Indirect questions. Nuanced meaning. Include 2 potentially confusing new words. Add trick options in questions.',
+  };
+
+  const questionInstructions: Record<string, string> = {
+    A1: 'Ask 3 simple factual questions. Direct answers found in text. All MCQ with 3 options.',
+    A2: 'Ask 3-4 questions. Mix of direct factual and slight inference. MCQ with 3-4 options.',
+    B1: 'Ask 4 questions. Include indirect meaning and purpose-based questions. MCQ with 4 options.',
+    B2: 'Ask 4-5 questions. Include opinion, implication, and reasoning questions. Mix of MCQ (4 options) and 1 short-answer question.',
+  };
+
+  const prompt = `Generate a German listening exercise at CEFR level ${cefrLevel}.
+
+User's known vocabulary: ${vocabSample.join(', ')}
+
+Difficulty: ${difficulty}
+${difficultyInstructions[difficulty] || difficultyInstructions['normal']}
+
+Question requirements for ${cefrLevel}:
+${questionInstructions[cefrLevel] || questionInstructions['A1']}
+
+Return JSON:
+{
+  "level": "${cefrLevel}",
+  "script": "The German text/dialogue to be read aloud...",
+  "new_words_used": ["any", "new", "words"],
+  "questions": [
+    {
+      "question": "Question in German",
+      "options": ["Option A", "Option B", "Option C"],
+      "correct_index": 0,
+      "explanation": "Explanation in English of why this is correct",
+      "type": "mcq"
+    }
+  ]
+}
+
+IMPORTANT:
+- Script MUST be in German
+- Questions MUST be in German  
+- Options MUST be in German
+- Explanations in English
+- Use mostly words from the user's vocabulary list
+- Keep grammar appropriate to ${cefrLevel} level
+- For short_answer type questions, put the correct answer as options[0] and set correct_index to 0`;
+
+  const completion = await callGroq({
+    messages: [
+      { role: 'system', content: 'You are a German language exam creator specializing in Goethe-Institut style listening comprehension exercises. Return ONLY valid JSON.' },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.7,
+    max_tokens: 2000,
+    response_format: { type: 'json_object' },
+  });
+
+  const raw = completion.choices[0]?.message?.content;
+  if (!raw) throw new Error('No AI response for listening exercise');
+
+  const parsed = JSON.parse(raw);
+  const result = listeningExerciseSchema.safeParse(parsed);
+  if (!result.success) {
+    console.error('Listening exercise validation failed:', result.error);
+    throw new Error('Invalid listening exercise format');
+  }
+
+  return result.data;
+}

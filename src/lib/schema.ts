@@ -240,6 +240,35 @@ export const resetLogs = pgTable('reset_logs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const listeningAttempts = pgTable('listening_attempts', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  cefrLevel: text('cefr_level').notNull(),
+  difficulty: text('difficulty').notNull(),
+  script: text('script').notNull(),
+  newWordsUsed: jsonb('new_words_used').$type<string[]>().notNull().default([]),
+  questions: jsonb('questions').$type<Array<{
+    question: string;
+    options: string[];
+    correctIndex: number;
+    explanation: string;
+    type: string;
+  }>>().notNull(),
+  answers: jsonb('answers').$type<Array<{
+    questionIndex: number;
+    userAnswer: number | string;
+    correct: boolean;
+  }>>(),
+  score: real('score'),
+  maxScore: real('max_score'),
+  timeSpent: integer('time_spent'),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  userIdx: index('listening_attempts_user_idx').on(t.userId, t.createdAt),
+  levelIdx: index('listening_attempts_level_idx').on(t.userId, t.cefrLevel),
+}));
+
 // ── EXISTING TABLES (kept for exam system) ───────────────────
 
 export const decks = pgTable('decks', {

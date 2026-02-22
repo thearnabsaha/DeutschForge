@@ -17,6 +17,7 @@ import {
   XCircle,
   Volume2,
   ArrowRight,
+  Headphones,
 } from 'lucide-react';
 import { sfx } from '@/lib/sounds';
 
@@ -271,6 +272,26 @@ export default function PracticePage() {
                 </p>
               </div>
               <ArrowRight size={20} className="ml-auto text-[var(--accent)]" />
+            </div>
+          </motion.div>
+        </Link>
+        <Link href="/practice/listening" onClick={() => sfx.tap()}>
+          <motion.div
+            className="mb-6 rounded-2xl border-2 border-dashed border-purple-400/40 bg-purple-500/5 p-6 transition-colors hover:border-purple-500 hover:bg-purple-500/10"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl bg-purple-500/20 p-3">
+                <Headphones size={28} className="text-purple-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Listening Practice</h3>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                  AI-generated German audio with background noise, subtitles &amp; Goethe-style questions.
+                </p>
+              </div>
+              <ArrowRight size={20} className="ml-auto text-purple-500" />
             </div>
           </motion.div>
         </Link>

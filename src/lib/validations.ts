@@ -56,3 +56,22 @@ export const chatResponseSchema = z.object({
 });
 
 export type ChatResponse = z.infer<typeof chatResponseSchema>;
+
+// Listening exercise from AI
+export const listeningQuestionSchema = z.object({
+  question: z.string(),
+  options: z.array(z.string()).min(2),
+  correct_index: z.number().int().min(0),
+  explanation: z.string(),
+  type: z.enum(['mcq', 'short_answer']).default('mcq'),
+});
+
+export const listeningExerciseSchema = z.object({
+  level: z.enum(['A1', 'A2', 'B1', 'B2']),
+  script: z.string(),
+  new_words_used: z.array(z.string()),
+  questions: z.array(listeningQuestionSchema).min(1),
+});
+
+export type ListeningExercise = z.infer<typeof listeningExerciseSchema>;
+export type ListeningQuestion = z.infer<typeof listeningQuestionSchema>;
