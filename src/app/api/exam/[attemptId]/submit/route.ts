@@ -4,6 +4,24 @@ import { examSectionScores, examTemplateSections, examAttempts } from '@/lib/sch
 import { eq, and } from 'drizzle-orm';
 import { gradeWriting } from '@/lib/groq';
 
+interface FlatQ {
+  id: string; text: string; question?: string; options?: string[]; correctAnswer: string; explanation?: string;
+}
+
+function extractQuestions(content: Record<string, unknown>, containerKey: string): FlatQ[] {
+  const containers = (content[containerKey] || content.questions || []) as Array<Record<string, unknown>>;
+  if (Array.isArray(containers) && containers.length > 0 && containers[0]?.questions) {
+    return containers.flatMap((c) => (c.questions || []) as unknown as FlatQ[]);
+  }
+  if (Array.isArray(containers) && containers.length > 0 && (containers[0]?.correctAnswer || containers[0]?.text)) {
+    return containers as unknown as FlatQ[];
+  }
+  if (content.questions && Array.isArray(content.questions)) {
+    return content.questions as unknown as FlatQ[];
+  }
+  return [];
+}
+
 export async function POST(req: Request, { params }: { params: { attemptId: string } }) {
   try {
     const { section, answers, timeSpent } = await req.json();
@@ -30,32 +48,17 @@ export async function POST(req: Request, { params }: { params: { attemptId: stri
     let feedback: Record<string, unknown> = {};
 
     if (section === 'Lesen' || section === 'LESEN') {
-      // Grade reading: compare answers to correct answers in content
-      const questions = (content.questions || []) as Array<{
-        question: string;
-        options?: string[];
-        correctAnswer: string;
-        explanation?: string;
-      }>;
+      const flatQuestions = extractQuestions(content, 'passages');
+      const answersMap = answers as Record<string, string>;
       const results: Array<{
-        question: string;
-        options?: string[];
-        userAnswer: string;
-        correctAnswer: string;
-        correct: boolean;
-        explanation: string;
+        question: string; options?: string[]; userAnswer: string; correctAnswer: string; correct: boolean; explanation: string;
       }> = [];
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        const userAnswer =
-          (answers as Record<string | number, unknown>)[i] ||
-          (answers as Record<string | number, unknown>)[String(i)] ||
-          '';
-        const correct =
-          String(userAnswer).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase();
-        if (correct) score += templateSection.maxScore / questions.length;
+      for (const q of flatQuestions) {
+        const userAnswer = answersMap[q.id] || answersMap[String(flatQuestions.indexOf(q))] || '';
+        const correct = String(userAnswer).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase();
+        if (correct) score += templateSection.maxScore / Math.max(flatQuestions.length, 1);
         results.push({
-          question: q.question,
+          question: q.text || q.question || '',
           options: q.options,
           userAnswer: String(userAnswer),
           correctAnswer: q.correctAnswer,
@@ -65,32 +68,17 @@ export async function POST(req: Request, { params }: { params: { attemptId: stri
       }
       feedback = { results };
     } else if (section === 'Hören' || section === 'HOEREN') {
-      // Same grading logic as Lesen
-      const questions = (content.questions || []) as Array<{
-        question: string;
-        options?: string[];
-        correctAnswer: string;
-        explanation?: string;
-      }>;
+      const flatQuestions = extractQuestions(content, 'dialogues');
+      const answersMap = answers as Record<string, string>;
       const results: Array<{
-        question: string;
-        options?: string[];
-        userAnswer: string;
-        correctAnswer: string;
-        correct: boolean;
-        explanation: string;
+        question: string; options?: string[]; userAnswer: string; correctAnswer: string; correct: boolean; explanation: string;
       }> = [];
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        const userAnswer =
-          (answers as Record<string | number, unknown>)[i] ||
-          (answers as Record<string | number, unknown>)[String(i)] ||
-          '';
-        const correct =
-          String(userAnswer).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase();
-        if (correct) score += templateSection.maxScore / questions.length;
+      for (const q of flatQuestions) {
+        const userAnswer = answersMap[q.id] || answersMap[String(flatQuestions.indexOf(q))] || '';
+        const correct = String(userAnswer).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase();
+        if (correct) score += templateSection.maxScore / Math.max(flatQuestions.length, 1);
         results.push({
-          question: q.question,
+          question: q.text || q.question || '',
           options: q.options,
           userAnswer: String(userAnswer),
           correctAnswer: q.correctAnswer,

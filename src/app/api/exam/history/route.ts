@@ -33,7 +33,10 @@ export async function GET() {
       history.push({
         id: attempt.id,
         cefrLevel: attempt.cefrLevel,
-        title: template?.title ?? `${attempt.cefrLevel} Exam`,
+        setNumber: attempt.setNumber,
+        title: attempt.setNumber
+          ? `${attempt.cefrLevel} – Set ${attempt.setNumber}`
+          : (template?.title ?? `${attempt.cefrLevel} Exam`),
         totalScore: attempt.totalScore,
         maxScore: attempt.maxScore,
         status: attempt.status,

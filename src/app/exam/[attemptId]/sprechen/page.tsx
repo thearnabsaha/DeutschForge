@@ -13,11 +13,20 @@ interface Message {
   content: string;
 }
 
+interface SprechenTask {
+  id: string;
+  type: string;
+  topic: string;
+  instructions: string;
+  talkingPoints?: string[];
+}
+
 interface SprechenSection {
   instructions: string;
   timeMinutes: number;
-  task: string;
-  starterPrompt: string;
+  task?: string;
+  starterPrompt?: string;
+  tasks?: SprechenTask[];
 }
 
 export default function SprechenPage() {
@@ -60,6 +69,14 @@ export default function SprechenPage() {
     fetch(`/api/exam/${attemptId}/section?section=SPRECHEN`)
       .then((r) => r.json())
       .then((data) => {
+        if (data.tasks && !data.task) {
+          const firstTask = data.tasks[0];
+          if (firstTask) {
+            data.task = firstTask.topic;
+            const points = firstTask.talkingPoints?.map((p: string) => `- ${p}`).join('\n') || '';
+            data.starterPrompt = `${firstTask.instructions}\n\n${points}`;
+          }
+        }
         setSection(data);
         if (data?.starterPrompt) {
           setMessages([{ role: 'examiner', content: data.starterPrompt }]);

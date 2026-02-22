@@ -7,12 +7,22 @@ import { PenTool, ArrowRight, Loader2 } from 'lucide-react';
 import { ExamTimer } from '@/components/exam/exam-timer';
 import { useTimer } from '@/hooks/use-timer';
 
+interface SchreibenPrompt {
+  id: string;
+  type: string;
+  situation: string;
+  task: string;
+  points: string[];
+  wordLimit: number;
+}
+
 interface SchreibenSection {
   instructions: string;
   timeMinutes: number;
-  prompt: string;
-  hints: string[];
-  minWords: number;
+  prompt?: string;
+  hints?: string[];
+  minWords?: number;
+  prompts?: SchreibenPrompt[];
 }
 
 export default function SchreibenPage() {
@@ -52,6 +62,16 @@ export default function SchreibenPage() {
     fetch(`/api/exam/${attemptId}/section?section=SCHREIBEN`)
       .then((r) => r.json())
       .then((data) => {
+        if (data.prompts && !data.prompt) {
+          const p = data.prompts[0];
+          if (p) {
+            data.prompt = `${p.situation}\n\n${p.task}`;
+            data.hints = p.points || [];
+            data.minWords = p.wordLimit || 30;
+          }
+        }
+        if (!data.hints) data.hints = [];
+        if (!data.minWords) data.minWords = 30;
         setSection(data);
         setLoading(false);
       })
@@ -59,6 +79,8 @@ export default function SchreibenPage() {
   }, [attemptId]);
 
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+  const minWords = section?.minWords || 30;
+  const hints = section?.hints || [];
 
   if (loading) {
     return (
@@ -108,11 +130,11 @@ export default function SchreibenPage() {
             <p className="mt-2 text-sm leading-relaxed text-[var(--text-primary)]">
               {section.prompt}
             </p>
-            {section.hints.length > 0 && (
+            {hints.length > 0 && (
               <div className="mt-3">
                 <p className="text-xs font-medium text-[var(--text-tertiary)]">Include:</p>
                 <ul className="mt-1 list-inside list-disc space-y-0.5">
-                  {section.hints.map((h, i) => (
+                  {hints.map((h, i) => (
                     <li key={i} className="text-sm text-[var(--text-secondary)]">{h}</li>
                   ))}
                 </ul>
@@ -132,10 +154,10 @@ export default function SchreibenPage() {
             <div className="mt-2 flex items-center justify-between text-xs text-[var(--text-tertiary)]">
               <span>
                 {wordCount} word{wordCount !== 1 ? 's' : ''}
-                {section.minWords > 0 && ` (min. ${section.minWords})`}
+                {minWords > 0 && ` (min. ${minWords})`}
               </span>
-              <span className={wordCount >= section.minWords ? 'text-emerald-500' : 'text-amber-500'}>
-                {wordCount >= section.minWords ? 'Minimum reached' : `${section.minWords - wordCount} more needed`}
+              <span className={wordCount >= minWords ? 'text-emerald-500' : 'text-amber-500'}>
+                {wordCount >= minWords ? 'Minimum reached' : `${minWords - wordCount} more needed`}
               </span>
             </div>
           </div>

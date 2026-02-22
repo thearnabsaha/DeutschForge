@@ -358,6 +358,7 @@ export const examAttempts = pgTable('exam_attempts', {
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   templateId: text('template_id').notNull().references(() => examTemplates.id, { onDelete: 'cascade' }),
   cefrLevel: text('cefr_level').notNull(),
+  setNumber: integer('set_number'),
   totalScore: real('total_score'),
   maxScore: real('max_score'),
   startedAt: timestamp('started_at').defaultNow().notNull(),
@@ -365,6 +366,7 @@ export const examAttempts = pgTable('exam_attempts', {
   status: text('status').notNull().default('in_progress'),
 }, (t) => ({
   userStartedIdx: index('exam_attempts_user_started_idx').on(t.userId, t.startedAt),
+  userSetIdx: index('exam_attempts_user_set_idx').on(t.userId, t.cefrLevel, t.setNumber),
 }));
 
 export const examSectionScores = pgTable('exam_section_scores', {
@@ -380,4 +382,95 @@ export const examSectionScores = pgTable('exam_section_scores', {
   completedAt: timestamp('completed_at'),
 }, (t) => ({
   attemptSectionUniq: uniqueIndex('ess_attempt_section_uniq').on(t.attemptId, t.section),
+}));
+
+// ── QUESTION BANK ─────────────────────────────────────────────
+
+export const questionBank = pgTable('question_bank', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  cefrLevel: text('cefr_level').notNull(),
+  skillType: text('skill_type').notNull(),
+  questionText: text('question_text').notNull(),
+  passage: text('passage'),
+  options: jsonb('options').$type<string[]>(),
+  correctAnswer: text('correct_answer').notNull(),
+  explanation: text('explanation'),
+  difficulty: text('difficulty').notNull().default('medium'),
+  sourceType: text('source_type').notNull().default('ai_generated'),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  levelSkillIdx: index('qb_level_skill_idx').on(t.cefrLevel, t.skillType),
+  sourceIdx: index('qb_source_idx').on(t.sourceType),
+}));
+
+export const examSets = pgTable('exam_sets', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  cefrLevel: text('cefr_level').notNull(),
+  setNumber: integer('set_number').notNull(),
+  isStatic: boolean('is_static').notNull().default(false),
+  lesenSection: jsonb('lesen_section').$type<{
+    passages: Array<{
+      title: string;
+      text: string;
+      questions: Array<{
+        id: string;
+        text: string;
+        options: string[];
+        correctAnswer: string;
+        explanation: string;
+        type: string;
+      }>;
+    }>;
+  }>(),
+  hoerenSection: jsonb('hoeren_section').$type<{
+    dialogues: Array<{
+      title: string;
+      script: string;
+      questions: Array<{
+        id: string;
+        text: string;
+        options: string[];
+        correctAnswer: string;
+        explanation: string;
+        type: string;
+      }>;
+    }>;
+  }>(),
+  schreibenSection: jsonb('schreiben_section').$type<{
+    prompts: Array<{
+      id: string;
+      type: string;
+      situation: string;
+      task: string;
+      points: string[];
+      wordLimit: number;
+    }>;
+  }>(),
+  sprechenSection: jsonb('sprechen_section').$type<{
+    tasks: Array<{
+      id: string;
+      type: string;
+      topic: string;
+      instructions: string;
+      talkingPoints?: string[];
+    }>;
+  }>(),
+  timeLimit: integer('time_limit').notNull().default(90),
+  totalMarks: integer('total_marks').notNull().default(100),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  levelSetUniq: uniqueIndex('exam_sets_level_set_uniq').on(t.cefrLevel, t.setNumber),
+  levelIdx: index('exam_sets_level_idx').on(t.cefrLevel),
+}));
+
+export const userExamSetSnapshots = pgTable('user_exam_set_snapshots', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  cefrLevel: text('cefr_level').notNull(),
+  setNumber: integer('set_number').notNull(),
+  examSetId: text('exam_set_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  userSetUniq: uniqueIndex('user_set_snapshot_uniq').on(t.userId, t.cefrLevel, t.setNumber),
 }));

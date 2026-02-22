@@ -14,13 +14,21 @@ interface HoerenQuestion {
   options: string[];
 }
 
+interface HoerenTask {
+  title: string;
+  transcript: string;
+  script?: string;
+  maxReplays: number;
+  questions: HoerenQuestion[];
+}
+
 interface HoerenSection {
   instructions: string;
   timeMinutes: number;
-  tasks: Array<{
+  tasks?: HoerenTask[];
+  dialogues?: Array<{
     title: string;
-    transcript: string;
-    maxReplays: number;
+    script: string;
     questions: HoerenQuestion[];
   }>;
 }
@@ -66,6 +74,21 @@ export default function HoerenPage() {
     fetch(`/api/exam/${attemptId}/section?section=HOEREN`)
       .then((r) => r.json())
       .then((data) => {
+        if (data.dialogues && !data.tasks) {
+          data.tasks = data.dialogues.map((d: { title: string; script: string; questions: HoerenQuestion[] }) => ({
+            title: d.title,
+            transcript: d.script,
+            maxReplays: 3,
+            questions: d.questions,
+          }));
+        }
+        if (data.tasks) {
+          data.tasks = data.tasks.map((t: HoerenTask) => ({
+            ...t,
+            transcript: t.transcript || t.script || '',
+            maxReplays: t.maxReplays || 3,
+          }));
+        }
         setSection(data);
         setLoading(false);
       })
@@ -132,7 +155,7 @@ export default function HoerenPage() {
       </p>
 
       <div className="mt-6 space-y-8">
-        {section.tasks.map((task, ti) => {
+        {(section.tasks || []).map((task, ti) => {
           const replaysUsed = replayCounts[ti] || 0;
           const replaysLeft = task.maxReplays - replaysUsed;
           const isPlaying = playingTask === ti;
