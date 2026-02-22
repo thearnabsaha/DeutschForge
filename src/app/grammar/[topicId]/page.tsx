@@ -17,6 +17,7 @@ import {
   XCircle,
   RotateCcw,
 } from 'lucide-react';
+import { sfx } from '@/lib/sounds';
 
 type Example = { german: string; english: string; note?: string };
 
@@ -121,11 +122,15 @@ export default function GrammarTopicPage() {
   const progress = exercises.length > 0 ? ((currentExerciseIdx + 1) / exercises.length) * 100 : 0;
 
   const handleAnswerChange = (value: string) => {
-    if (currentExercise) setAnswers((prev) => ({ ...prev, [currentExercise.id]: value }));
+    if (currentExercise) {
+      sfx.click();
+      setAnswers((prev) => ({ ...prev, [currentExercise.id]: value }));
+    }
   };
 
   const handleNext = () => {
     if (currentExerciseIdx < exercises.length - 1) {
+      sfx.swoosh();
       setCurrentExerciseIdx((i) => i + 1);
     }
   };
@@ -150,6 +155,8 @@ export default function GrammarTopicPage() {
       const data = await res.json();
       if (res.ok) {
         setResults({ score: data.score, maxScore: data.maxScore, results: data.results });
+        const pct = data.maxScore > 0 ? data.score / data.maxScore : 0;
+        pct >= 0.7 ? sfx.levelUp() : sfx.wrong();
       }
     } finally {
       setSubmitting(false);

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Flame } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
+import { sfx } from '@/lib/sounds';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,6 +30,7 @@ export default function LoginPage() {
         setError(data.error || 'Login failed');
         return;
       }
+      sfx.levelUp();
       router.push('/dashboard');
     } catch {
       setError('Something went wrong. Please try again.');

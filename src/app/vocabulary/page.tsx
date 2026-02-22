@@ -7,6 +7,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { Plus, Loader2, Trash2, BookOpen, Search, Filter } from 'lucide-react';
+import { sfx } from '@/lib/sounds';
 
 interface UserWord {
   id: string;
@@ -87,6 +88,7 @@ export default function VocabularyPage() {
         toast.error(data.error || 'Upload failed');
         return;
       }
+      sfx.streak();
       toast.success(`Successfully added ${data.count} word${data.count !== 1 ? 's' : ''}`);
       setWordsInput('');
       await fetchWords();

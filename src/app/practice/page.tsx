@@ -18,6 +18,7 @@ import {
   Volume2,
   ArrowRight,
 } from 'lucide-react';
+import { sfx } from '@/lib/sounds';
 
 type PracticeMode = 'flashcard' | 'meaning' | 'sentence' | 'gender' | 'conjugation' | null;
 
@@ -166,6 +167,7 @@ export default function PracticePage() {
 
   const handleRate = async (rating: 1 | 2 | 3 | 4) => {
     if (!currentWord || submitting) return;
+    sfx.xp();
 
     setSubmitting(true);
     try {
@@ -193,13 +195,16 @@ export default function PracticePage() {
     setConjugationInput('');
 
     if (currentIndex + 1 < queue.length) {
+      sfx.swoosh();
       setCurrentIndex((i) => i + 1);
     } else {
+      sfx.complete();
       setSessionComplete(true);
     }
   };
 
   const handleReveal = () => {
+    sfx.flip();
     setRevealed(true);
   };
 
@@ -208,6 +213,7 @@ export default function PracticePage() {
     const ok = matchesMeaning(meaningInput, currentWord.meaning);
     setCorrect(ok);
     setAnswered(true);
+    ok ? sfx.correct() : sfx.wrong();
   };
 
   const handleGenderCheck = () => {
@@ -217,6 +223,7 @@ export default function PracticePage() {
     const ok = input === correctArticle;
     setCorrect(ok);
     setAnswered(true);
+    ok ? sfx.correct() : sfx.wrong();
   };
 
   const handleCheckConjugation = () => {
@@ -227,12 +234,13 @@ export default function PracticePage() {
     const ok = !!expected && expected === user;
     setCorrect(ok);
     setAnswered(true);
+    ok ? sfx.correct() : sfx.wrong();
   };
 
   const handleSentenceSubmit = () => {
-    // Self-rate only - we don't grade, user decides
     setAnswered(true);
     setCorrect(true);
+    sfx.tap();
   };
 
   const speak = (text: string) => {
@@ -269,7 +277,7 @@ export default function PracticePage() {
                 <GlassCard
                   hover={true}
                   className="cursor-pointer"
-                  onClick={() => setMode(m.id)}
+                  onClick={() => { sfx.tap(); setMode(m.id); }}
                 >
                   <div className={`inline-flex rounded-xl p-3 ${m.bgColor}`}>
                     <Icon size={24} className={m.color} />

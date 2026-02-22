@@ -16,10 +16,13 @@ import {
   MessageCircle,
   BookMarked,
   Mic,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
+import { isMuted, toggleMute } from '@/lib/sounds';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -37,8 +40,12 @@ export function Sidebar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [muted, setMuted] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    setMuted(isMuted());
+  }, []);
 
   const isExamActive = pathname.includes('/exam/') && pathname !== '/exam' && !pathname.startsWith('/exam/history');
   const isAuthPage = pathname === '/login' || pathname === '/signup';
@@ -92,15 +99,24 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="mt-auto space-y-2 px-3">
+        <div className="mt-auto space-y-1 px-3">
           {mounted && (
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
-            >
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-            </button>
+            <>
+              <button
+                onClick={() => { toggleMute(); setMuted(!muted); }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+              >
+                {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                {muted ? 'Sound Off' : 'Sound On'}
+              </button>
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+              >
+                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+              </button>
+            </>
           )}
 
           <div className="mx-3 border-t border-[var(--border)] pt-3">
