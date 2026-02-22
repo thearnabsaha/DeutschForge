@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { cardStates, reviewLogs, examAttempts } from '@/lib/schema';
 import { eq, and, count, avg, gte, lt, desc } from 'drizzle-orm';
-import { DEFAULT_USER_ID } from '@/lib/utils';
+import { getCurrentUserId } from '@/lib/get-user';
 
 export async function GET() {
   try {
-    const userId = DEFAULT_USER_ID;
+    const userId = await getCurrentUserId();
 
     const [totalReviewsResult, avgRatingResult, cardsByStateRows, examHistoryRows] =
       await Promise.all([
@@ -89,6 +89,9 @@ export async function GET() {
       examHistory,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     console.error('Progress API error:', error);
     return NextResponse.json({
       totalReviews: 0,

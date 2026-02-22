@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users, userSettings } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
-import { DEFAULT_USER_ID } from '@/lib/utils';
+import { getCurrentUserId } from '@/lib/get-user';
 
 const VALID_LEVELS = ['A1', 'A2', 'B1', 'B2'] as const;
 const VALID_THEMES = ['light', 'dark', 'system'] as const;
@@ -11,8 +11,9 @@ type Theme = (typeof VALID_THEMES)[number];
 
 export async function GET() {
   try {
-    const [user] = await db.select().from(users).where(eq(users.id, DEFAULT_USER_ID));
-    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, DEFAULT_USER_ID));
+    const userId = await getCurrentUserId();
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
 
     return NextResponse.json({
       name: user?.name ?? 'Learner',
@@ -21,7 +22,10 @@ export async function GET() {
       focusMode: settings?.focusMode ?? false,
       dailyGoal: settings?.dailyGoal ?? 20,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     return NextResponse.json({
       name: 'Learner',
       targetLevel: 'A1',
@@ -34,6 +38,7 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
+    const userId = await getCurrentUserId();
     const body = (await request.json()) as {
       name?: string;
       targetLevel?: string;
@@ -59,7 +64,7 @@ export async function PUT(request: NextRequest) {
     await db
       .insert(users)
       .values({
-        id: DEFAULT_USER_ID,
+        id: userId,
         name: body.name ?? 'Learner',
         targetLevel: (level ?? 'A1') as TargetLevel,
       })
@@ -76,7 +81,7 @@ export async function PUT(request: NextRequest) {
     const [existing] = await db
       .select()
       .from(userSettings)
-      .where(eq(userSettings.userId, DEFAULT_USER_ID));
+      .where(eq(userSettings.userId, userId));
 
     if (existing) {
       await db
@@ -87,18 +92,18 @@ export async function PUT(request: NextRequest) {
           dailyGoal: dailyGoal ?? existing.dailyGoal,
           updatedAt: new Date(),
         })
-        .where(eq(userSettings.userId, DEFAULT_USER_ID));
+        .where(eq(userSettings.userId, userId));
     } else {
       await db.insert(userSettings).values({
-        userId: DEFAULT_USER_ID,
+        userId,
         theme: theme ?? 'system',
         focusMode: body.focusMode ?? false,
         dailyGoal: dailyGoal ?? 20,
       });
     }
 
-    const [user] = await db.select().from(users).where(eq(users.id, DEFAULT_USER_ID));
-    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, DEFAULT_USER_ID));
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
 
     return NextResponse.json({
       success: true,
@@ -110,6 +115,9 @@ export async function PUT(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     console.error('Settings error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }

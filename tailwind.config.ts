@@ -8,6 +8,16 @@ const config: Config = {
   ],
   darkMode: 'class',
   theme: {
+    screens: {
+      'xs': '375px',
+      'sm': '640px',
+      'md': '768px',
+      'iphone14': { raw: '(max-width: 430px) and (max-height: 932px)' },
+      'lg': '1024px',
+      'xl': '1280px',
+      'macair': { raw: '(min-width: 1280px) and (max-width: 1600px) and (min-resolution: 2dppx)' },
+      '2xl': '1536px',
+    },
     extend: {
       fontFamily: {
         sans: ['Inter', 'SF Pro Display', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],

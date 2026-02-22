@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { grammarTopics, grammarAttempts } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
-import { DEFAULT_USER_ID } from '@/lib/utils';
+import { getCurrentUserId } from '@/lib/get-user';
 
 interface AnswerInput {
   exerciseId: string;
@@ -22,6 +22,7 @@ export async function POST(
   { params }: { params: Promise<{ topicId: string }> }
 ) {
   try {
+    const userId = await getCurrentUserId();
     const { topicId } = await params;
     const body = await request.json();
     const answersInput: AnswerInput[] = body.answers ?? [];
@@ -74,7 +75,7 @@ export async function POST(
     const maxScore = exercises.length;
 
     await db.insert(grammarAttempts).values({
-      userId: DEFAULT_USER_ID,
+      userId,
       topicId,
       score,
       maxScore,
@@ -87,6 +88,9 @@ export async function POST(
       results,
     });
   } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -46,5 +46,3 @@ export function scoreToColor(score: number, max: number): string {
   if (pct >= 60) return 'text-amber-500';
   return 'text-red-500';
 }
-
-export const DEFAULT_USER_ID = 'default-user';

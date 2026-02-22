@@ -10,10 +10,9 @@ import {
 } from '@/lib/schema';
 import { eq, sql, desc, inArray } from 'drizzle-orm';
 import { generateInsights } from '@/lib/groq';
-import { DEFAULT_USER_ID } from '@/lib/utils';
+import { getCurrentUserId } from '@/lib/get-user';
 
-async function buildAndSaveInsights(forceRegenerate: boolean) {
-  const userId = DEFAULT_USER_ID;
+async function buildAndSaveInsights(forceRegenerate: boolean, userId: string) {
 
   // 1. Count total word reviews
   const reviewCountResult = await db
@@ -140,7 +139,8 @@ async function buildAndSaveInsights(forceRegenerate: boolean) {
 
 export async function GET(request: NextRequest) {
   try {
-    const result = await buildAndSaveInsights(false);
+    const userId = await getCurrentUserId();
+    const result = await buildAndSaveInsights(false, userId);
 
     if (!result) {
       return NextResponse.json({
@@ -160,6 +160,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     console.error('Insights GET error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
@@ -167,7 +170,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const result = await buildAndSaveInsights(true);
+    const userId = await getCurrentUserId();
+    const result = await buildAndSaveInsights(true, userId);
 
     if (!result) {
       return NextResponse.json({ error: 'Failed to generate insights' }, { status: 500 });
@@ -184,6 +188,9 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     console.error('Insights POST error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }

@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { userWords, wordReviewLogs, grammarTopics, grammarAttempts, examAttempts, examSectionScores, aiInsights, conversationSessions } from '@/lib/schema';
 import { eq, and, gte, desc } from 'drizzle-orm';
-import { DEFAULT_USER_ID } from '@/lib/utils';
+import { getCurrentUserId } from '@/lib/get-user';
 
 export async function GET() {
   try {
+    const userId = await getCurrentUserId();
     // 1. Vocabulary stats
-    const allWords = await db.select().from(userWords).where(eq(userWords.userId, DEFAULT_USER_ID));
+    const allWords = await db.select().from(userWords).where(eq(userWords.userId, userId));
     const totalWords = allWords.length;
     const byPOS: Record<string, number> = {};
     const byGender: Record<string, number> = { masculine: 0, feminine: 0, neuter: 0 };
@@ -24,12 +25,12 @@ export async function GET() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayReviews = await db.select().from(wordReviewLogs)
-      .where(and(eq(wordReviewLogs.userId, DEFAULT_USER_ID), gte(wordReviewLogs.reviewedAt, today)));
+      .where(and(eq(wordReviewLogs.userId, userId), gte(wordReviewLogs.reviewedAt, today)));
 
     // Calculate streak: count consecutive days with reviews
     const allReviews = await db.select({ reviewedAt: wordReviewLogs.reviewedAt })
       .from(wordReviewLogs)
-      .where(eq(wordReviewLogs.userId, DEFAULT_USER_ID))
+      .where(eq(wordReviewLogs.userId, userId))
       .orderBy(desc(wordReviewLogs.reviewedAt));
 
     let streak = 0;
@@ -56,13 +57,13 @@ export async function GET() {
     }
 
     const allGrammarAttempts = await db.select().from(grammarAttempts)
-      .where(eq(grammarAttempts.userId, DEFAULT_USER_ID));
+      .where(eq(grammarAttempts.userId, userId));
     const completedTopicIds = new Set(allGrammarAttempts.filter(a => a.score / a.maxScore >= 0.6).map(a => a.topicId));
     const grammarCompletion = allTopics.length > 0 ? Math.round((completedTopicIds.size / allTopics.length) * 100) : 0;
 
     // 4. Exam history
     const exams = await db.select().from(examAttempts)
-      .where(eq(examAttempts.userId, DEFAULT_USER_ID))
+      .where(eq(examAttempts.userId, userId))
       .orderBy(desc(examAttempts.startedAt))
       .limit(10);
 
@@ -75,7 +76,7 @@ export async function GET() {
 
     // 5. Latest insights
     const [latestInsight] = await db.select().from(aiInsights)
-      .where(eq(aiInsights.userId, DEFAULT_USER_ID))
+      .where(eq(aiInsights.userId, userId))
       .orderBy(desc(aiInsights.generatedAt))
       .limit(1);
 
@@ -86,7 +87,7 @@ export async function GET() {
 
     // 7. Conversation count
     const conversations = await db.select().from(conversationSessions)
-      .where(eq(conversationSessions.userId, DEFAULT_USER_ID));
+      .where(eq(conversationSessions.userId, userId));
 
     // 8. Words due for review
     const now = new Date();
@@ -102,6 +103,9 @@ export async function GET() {
       conversations: conversations.length,
     });
   } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
   }

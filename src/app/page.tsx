@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import {
   Brain,
@@ -12,6 +12,9 @@ import {
   BookMarked,
   Sparkles,
   ArrowRight,
+  AlertTriangle,
+  Bell,
+  X,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +83,107 @@ const GENDER_LABELS: Record<string, string> = {
   neuter: 'das',
 };
 
+function ReminderBanner() {
+  const [reminders, setReminders] = useState<Array<{ id: string; message: string; type: string }>>([]);
+
+  useEffect(() => {
+    fetch('/api/reminders')
+      .then((r) => r.json())
+      .then((d) => setReminders(d.reminders || []))
+      .catch(() => {});
+  }, []);
+
+  const dismiss = async (id: string) => {
+    await fetch('/api/reminders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reminderId: id }),
+    });
+    setReminders((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  if (reminders.length === 0) return null;
+
+  return (
+    <div className="mb-6 space-y-3">
+      <AnimatePresence>
+        {reminders.map((r) => (
+          <motion.div
+            key={r.id}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3"
+          >
+          <div className="flex items-center gap-3">
+            <Bell size={18} className="shrink-0 text-amber-500" />
+            <p className="text-sm text-[var(--text-primary)]">{r.message}</p>
+          </div>
+          <button
+            onClick={() => dismiss(r.id)}
+            className="ml-3 shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+          >
+            <X size={16} />
+          </button>
+        </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function HardWordsCard() {
+  const [hardWords, setHardWords] = useState<Array<{ word: string; meaning: string; accuracy: number }>>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/vocabulary/analytics')
+      .then((r) => r.json())
+      .then((d) => {
+        setHardWords(d.hardWords || []);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  return (
+    <GlassCard hover={false}>
+      <h2 className="flex items-center gap-2 text-base font-semibold">
+        <AlertTriangle size={18} className="text-red-500" />
+        Top 10 Hardest Words
+      </h2>
+      {!loaded ? (
+        <p className="mt-4 text-sm text-[var(--text-tertiary)]">Loading...</p>
+      ) : hardWords.length === 0 ? (
+        <p className="mt-4 text-sm text-[var(--text-tertiary)]">Review more words to see difficulty analytics.</p>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {hardWords.map((w, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)]/50 px-3 py-2"
+            >
+              <div className="min-w-0 flex-1">
+                <span className="text-sm font-medium">{w.word}</span>
+                <span className="ml-2 text-xs text-[var(--text-tertiary)]">{w.meaning}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                  <div
+                    className={`h-full ${w.accuracy < 40 ? 'bg-red-500' : w.accuracy < 70 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                    style={{ width: `${w.accuracy}%` }}
+                  />
+                </div>
+                <span className="w-10 text-right text-xs font-medium text-[var(--text-secondary)]">{w.accuracy}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </GlassCard>
+  );
+}
+
 function strengthColor(idx: number, total: number): string {
   const ratio = (idx + 1) / total;
   if (ratio <= 0.33) return 'text-red-500';
@@ -114,6 +218,8 @@ export default function DashboardPage() {
         title={getGreeting()}
         subtitle="Your German journey continues. Keep the momentum."
       />
+
+      <ReminderBanner />
 
       {/* Row 1: Quick Stats */}
       <motion.div
@@ -335,6 +441,13 @@ export default function DashboardPage() {
               </p>
             )}
           </GlassCard>
+        </motion.div>
+      </motion.div>
+
+      {/* Row: Hard Words */}
+      <motion.div className="mt-8" variants={container} initial="hidden" animate="show">
+        <motion.div variants={item}>
+          <HardWordsCard />
         </motion.div>
       </motion.div>
 

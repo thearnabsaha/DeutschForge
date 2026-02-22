@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { conversationMessages, conversationSessions } from '@/lib/schema';
 import { eq, and, asc } from 'drizzle-orm';
-import { DEFAULT_USER_ID } from '@/lib/utils';
+import { getCurrentUserId } from '@/lib/get-user';
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getCurrentUserId();
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
 
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           eq(conversationSessions.id, sessionId),
-          eq(conversationSessions.userId, DEFAULT_USER_ID)
+          eq(conversationSessions.userId, userId)
         )
       )
       .limit(1);
@@ -51,6 +52,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ messages });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     console.error('Chat messages error:', error);
     return NextResponse.json({ messages: [] }, { status: 500 });
   }

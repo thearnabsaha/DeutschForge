@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { GraduationCap, Clock, BookOpen, Headphones, PenTool, MessageCircle, ArrowRight, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { PageHeader } from '@/components/ui/page-header';
 import { GlassCard } from '@/components/ui/glass-card';
 import { cn } from '@/lib/utils';
@@ -46,10 +47,19 @@ export default function ExamSetupPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10 lg:px-8">
-      <PageHeader
-        title="Goethe-Zertifikat Simulator"
-        subtitle="Full mock exam experience"
-      />
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <PageHeader
+          title="Goethe-Zertifikat Simulator"
+          subtitle="Full mock exam experience"
+        />
+        <Link
+          href="/exam/history"
+          className="inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)] hover:underline shrink-0"
+        >
+          View Exam History
+          <ArrowRight size={16} />
+        </Link>
+      </div>
 
       <motion.div
         className="mt-8"

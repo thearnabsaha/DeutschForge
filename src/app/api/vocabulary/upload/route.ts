@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { userWords } from '@/lib/schema';
 import { enrichWords } from '@/lib/groq';
-import { DEFAULT_USER_ID } from '@/lib/utils';
+import { getCurrentUserId } from '@/lib/get-user';
 
 function parseWords(wordsString: string): string[] {
   const raw = wordsString
@@ -14,6 +14,7 @@ function parseWords(wordsString: string): string[] {
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getCurrentUserId();
     const body = await request.json();
     const { words: wordsInput } = body;
     if (typeof wordsInput !== 'string') {
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
     for (const w of enrichedWords) {
       await db.insert(userWords).values({
-        userId: DEFAULT_USER_ID,
+        userId,
         word: w.word,
         partOfSpeech: w.part_of_speech,
         gender: w.gender,
@@ -46,6 +47,9 @@ export async function POST(request: NextRequest) {
       words: enrichedWords,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     console.error('Vocabulary upload error:', error);
     return NextResponse.json({ success: false, error: 'Upload failed' }, { status: 500 });
   }

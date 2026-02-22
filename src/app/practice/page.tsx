@@ -83,11 +83,9 @@ const MODES: Array<{
   },
 ];
 
-const GENDER_OPTIONS = [
-  { value: 'der', label: 'der', target: 'masculine' },
-  { value: 'die', label: 'die', target: 'feminine' },
-  { value: 'das', label: 'das', target: 'neuter' },
-];
+function stripArticle(word: string): string {
+  return word.replace(/^(der|die|das|ein|eine|einen|einem|einer)\s+/i, '').trim();
+}
 
 const PRONOUNS = ['ich', 'du', 'er', 'wir', 'ihr', 'sie'] as const;
 
@@ -122,7 +120,7 @@ export default function PracticePage() {
   const [sentenceInput, setSentenceInput] = useState('');
 
   // Gender mode
-  const [genderChoice, setGenderChoice] = useState<string | null>(null);
+  const [genderInput, setGenderInput] = useState('');
 
   // Conjugation mode
   const [conjugationPronoun, setConjugationPronoun] = useState<string>('');
@@ -141,7 +139,7 @@ export default function PracticePage() {
       setCorrect(false);
       setMeaningInput('');
       setSentenceInput('');
-      setGenderChoice(null);
+      setGenderInput('');
       setConjugationInput('');
       if (!data.words || data.words.length === 0) {
         setSessionComplete(true);
@@ -191,7 +189,7 @@ export default function PracticePage() {
     setAnswered(false);
     setMeaningInput('');
     setSentenceInput('');
-    setGenderChoice(null);
+    setGenderInput('');
     setConjugationInput('');
 
     if (currentIndex + 1 < queue.length) {
@@ -212,11 +210,11 @@ export default function PracticePage() {
     setAnswered(true);
   };
 
-  const handleGenderChoice = (choice: string) => {
-    if (!currentWord || genderChoice) return;
-    const target = GENDER_OPTIONS.find((g) => g.value === choice)?.target;
-    const ok = target === currentWord.gender;
-    setGenderChoice(choice);
+  const handleGenderCheck = () => {
+    if (!currentWord || answered) return;
+    const input = genderInput.trim().toLowerCase();
+    const correctArticle = currentWord.gender === 'masculine' ? 'der' : currentWord.gender === 'feminine' ? 'die' : 'das';
+    const ok = input === correctArticle;
     setCorrect(ok);
     setAnswered(true);
   };
@@ -522,34 +520,36 @@ export default function PracticePage() {
               {/* Gender Test */}
               {mode === 'gender' && (
                 <GlassCard hover={false} className="text-center">
-                  <h2 className="text-3xl font-semibold">{currentWord.word}</h2>
-                  <p className="mt-2 text-sm text-[var(--text-tertiary)]">
-                    Choose the correct article
-                  </p>
-                  <div className="mt-8 flex justify-center gap-4">
-                    {GENDER_OPTIONS.map((g) => (
-                      <motion.button
-                        key={g.value}
-                        onClick={() => handleGenderChoice(g.value)}
-                        disabled={!!genderChoice}
-                        className={`rounded-2xl px-6 py-3 text-lg font-semibold transition-all ${
-                          genderChoice === g.value
-                            ? g.target === currentWord.gender
-                              ? 'bg-emerald-500 text-white'
-                              : 'bg-red-500 text-white'
-                            : 'bg-[var(--bg-tertiary)] hover:bg-[var(--border)]'
-                        }`}
-                        whileHover={!genderChoice ? { scale: 1.05 } : {}}
-                        whileTap={!genderChoice ? { scale: 0.95 } : {}}
-                      >
-                        {g.label}
-                      </motion.button>
-                    ))}
+                  <p className="text-sm text-[var(--text-tertiary)]">What is the article?</p>
+                  <h2 className="mt-4 text-3xl font-semibold">{stripArticle(currentWord.word)}</h2>
+                  <p className="mt-2 text-sm text-[var(--text-secondary)]">({currentWord.meaning})</p>
+                  <div className="mt-6">
+                    <input
+                      type="text"
+                      placeholder="der / die / das"
+                      value={genderInput}
+                      onChange={(e) => setGenderInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && !answered && handleGenderCheck()}
+                      disabled={answered}
+                      className="input-field mx-auto max-w-[200px] text-center text-lg"
+                      autoFocus
+                    />
+                    {!answered && (
+                      <button className="btn-primary mt-4" onClick={handleGenderCheck} disabled={!genderInput.trim()}>
+                        Check
+                      </button>
+                    )}
                   </div>
                   {answered && (
-                    <p className="mt-4 text-sm text-[var(--text-secondary)]">
-                      Correct: {currentWord.gender === 'masculine' ? 'der' : currentWord.gender === 'feminine' ? 'die' : 'das'}
-                    </p>
+                    <div className="mt-4">
+                      {correct ? (
+                        <p className="text-emerald-600 dark:text-emerald-400 font-medium">Correct!</p>
+                      ) : (
+                        <p className="text-red-600 dark:text-red-400">
+                          Wrong. Correct article: <strong>{currentWord.gender === 'masculine' ? 'der' : currentWord.gender === 'feminine' ? 'die' : 'das'}</strong>
+                        </p>
+                      )}
+                    </div>
                   )}
                 </GlassCard>
               )}

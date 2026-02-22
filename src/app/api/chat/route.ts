@@ -6,10 +6,11 @@ import {
 } from '@/lib/schema';
 import { eq, desc } from 'drizzle-orm';
 import { chatWithCorrections } from '@/lib/groq';
-import { DEFAULT_USER_ID } from '@/lib/utils';
+import { getCurrentUserId } from '@/lib/get-user';
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getCurrentUserId();
     const body = (await request.json()) as {
       sessionId?: string;
       message: string;
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
       const [newSession] = await db
         .insert(conversationSessions)
         .values({
-          userId: DEFAULT_USER_ID,
+          userId,
           cefrLevel,
           messageCount: 0,
         })
@@ -99,6 +100,9 @@ export async function POST(request: NextRequest) {
       corrections: corrections || [],
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     console.error('Chat error:', error);
     return NextResponse.json(
       { error: 'Failed to get AI response' },

@@ -17,6 +17,7 @@ import {
   BookOpen,
   MessageCircle,
   BookMarked,
+  Mic,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/practice', label: 'Practice', icon: Brain },
   { href: '/chat', label: 'Chat', icon: MessageCircle },
+  { href: '/chat/voice', label: 'Voice Chat', icon: Mic },
   { href: '/vocabulary', label: 'Vocabulary', icon: BookOpen },
   { href: '/grammar', label: 'Grammar', icon: BookMarked },
   { href: '/exam', label: 'Exam', icon: GraduationCap },
@@ -42,9 +44,9 @@ export function Sidebar() {
 
   useEffect(() => setMounted(true), []);
 
-  const isExamActive = pathname.includes('/exam/') && pathname !== '/exam';
-
-  if (isExamActive) return null;
+  const isExamActive = pathname.includes('/exam/') && pathname !== '/exam' && !pathname.startsWith('/exam/history');
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  if (isExamActive || isAuthPage) return null;
 
   return (
     <>

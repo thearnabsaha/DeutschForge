@@ -7,10 +7,11 @@ import {
   examSectionScores,
 } from '@/lib/schema';
 import { eq, asc } from 'drizzle-orm';
-import { DEFAULT_USER_ID } from '@/lib/utils';
+import { getCurrentUserId } from '@/lib/get-user';
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getCurrentUserId();
     const { cefrLevel } = (await request.json()) as { cefrLevel: string };
 
     const [template] = await db
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     const [attempt] = await db
       .insert(examAttempts)
       .values({
-        userId: DEFAULT_USER_ID,
+        userId,
         templateId: template.id,
         cefrLevel,
         status: 'in_progress',
@@ -56,6 +57,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ attemptId: attempt.id });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     console.error('Exam start error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }

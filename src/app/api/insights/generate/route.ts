@@ -10,11 +10,11 @@ import {
 } from '@/lib/schema';
 import { eq, sql, inArray } from 'drizzle-orm';
 import { generateInsights } from '@/lib/groq';
-import { DEFAULT_USER_ID } from '@/lib/utils';
+import { getCurrentUserId } from '@/lib/get-user';
 
 export async function POST(_request: NextRequest) {
   try {
-    const userId = DEFAULT_USER_ID;
+    const userId = await getCurrentUserId();
 
     // Count total word reviews
     const reviewCountResult = await db
@@ -133,6 +133,9 @@ export async function POST(_request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     console.error('Insights generate error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }

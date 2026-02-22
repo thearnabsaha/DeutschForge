@@ -16,7 +16,9 @@ import {
   Upload,
   User,
   Target,
+  LogOut,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
 import { GlassCard } from '@/components/ui/glass-card';
 import { cn } from '@/lib/utils';
@@ -29,6 +31,7 @@ const themes = [
 ];
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { setTheme } = useTheme();
   const [name, setName] = useState('Learner');
   const [targetLevel, setTargetLevel] = useState('A1');
@@ -43,8 +46,15 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetch('/api/settings')
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.status === 401) {
+          router.push('/login');
+          return null;
+        }
+        return r.json();
+      })
       .then((data) => {
+        if (!data) return;
         setName(data.name || 'Learner');
         setTargetLevel(data.targetLevel || 'A1');
         setThemeChoice(data.theme || 'system');
@@ -53,7 +63,7 @@ export default function SettingsPage() {
         if (data.theme) setTheme(data.theme);
       })
       .catch(() => {});
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -105,6 +115,13 @@ export default function SettingsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ focusMode: enabled }),
     }).catch(() => {});
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+    } catch {}
   };
 
   return (
@@ -327,6 +344,29 @@ export default function SettingsPage() {
             <p className="mt-2 text-[11px] text-[var(--text-tertiary)]">
               Placeholder — functionality coming soon
             </p>
+          </GlassCard>
+        </motion.div>
+
+        {/* Account */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <GlassCard hover={false}>
+            <h2 className="text-base font-semibold">Account</h2>
+            <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+              Sign out of your account
+            </p>
+            <motion.button
+              onClick={handleLogout}
+              className="mt-4 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--danger)] transition-colors hover:bg-[var(--danger)]/10"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <LogOut size={16} />
+              Log Out
+            </motion.button>
           </GlassCard>
         </motion.div>
       </div>

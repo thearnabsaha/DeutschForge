@@ -15,12 +15,16 @@ import { createId } from '@paralleldrive/cuid2';
 
 export const users = pgTable('users', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
+  username: text('username').notNull().default(''),
+  passwordHash: text('password_hash').notNull().default(''),
   name: text('name').notNull().default('Learner'),
   targetLevel: text('target_level').notNull().default('A1'),
   timezone: text('timezone').notNull().default('Europe/Berlin'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (t) => ({
+  usernameUniq: uniqueIndex('users_username_uniq').on(t.username),
+}));
 
 export const userSettings = pgTable('user_settings', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
@@ -155,6 +159,19 @@ export const aiInsights = pgTable('ai_insights', {
   generatedAt: timestamp('generated_at').defaultNow().notNull(),
 }, (t) => ({
   userIdx: index('ai_insights_user_idx').on(t.userId),
+}));
+
+// ── REMINDERS ────────────────────────────────────────────────
+
+export const reminders = pgTable('reminders', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // 'missed_days' | 'overdue_cards'
+  message: text('message').notNull(),
+  read: boolean('read').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  userIdx: index('reminders_user_idx').on(t.userId, t.createdAt),
 }));
 
 // ── EXISTING TABLES (kept for exam system) ───────────────────

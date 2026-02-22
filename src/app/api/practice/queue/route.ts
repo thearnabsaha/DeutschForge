@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { userWords } from '@/lib/schema';
 import { eq, and, lte, asc } from 'drizzle-orm';
-import { DEFAULT_USER_ID } from '@/lib/utils';
+import { getCurrentUserId } from '@/lib/get-user';
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getCurrentUserId();
     const { searchParams } = new URL(request.url);
     const mode = searchParams.get('mode') || 'flashcard';
     const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 50);
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
           ? eq(userWords.partOfSpeech, 'verb')
           : undefined;
 
-    const baseConditions = [eq(userWords.userId, DEFAULT_USER_ID), lte(userWords.nextReview, now)];
+    const baseConditions = [eq(userWords.userId, userId), lte(userWords.nextReview, now)];
     const fullConditions = posFilter ? and(...baseConditions, posFilter) : and(...baseConditions);
 
     // 1. Query userWords for due words (nextReview <= now), ordered by nextReview ASC
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
       const dueIds = new Set(dueWords.map((w) => w.id));
 
       const newConditions = [
-        eq(userWords.userId, DEFAULT_USER_ID),
+        eq(userWords.userId, userId),
         eq(userWords.reps, 0),
         ...(posFilter ? [posFilter] : []),
       ];
@@ -61,6 +62,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ words });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
     console.error('Practice queue error:', error);
     return NextResponse.json({ words: [] });
   }
