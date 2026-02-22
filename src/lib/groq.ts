@@ -418,6 +418,7 @@ export async function generateListeningExercise(
   cefrLevel: string,
   difficulty: string,
   userVocabulary: string[],
+  maxNewWords: number = 2,
 ): Promise<import('./validations').ListeningExercise> {
   const { listeningExerciseSchema } = await import('./validations');
 
@@ -471,8 +472,9 @@ IMPORTANT:
 - Questions MUST be in German  
 - Options MUST be in German
 - Explanations in English
-- Use mostly words from the user's vocabulary list
+- Use ONLY words from the user's vocabulary list, with a MAXIMUM of ${maxNewWords} new word(s) not in the list
 - Keep grammar appropriate to ${cefrLevel} level
+- new_words_used must list ONLY words NOT in the user's vocabulary
 - For short_answer type questions, put the correct answer as options[0] and set correct_index to 0`;
 
   const completion = await callGroq({

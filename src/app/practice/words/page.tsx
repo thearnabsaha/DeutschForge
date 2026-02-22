@@ -54,7 +54,7 @@ interface WordBatch {
   words: UserWord[];
 }
 
-type FlowMode = 'list' | 'learn' | 'practice' | 'exam' | 'select_words' | 'filters' | 'gender_drill' | 'plural_drill';
+type FlowMode = 'list' | 'learn' | 'practice' | 'exam' | 'select_words' | 'filters' | 'gender_drill' | 'plural_drill' | 'word_only';
 type QuestionType = 'meaning' | 'gender' | 'verb_tense' | 'fill_blank' | 'plural';
 type DirectionFilter = 'de_to_en' | 'en_to_de' | 'both';
 type FormatFilter = 'words' | 'sentence' | 'mixed';
@@ -154,6 +154,25 @@ function checkAnswer(type: QuestionType, userAnswer: string, correctAnswer: stri
   return u === c;
 }
 
+function normalizeGerman(s: string): string {
+  return s.trim().toLowerCase()
+    .replace(/[.,;:!?'"()]/g, '')
+    .replace(/ae/g, 'ä').replace(/oe/g, 'ö').replace(/ue/g, 'ü')
+    .replace(/ss/g, 'ß');
+}
+
+function checkWordOnly(userAnswer: string, correctAnswer: string): boolean {
+  const u = userAnswer.trim().toLowerCase().replace(/[.,;:!?'"()]/g, '');
+  const c = correctAnswer.trim().toLowerCase().replace(/[.,;:!?'"()]/g, '');
+  if (!u) return false;
+  if (u === c) return true;
+  if (normalizeGerman(userAnswer) === normalizeGerman(correctAnswer)) return true;
+  const cParts = c.split(/[,;/]/).map(p => p.trim());
+  return cParts.some(p => p === u || normalizeGerman(p) === normalizeGerman(userAnswer));
+}
+
+type WordOnlyDirection = 'de_to_en' | 'en_to_de' | 'both';
+
 export default function PracticeWordsPage() {
   const [batches, setBatches] = useState<WordBatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,6 +242,18 @@ export default function PracticeWordsPage() {
     correct_answer: string;
     explanation?: string;
   } | null>(null);
+
+  // Word-only mode
+  const [woDirection, setWoDirection] = useState<WordOnlyDirection>('de_to_en');
+  const [woWords, setWoWords] = useState<Array<{ word: UserWord; prompt: string; correctAnswer: string }>>([]);
+  const [woIndex, setWoIndex] = useState(0);
+  const [woInput, setWoInput] = useState('');
+  const [woAnswered, setWoAnswered] = useState(false);
+  const [woCorrect, setWoCorrect] = useState(false);
+  const [woCorrectCount, setWoCorrectCount] = useState(0);
+  const [woComplete, setWoComplete] = useState(false);
+  const [woStartTime, setWoStartTime] = useState(0);
+  const [woTotalTime, setWoTotalTime] = useState(0);
 
   const fetchBatches = useCallback(async () => {
     setLoading(true);
@@ -462,6 +493,54 @@ export default function PracticeWordsPage() {
     setDrillCorrectCount(0);
     setDrillComplete(false);
     setFlowMode('plural_drill');
+  };
+
+  const startWordOnly = (batch: WordBatch, direction: WordOnlyDirection) => {
+    if (batch.words.length === 0) return;
+    setSelectedBatch(batch);
+    const shuffled = [...batch.words].sort(() => Math.random() - 0.5);
+    const pairs = shuffled.map((w) => {
+      const dir = direction === 'both' ? (Math.random() > 0.5 ? 'de_to_en' : 'en_to_de') : direction;
+      return {
+        word: w,
+        prompt: dir === 'de_to_en' ? w.word : w.meaning,
+        correctAnswer: dir === 'de_to_en' ? w.meaning : w.word,
+      };
+    });
+    setWoWords(pairs);
+    setWoDirection(direction);
+    setWoIndex(0);
+    setWoInput('');
+    setWoAnswered(false);
+    setWoCorrectCount(0);
+    setWoComplete(false);
+    setWoStartTime(Date.now());
+    setWoTotalTime(0);
+    setFlowMode('word_only');
+  };
+
+  const handleWoCheck = () => {
+    const current = woWords[woIndex];
+    if (!current || woAnswered) return;
+    const correct = checkWordOnly(woInput, current.correctAnswer);
+    setWoCorrect(correct);
+    setWoAnswered(true);
+    correct ? sfx.correct() : sfx.wrong();
+    if (correct) setWoCorrectCount((c) => c + 1);
+  };
+
+  const handleWoNext = () => {
+    if (woIndex + 1 >= woWords.length) {
+      setWoComplete(true);
+      setWoTotalTime(Math.round((Date.now() - woStartTime) / 1000));
+      sfx.complete();
+      return;
+    }
+    setWoIndex((i) => i + 1);
+    setWoInput('');
+    setWoAnswered(false);
+    setWoCorrect(false);
+    sfx.swoosh();
   };
 
   const handleBatchRename = async (batchId: string, newName: string) => {
@@ -782,6 +861,15 @@ export default function PracticeWordsPage() {
                               Plural Drill
                             </motion.button>
                           )}
+                          <motion.button
+                            className="inline-flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400"
+                            onClick={() => startWordOnly(batch, 'both')}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <Sparkles size={18} />
+                            Word Only
+                          </motion.button>
                         </div>
                       </div>
                     </GlassCard>
@@ -1634,6 +1722,168 @@ export default function PracticeWordsPage() {
                   >
                     Back to Batches
                   </motion.button>
+                </GlassCard>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+        {flowMode === 'word_only' && selectedBatch && (
+          <motion.div
+            key="word_only"
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <motion.button
+                onClick={() => { setFlowMode('list'); setSelectedBatch(null); }}
+                className="rounded-lg p-2 hover:bg-[var(--bg-tertiary)]"
+                whileTap={{ scale: 0.95 }}
+              >
+                <ArrowLeft size={20} />
+              </motion.button>
+              <div>
+                <h2 className="text-xl font-bold">Word Only Mode</h2>
+                <p className="text-sm text-[var(--text-secondary)]">{selectedBatch.name}</p>
+              </div>
+            </div>
+
+            {!woComplete && woWords.length > 0 && (
+              <>
+                <div className="flex gap-2 mb-4">
+                  {(['de_to_en', 'en_to_de', 'both'] as const).map((d) => (
+                    <motion.button
+                      key={d}
+                      onClick={() => {
+                        setWoDirection(d);
+                        startWordOnly(selectedBatch!, d);
+                      }}
+                      className={cn(
+                        'rounded-xl px-4 py-2 text-sm font-medium transition-all',
+                        woDirection === d
+                          ? 'bg-[var(--accent)] text-white'
+                          : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
+                      )}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      {d === 'de_to_en' ? 'DE → EN' : d === 'en_to_de' ? 'EN → DE' : 'Both'}
+                    </motion.button>
+                  ))}
+                </div>
+
+                <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"
+                    animate={{ width: `${((woIndex + 1) / woWords.length) * 100}%` }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  />
+                </div>
+                <p className="mb-4 text-xs text-[var(--text-tertiary)] text-right">
+                  {woIndex + 1} / {woWords.length} · {woCorrectCount} correct
+                </p>
+
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={woIndex}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <GlassCard hover={false} className="text-center">
+                      <p className="text-3xl font-bold mb-2">{woWords[woIndex]?.prompt}</p>
+                      <p className="text-xs text-[var(--text-tertiary)] mb-6">
+                        {woWords[woIndex]?.word.partOfSpeech}
+                        {woWords[woIndex]?.word.gender ? ` · ${woWords[woIndex].word.gender}` : ''}
+                      </p>
+
+                      <input
+                        type="text"
+                        value={woInput}
+                        onChange={(e) => setWoInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') woAnswered ? handleWoNext() : handleWoCheck();
+                        }}
+                        placeholder="Type your answer..."
+                        disabled={woAnswered}
+                        className="input-field mx-auto max-w-md text-center text-lg"
+                        autoFocus
+                        autoComplete="off"
+                      />
+
+                      {woAnswered && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-4"
+                        >
+                          <div className={cn(
+                            'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium',
+                            woCorrect ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          )}>
+                            {woCorrect ? <CheckCircle2 size={16} /> : <></>}
+                            {woCorrect ? 'Correct!' : `Answer: ${woWords[woIndex]?.correctAnswer}`}
+                          </div>
+                        </motion.div>
+                      )}
+
+                      <div className="mt-6 flex justify-center gap-3">
+                        {!woAnswered ? (
+                          <motion.button
+                            onClick={handleWoCheck}
+                            disabled={!woInput.trim()}
+                            className="btn-primary"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            Check
+                          </motion.button>
+                        ) : (
+                          <motion.button
+                            onClick={handleWoNext}
+                            className="btn-primary"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            {woIndex + 1 >= woWords.length ? 'Finish' : 'Next'}
+                          </motion.button>
+                        )}
+                      </div>
+                    </GlassCard>
+                  </motion.div>
+                </AnimatePresence>
+              </>
+            )}
+
+            {woComplete && (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                <GlassCard hover={false} className="text-center">
+                  <CheckCircle2 size={48} className="mx-auto text-emerald-500" />
+                  <h3 className="mt-4 text-2xl font-bold">Word Only Complete!</h3>
+                  <p className="mt-2 text-lg text-[var(--text-secondary)]">
+                    {woCorrectCount} / {woWords.length} correct ({Math.round((woCorrectCount / woWords.length) * 100)}%)
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--text-tertiary)]">
+                    Time: {woTotalTime}s · Avg: {woWords.length > 0 ? (woTotalTime / woWords.length).toFixed(1) : 0}s per word
+                  </p>
+                  <div className="mt-6 flex justify-center gap-3">
+                    <motion.button
+                      onClick={() => startWordOnly(selectedBatch!, woDirection)}
+                      className="btn-primary"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Try Again
+                    </motion.button>
+                    <motion.button
+                      onClick={() => { setFlowMode('list'); setSelectedBatch(null); }}
+                      className="btn-secondary"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Back to Batches
+                    </motion.button>
+                  </div>
                 </GlassCard>
               </motion.div>
             )}

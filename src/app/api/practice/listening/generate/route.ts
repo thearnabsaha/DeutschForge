@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { userWords, listeningAttempts } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 import { generateListeningExercise } from '@/lib/groq';
 
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-    const { cefrLevel, difficulty } = await req.json();
+    const { cefrLevel, difficulty, selectedWordIds } = await req.json();
 
     if (!['A1', 'A2', 'B1', 'B2'].includes(cefrLevel)) {
       return NextResponse.json({ error: 'Invalid CEFR level' }, { status: 400 });
@@ -19,16 +19,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid difficulty' }, { status: 400 });
     }
 
-    const words = await db.select({ word: userWords.word })
-      .from(userWords)
-      .where(eq(userWords.userId, session.id));
+    let vocabulary: string[];
 
-    const vocabulary = words.map(w => w.word);
+    if (Array.isArray(selectedWordIds) && selectedWordIds.length > 0) {
+      const selected = await db.select({ word: userWords.word })
+        .from(userWords)
+        .where(and(eq(userWords.userId, session.id), inArray(userWords.id, selectedWordIds)));
+      vocabulary = selected.map(w => w.word);
+      if (vocabulary.length === 0) {
+        return NextResponse.json({ error: 'No valid words selected' }, { status: 400 });
+      }
+    } else {
+      const words = await db.select({ word: userWords.word })
+        .from(userWords)
+        .where(eq(userWords.userId, session.id));
+      vocabulary = words.map(w => w.word);
+    }
+
     if (vocabulary.length === 0) {
       return NextResponse.json({ error: 'Upload some vocabulary first to use listening practice' }, { status: 400 });
     }
 
-    const exercise = await generateListeningExercise(cefrLevel, difficulty, vocabulary);
+    const maxNewWords = (Array.isArray(selectedWordIds) && selectedWordIds.length > 0) ? 1 : 2;
+    const exercise = await generateListeningExercise(cefrLevel, difficulty, vocabulary, maxNewWords);
 
     const [attempt] = await db.insert(listeningAttempts).values({
       userId: session.id,

@@ -275,6 +275,12 @@ export default function ListeningPracticePage() {
   const [history, setHistory] = useState<HistoryResponse | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  // Vocabulary selection
+  const [vocabMode, setVocabMode] = useState<'all' | 'select'>('all');
+  const [allWords, setAllWords] = useState<Array<{ id: string; word: string; meaning: string }>>([]);
+  const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
+  const [vocabLoading, setVocabLoading] = useState(false);
+
   const ambientRef = useRef<AmbientNoise | null>(null);
   const [timerSeconds, setTimerSeconds] = useState(0);
 
@@ -285,6 +291,25 @@ export default function ListeningPracticePage() {
   useEffect(() => {
     setSubtitlesOn(SUBTITLE_DEFAULTS[difficulty]);
   }, [difficulty]);
+
+  const fetchVocabulary = useCallback(async () => {
+    setVocabLoading(true);
+    try {
+      const res = await fetch('/api/vocabulary');
+      const data = await res.json();
+      const words = (data.words || []).map((w: { id: string; word: string; meaning: string }) => ({
+        id: w.id,
+        word: w.word,
+        meaning: w.meaning,
+      }));
+      setAllWords(words);
+      setSelectedWordIds(new Set(words.map((w: { id: string }) => w.id)));
+    } catch {
+      setAllWords([]);
+    } finally {
+      setVocabLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -300,14 +325,22 @@ export default function ListeningPracticePage() {
   }, [phase]);
 
   const handleGenerate = useCallback(async () => {
+    if (vocabMode === 'select' && selectedWordIds.size === 0) {
+      setError('Select at least one word');
+      return;
+    }
     setGenerating(true);
     setError(null);
     sfx.click();
     try {
+      const payload: Record<string, unknown> = { cefrLevel, difficulty };
+      if (vocabMode === 'select') {
+        payload.selectedWordIds = Array.from(selectedWordIds);
+      }
       const res = await fetch('/api/practice/listening/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cefrLevel, difficulty }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Generation failed');
@@ -329,7 +362,7 @@ export default function ListeningPracticePage() {
     } finally {
       setGenerating(false);
     }
-  }, [cefrLevel, difficulty]);
+  }, [cefrLevel, difficulty, vocabMode, selectedWordIds]);
 
   const handlePlay = useCallback(() => {
     if (!script) return;
@@ -716,6 +749,99 @@ export default function ListeningPracticePage() {
               </div>
             </div>
 
+            <div>
+              <h2 className="mb-4 text-sm font-semibold text-[var(--text-secondary)]">Vocabulary</h2>
+              <div className="flex gap-2 mb-4">
+                <motion.button
+                  onClick={() => { setVocabMode('all'); sfx.click(); }}
+                  className={cn(
+                    'rounded-xl px-5 py-2.5 text-sm font-medium transition-all',
+                    vocabMode === 'all' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
+                  )}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Use All My Words
+                </motion.button>
+                <motion.button
+                  onClick={() => {
+                    setVocabMode('select');
+                    if (allWords.length === 0) fetchVocabulary();
+                    sfx.click();
+                  }}
+                  className={cn(
+                    'rounded-xl px-5 py-2.5 text-sm font-medium transition-all',
+                    vocabMode === 'select' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
+                  )}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Select Specific Words
+                </motion.button>
+              </div>
+
+              <AnimatePresence>
+                {vocabMode === 'select' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    {vocabLoading ? (
+                      <div className="flex justify-center py-6">
+                        <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
+                      </div>
+                    ) : allWords.length === 0 ? (
+                      <p className="py-4 text-center text-sm text-[var(--text-tertiary)]">No vocabulary found. Upload words first.</p>
+                    ) : (
+                      <GlassCard hover={false}>
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-xs text-[var(--text-tertiary)]">{selectedWordIds.size} / {allWords.length} selected</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setSelectedWordIds(new Set(allWords.map(w => w.id)))}
+                              className="text-xs font-medium text-[var(--accent)]"
+                            >
+                              Select All
+                            </button>
+                            <button
+                              onClick={() => setSelectedWordIds(new Set())}
+                              className="text-xs font-medium text-[var(--text-tertiary)]"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        </div>
+                        <div className="max-h-52 overflow-y-auto space-y-1 scrollbar-none">
+                          {allWords.map((w) => (
+                            <label
+                              key={w.id}
+                              className={cn(
+                                'flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors',
+                                selectedWordIds.has(w.id) ? 'bg-[var(--accent)]/10' : 'hover:bg-[var(--bg-tertiary)]'
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedWordIds.has(w.id)}
+                                onChange={() => {
+                                  const next = new Set(selectedWordIds);
+                                  next.has(w.id) ? next.delete(w.id) : next.add(w.id);
+                                  setSelectedWordIds(next);
+                                }}
+                                className="h-4 w-4 rounded accent-[var(--accent)]"
+                              />
+                              <span className="text-sm font-medium">{w.word}</span>
+                              <span className="text-xs text-[var(--text-tertiary)]">{w.meaning}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </GlassCard>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {error && (
               <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
                 {error}
@@ -724,7 +850,7 @@ export default function ListeningPracticePage() {
 
             <motion.button
               onClick={handleGenerate}
-              disabled={generating}
+              disabled={generating || (vocabMode === 'select' && selectedWordIds.size === 0)}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] py-4 text-lg font-semibold text-white shadow-lg transition-all hover:opacity-95 disabled:opacity-70"
               whileHover={!generating ? { scale: 1.01 } : {}}
               whileTap={!generating ? { scale: 0.99 } : {}}
