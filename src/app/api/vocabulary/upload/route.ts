@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { userWords } from '@/lib/schema';
+import { userWords, wordBatches } from '@/lib/schema';
 import { enrichWords } from '@/lib/groq';
 import { getCurrentUserId } from '@/lib/get-user';
 
@@ -28,6 +28,11 @@ export async function POST(request: NextRequest) {
     if (enrichedWords.length === 0) {
       return NextResponse.json({ success: false, error: 'No words could be enriched' }, { status: 400 });
     }
+    const [batch] = await db.insert(wordBatches).values({
+      userId,
+      name: `Batch ${new Date().toLocaleDateString('de-DE')}`,
+      wordCount: enrichedWords.length,
+    }).returning();
     for (const w of enrichedWords) {
       await db.insert(userWords).values({
         userId,
@@ -39,6 +44,12 @@ export async function POST(request: NextRequest) {
         meaning: w.meaning,
         cefrLevel: w.cefr_level,
         exampleSentence: w.example_sentence,
+        verbType: w.verb_type ?? null,
+        auxiliaryType: w.auxiliary_type ?? null,
+        presentForm: w.present_form ?? null,
+        simplePast: w.simple_past ?? null,
+        perfectForm: w.perfect_form ?? null,
+        batchId: batch.id,
       });
     }
     return NextResponse.json({

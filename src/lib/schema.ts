@@ -22,6 +22,8 @@ export const users = pgTable('users', {
   timezone: text('timezone').notNull().default('Europe/Berlin'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  xp: integer('xp').notNull().default(0),
+  level: integer('level').notNull().default(1),
 }, (t) => ({
   usernameUniq: uniqueIndex('users_username_uniq').on(t.username),
 }));
@@ -50,6 +52,13 @@ export const userWords = pgTable('user_words', {
   meaning: text('meaning').notNull(),
   cefrLevel: text('cefr_level').notNull().default('A1'),
   exampleSentence: text('example_sentence'),
+  verbType: text('verb_type'),
+  auxiliaryType: text('auxiliary_type'),
+  presentForm: text('present_form'),
+  simplePast: text('simple_past'),
+  perfectForm: text('perfect_form'),
+  learned: boolean('learned').notNull().default(false),
+  batchId: text('batch_id'),
   stability: real('stability').notNull().default(0),
   difficulty: real('difficulty').notNull().default(0),
   scheduledDays: real('scheduled_days').notNull().default(0),
@@ -172,6 +181,41 @@ export const reminders = pgTable('reminders', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => ({
   userIdx: index('reminders_user_idx').on(t.userId, t.createdAt),
+}));
+
+export const wordBatches = pgTable('word_batches', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  wordCount: integer('word_count').notNull().default(0),
+  learnedCount: integer('learned_count').notNull().default(0),
+  practiceUnlocked: boolean('practice_unlocked').notNull().default(false),
+  examUnlocked: boolean('exam_unlocked').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  userIdx: index('word_batches_user_idx').on(t.userId),
+}));
+
+export const wordBatchExams = pgTable('word_batch_exams', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  batchId: text('batch_id').notNull().references(() => wordBatches.id, { onDelete: 'cascade' }),
+  score: real('score').notNull(),
+  maxScore: real('max_score').notNull(),
+  vocabAccuracy: real('vocab_accuracy'),
+  genderAccuracy: real('gender_accuracy'),
+  verbAccuracy: real('verb_accuracy'),
+  timeSpent: integer('time_spent'),
+  answers: jsonb('answers').$type<Array<{
+    wordId: string;
+    type: string;
+    userAnswer: string;
+    correctAnswer: string;
+    correct: boolean;
+  }>>().notNull(),
+  completedAt: timestamp('completed_at').defaultNow().notNull(),
+}, (t) => ({
+  userBatchIdx: index('wbe_user_batch_idx').on(t.userId, t.batchId),
 }));
 
 // ── EXISTING TABLES (kept for exam system) ───────────────────

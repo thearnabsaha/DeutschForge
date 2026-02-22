@@ -10,6 +10,11 @@ export const enrichedWordSchema = z.object({
   meaning: z.string(),
   cefr_level: z.enum(['A1', 'A2', 'B1', 'B2']),
   example_sentence: z.string(),
+  verb_type: z.enum(['regular', 'irregular', 'mixed']).nullable().optional(),
+  auxiliary_type: z.enum(['haben', 'sein']).nullable().optional(),
+  present_form: z.string().nullable().optional(),
+  simple_past: z.string().nullable().optional(),
+  perfect_form: z.string().nullable().optional(),
 });
 
 export const enrichedWordsResponseSchema = z.object({

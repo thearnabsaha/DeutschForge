@@ -89,7 +89,17 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ words: rows, analytics });
+    const verbs = rows.filter(w => w.partOfSpeech === 'verb');
+    const verbBreakdown = {
+      total: verbs.length,
+      regular: verbs.filter(w => w.verbType === 'regular').length,
+      irregular: verbs.filter(w => w.verbType === 'irregular').length,
+      mixed: verbs.filter(w => w.verbType === 'mixed').length,
+      haben: verbs.filter(w => w.auxiliaryType === 'haben').length,
+      sein: verbs.filter(w => w.auxiliaryType === 'sein').length,
+    };
+
+    return NextResponse.json({ words: rows, analytics, verbBreakdown });
   } catch (error) {
     if (error instanceof Error && error.message === 'Not authenticated') {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { userWords, wordReviewLogs, grammarTopics, grammarAttempts, examAttempts, examSectionScores, aiInsights, conversationSessions } from '@/lib/schema';
+import { userWords, wordReviewLogs, grammarTopics, grammarAttempts, examAttempts, examSectionScores, aiInsights, conversationSessions, users } from '@/lib/schema';
 import { eq, and, gte, desc } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/get-user';
 
@@ -20,6 +20,17 @@ export async function GET() {
       if (w.gender) byGender[w.gender] = (byGender[w.gender] || 0) + 1;
       byCEFR[w.cefrLevel] = (byCEFR[w.cefrLevel] || 0) + 1;
     }
+
+    // Verb breakdown
+    const verbs = allWords.filter(w => w.partOfSpeech === 'verb');
+    const verbBreakdown = {
+      total: verbs.length,
+      regular: verbs.filter(w => w.verbType === 'regular').length,
+      irregular: verbs.filter(w => w.verbType === 'irregular').length,
+      mixed: verbs.filter(w => w.verbType === 'mixed').length,
+      haben: verbs.filter(w => w.auxiliaryType === 'haben').length,
+      sein: verbs.filter(w => w.auxiliaryType === 'sein').length,
+    };
 
     // 2. Review stats (today and streak)
     const today = new Date();
@@ -93,14 +104,22 @@ export async function GET() {
     const now = new Date();
     const dueWords = allWords.filter(w => new Date(w.nextReview) <= now).length;
 
+    // 9. User XP
+    const [user] = await db.select({ xp: users.xp, level: users.level })
+      .from(users).where(eq(users.id, userId));
+    const xp = user?.xp ?? 0;
+    const level = Math.floor(xp / 100) + 1;
+    const xpInLevel = xp % 100;
+
     return NextResponse.json({
-      vocabulary: { totalWords, mastered, byPOS, byGender, byCEFR, dueWords },
+      vocabulary: { totalWords, mastered, byPOS, byGender, byCEFR, dueWords, verbBreakdown },
       reviews: { today: todayReviews.length, streak },
       grammar: { totalTopics: allTopics.length, completed: completedTopicIds.size, completion: grammarCompletion, byLevel: topicsByLevel },
       exams: { history: examHistory, totalAttempts: exams.length },
       insights: latestInsight || null,
       memoryStability: avgStability,
       conversations: conversations.length,
+      xp: { total: xp, level, xpInLevel, xpForNextLevel: 100 },
     });
   } catch (error: unknown) {
     if (error instanceof Error && error.message === 'Not authenticated') {

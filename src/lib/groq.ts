@@ -222,7 +222,7 @@ export async function enrichWords(words: string[]): Promise<EnrichedWord[]> {
     messages: [
       {
         role: 'system',
-        content: `You are a German language lexicography expert. For each German word, provide structured linguistic data. Return ONLY valid JSON matching this structure: { words: [{ word, part_of_speech (noun/verb/adjective/adverb/preposition/conjunction/pronoun/article/other), gender (masculine/feminine/neuter or null if not noun), plural_form (or null if not noun), conjugation (object with ich/du/er/wir/ihr/sie keys or null if not verb, present tense), meaning (English translation), cefr_level (A1/A2/B1/B2), example_sentence (simple German sentence using the word) }] }`,
+        content: `You are a German language lexicography expert. For each German word, provide structured linguistic data. Return ONLY valid JSON matching this structure: { words: [{ word, part_of_speech (noun/verb/adjective/adverb/preposition/conjunction/pronoun/article/other), gender (masculine/feminine/neuter or null if not noun), plural_form (or null if not noun), conjugation (object with ich/du/er/wir/ihr/sie keys or null if not verb, present tense), meaning (English translation), cefr_level (A1/A2/B1/B2), example_sentence (simple German sentence using the word), verb_type (regular/irregular/mixed or null if not verb), auxiliary_type (haben/sein or null if not verb), present_form (3rd person singular present or null if not verb), simple_past (3rd person singular past or null if not verb), perfect_form (perfect tense with auxiliary e.g. "hat gemacht" or "ist gegangen", or null if not verb) }] }`,
       },
       {
         role: 'user',

@@ -254,8 +254,28 @@ export default function PracticePage() {
     return (
       <div className="mx-auto max-w-4xl px-6 py-10 lg:px-8">
         <PageHeader title="Practice" subtitle="Choose a mode to start" />
+        <Link href="/practice/words" onClick={() => sfx.tap()}>
+          <motion.div
+            className="mb-6 rounded-2xl border-2 border-dashed border-[var(--accent)]/40 bg-[var(--accent)]/5 p-6 transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)]/10"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl bg-[var(--accent)]/20 p-3">
+                <BookOpen size={28} className="text-[var(--accent)]" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Practice the Word</h3>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                  Learn → Practice Test → Word Exam. Duolingo-style batch flow.
+                </p>
+              </div>
+              <ArrowRight size={20} className="ml-auto text-[var(--accent)]" />
+            </div>
+          </motion.div>
+        </Link>
         <motion.div
-          className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+          className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
           initial="hidden"
           animate="visible"
           variants={{

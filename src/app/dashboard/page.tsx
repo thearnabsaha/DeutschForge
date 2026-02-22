@@ -15,6 +15,8 @@ import {
   AlertTriangle,
   Bell,
   X,
+  Zap,
+  Star,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +38,15 @@ const item = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
 };
 
+interface VerbBreakdown {
+  total: number;
+  regular: number;
+  irregular: number;
+  mixed: number;
+  haben: number;
+  sein: number;
+}
+
 interface DashboardData {
   vocabulary: {
     totalWords: number;
@@ -44,6 +55,7 @@ interface DashboardData {
     byGender: Record<string, number>;
     byCEFR: Record<string, number>;
     dueWords: number;
+    verbBreakdown?: VerbBreakdown;
   };
   reviews: { today: number; streak: number };
   grammar: {
@@ -56,6 +68,7 @@ interface DashboardData {
   insights: { strengths: string[]; weaknesses: string[]; recommendations: string[]; generatedAt: string } | null;
   memoryStability: number;
   conversations: number;
+  xp?: { total: number; level: number; xpInLevel: number; xpForNextLevel: number };
 }
 
 const CEFR_ORDER = ['A1', 'A2', 'B1', 'B2'];
@@ -221,6 +234,39 @@ export default function DashboardPage() {
 
       <ReminderBanner />
 
+      {/* XP Progress Bar */}
+      {data?.xp && (
+        <motion.div className="mt-6" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <GlassCard hover={false} className="relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/20">
+                  <Star size={22} className="text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold">Level {data.xp.level}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">{data.xp.total} XP total</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Zap size={16} className="text-amber-500" />
+                <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                  {data.xp.xpInLevel}/{data.xp.xpForNextLevel} XP
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 h-3 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${(data.xp.xpInLevel / data.xp.xpForNextLevel) * 100}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+              />
+            </div>
+          </GlassCard>
+        </motion.div>
+      )}
+
       {/* Row 1: Quick Stats */}
       <motion.div
         className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4"
@@ -370,6 +416,35 @@ export default function DashboardPage() {
         </motion.div>
       </motion.div>
 
+      {/* Verb Breakdown */}
+      {data?.vocabulary?.verbBreakdown && data.vocabulary.verbBreakdown.total > 0 && (
+        <motion.div className="mt-8" variants={container} initial="hidden" animate="show">
+          <motion.div variants={item}>
+            <GlassCard hover={false}>
+              <h2 className="text-base font-semibold">Verb Classification</h2>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {([
+                  { label: 'Total Verbs', value: data.vocabulary.verbBreakdown.total, color: 'bg-emerald-500' },
+                  { label: 'Regular', value: data.vocabulary.verbBreakdown.regular, color: 'bg-blue-500' },
+                  { label: 'Irregular', value: data.vocabulary.verbBreakdown.irregular, color: 'bg-amber-500' },
+                  { label: 'Mixed', value: data.vocabulary.verbBreakdown.mixed, color: 'bg-purple-500' },
+                  { label: 'haben', value: data.vocabulary.verbBreakdown.haben, color: 'bg-sky-500' },
+                  { label: 'sein', value: data.vocabulary.verbBreakdown.sein, color: 'bg-rose-500' },
+                ] as const).map(({ label, value, color }) => (
+                  <div key={label} className="flex items-center gap-3 rounded-xl bg-[var(--bg-tertiary)]/50 px-3 py-2.5">
+                    <div className={`h-3 w-3 rounded-full ${color}`} />
+                    <div>
+                      <p className="text-xs text-[var(--text-tertiary)]">{label}</p>
+                      <p className="text-sm font-semibold">{value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </motion.div>
+        </motion.div>
+      )}
+
       {/* Row 4: Recent Activity */}
       <motion.div
         className="mt-8 grid gap-6 lg:grid-cols-2"
@@ -458,6 +533,7 @@ export default function DashboardPage() {
             <h2 className="text-base font-semibold">Quick Actions</h2>
             <div className="mt-4 flex flex-wrap gap-3">
               {[
+                { label: 'Practice Words', icon: BookOpen, href: '/practice/words' },
                 { label: 'Practice', icon: Brain, href: '/practice' },
                 { label: 'Upload Words', icon: Upload, href: '/vocabulary' },
                 { label: 'Grammar', icon: BookMarked, href: '/grammar' },
