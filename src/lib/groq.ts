@@ -57,7 +57,7 @@ async function sleep(ms: number) {
  * On 429/503/rate-limit errors the next model in the cascade is tried.
  * Each model gets up to 2 attempts (with a brief backoff) before moving on.
  */
-async function callGroq(
+export async function callGroq(
   params: CallGroqParams,
   opts?: { preferredModel?: string }
 ) {
@@ -341,5 +341,73 @@ export async function generateInsights(data: GenerateInsightsData): Promise<Insi
     return { strengths, weaknesses, recommendations };
   } catch {
     return fallback;
+  }
+}
+
+// ── PRACTICE QUESTION GENERATION ──────────────────────────────
+
+export interface GenerateQuestionParams {
+  wordId: string;
+  word: string;
+  meaning: string;
+  partOfSpeech: string;
+  gender?: string | null;
+  conjugation?: Record<string, string> | null;
+  pluralForm?: string | null;
+  questionType: string;
+  direction: string;
+}
+
+export interface GenerateQuestionResult {
+  question: string;
+  correct_answer: string;
+  explanation?: string;
+}
+
+export async function generatePracticeQuestion(
+  params: GenerateQuestionParams
+): Promise<GenerateQuestionResult> {
+  const context = [
+    `Word: ${params.word}`,
+    `Meaning: ${params.meaning}`,
+    `Part of speech: ${params.partOfSpeech}`,
+    params.gender ? `Gender: ${params.gender}` : null,
+    params.pluralForm ? `Plural form: ${params.pluralForm}` : null,
+    params.conjugation ? `Conjugation: ${JSON.stringify(params.conjugation)}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const completion = await callGroq({
+    messages: [
+      {
+        role: 'system',
+        content: `You are a German language tutor creating practice questions. Given word data, generate ONE practice question. Return ONLY valid JSON: { question: (the prompt shown to the user), correct_answer: (exact expected answer), explanation: (optional brief explanation) }. Question types: meaning (translate), gender (der/die/das), plural, verb (conjugation), fill_blank. Direction: de_to_en (German→English), en_to_de (English→German), both.`,
+      },
+      {
+        role: 'user',
+        content: `Generate a ${params.questionType} question with direction ${params.direction} for:\n${context}`,
+      },
+    ],
+    temperature: 0.4,
+    max_tokens: 400,
+    response_format: { type: 'json_object' },
+  });
+
+  const raw = completion.choices[0]?.message?.content;
+  if (!raw) throw new Error('Empty response');
+
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      question: parsed.question || params.word,
+      correct_answer: parsed.correct_answer || params.meaning,
+      explanation: parsed.explanation,
+    };
+  } catch {
+    return {
+      question: params.word,
+      correct_answer: params.meaning,
+    };
   }
 }

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
+import { cn } from '@/lib/utils';
 import {
   Lock,
   CheckCircle2,
@@ -13,7 +14,13 @@ import {
   ArrowLeft,
   BookOpen,
   PenLine,
+  Pencil,
+  Trash2,
+  Plus,
+  Sparkles,
+  AlertTriangle,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { sfx } from '@/lib/sounds';
 
 interface UserWord {
@@ -47,8 +54,11 @@ interface WordBatch {
   words: UserWord[];
 }
 
-type FlowMode = 'list' | 'learn' | 'practice' | 'exam';
-type QuestionType = 'meaning' | 'gender' | 'verb_tense' | 'fill_blank';
+type FlowMode = 'list' | 'learn' | 'practice' | 'exam' | 'select_words' | 'filters' | 'gender_drill' | 'plural_drill';
+type QuestionType = 'meaning' | 'gender' | 'verb_tense' | 'fill_blank' | 'plural';
+type DirectionFilter = 'de_to_en' | 'en_to_de' | 'both';
+type FormatFilter = 'words' | 'sentence' | 'mixed';
+type GrammarFilter = 'gender' | 'plural' | 'verb' | 'mixed_grammar';
 
 const PRONOUNS = ['ich', 'du', 'er', 'wir', 'ihr', 'sie'] as const;
 const TENSES = [
@@ -77,19 +87,41 @@ function normalizeAnswer(s: string): string {
   return s.trim().toLowerCase().replace(/[.,;:!?]/g, '');
 }
 
-function getQuestionForWord(word: UserWord): { type: QuestionType; prompt: string; correctAnswer: string } | null {
-  const types: QuestionType[] = [];
-  if (word.meaning) types.push('meaning');
-  if (word.partOfSpeech === 'noun' && word.gender) types.push('gender');
-  if (word.partOfSpeech === 'verb' && (word.perfectForm || word.simplePast || word.conjugation)) types.push('verb_tense');
-  if (word.exampleSentence && word.word) types.push('fill_blank');
+interface QuestionFilters {
+  direction: DirectionFilter;
+  format: FormatFilter;
+  grammar: GrammarFilter;
+}
 
+function getQuestionForWord(
+  word: UserWord,
+  filters?: QuestionFilters
+): { type: QuestionType; prompt: string; correctAnswer: string } | null {
+  let types: QuestionType[] = [];
+  if (filters?.grammar === 'gender' && word.partOfSpeech === 'noun' && word.gender) {
+    types = ['gender'];
+  } else if (filters?.grammar === 'plural' && word.partOfSpeech === 'noun' && word.pluralForm) {
+    return { type: 'plural', prompt: word.word, correctAnswer: word.pluralForm };
+  } else if (filters?.grammar === 'verb' && word.partOfSpeech === 'verb') {
+    if (word.perfectForm || word.simplePast || word.conjugation) types = ['verb_tense'];
+  } else {
+    if (word.meaning) types.push('meaning');
+    if (word.partOfSpeech === 'noun' && word.gender) types.push('gender');
+    if (word.partOfSpeech === 'verb' && (word.perfectForm || word.simplePast || word.conjugation)) types.push('verb_tense');
+    if (word.exampleSentence && word.word) types.push('fill_blank');
+  }
+
+  if (filters?.format === 'words') types = types.filter((t) => t !== 'fill_blank');
+  else if (filters?.format === 'sentence') types = types.filter((t) => t === 'fill_blank');
   if (types.length === 0) return { type: 'meaning', prompt: word.word, correctAnswer: word.meaning };
 
   const type = types[Math.floor(Math.random() * types.length)];
 
   if (type === 'meaning') {
-    return { type: 'meaning', prompt: word.word, correctAnswer: word.meaning };
+    const deToEn = filters?.direction === 'de_to_en' || (filters?.direction === 'both' && Math.random() > 0.5);
+    return deToEn
+      ? { type: 'meaning', prompt: word.word, correctAnswer: word.meaning }
+      : { type: 'meaning', prompt: word.meaning, correctAnswer: word.word };
   }
   if (type === 'gender') {
     const article = word.gender === 'masculine' ? 'der' : word.gender === 'feminine' ? 'die' : 'das';
@@ -118,6 +150,7 @@ function checkAnswer(type: QuestionType, userAnswer: string, correctAnswer: stri
   const u = normalizeAnswer(userAnswer);
   const c = normalizeAnswer(correctAnswer);
   if (type === 'meaning') return matchesMeaning(userAnswer, correctAnswer);
+  if (type === 'plural') return u === c;
   return u === c;
 }
 
@@ -159,6 +192,38 @@ export default function PracticeWordsPage() {
     answers: Array<{ wordId: string; type: string; userAnswer: string; correctAnswer: string; correct: boolean }>;
   } | null>(null);
 
+  // Word selection & filters
+  const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
+  const [directionFilter, setDirectionFilter] = useState<DirectionFilter>('both');
+  const [formatFilter, setFormatFilter] = useState<FormatFilter>('mixed');
+  const [grammarFilter, setGrammarFilter] = useState<GrammarFilter>('mixed_grammar');
+  const [useAiQuestions, setUseAiQuestions] = useState(false);
+  const [pendingMode, setPendingMode] = useState<'practice' | 'exam'>('practice');
+
+  // Batch management
+  const [editingBatchId, setEditingBatchId] = useState<string | null>(null);
+  const [editingBatchName, setEditingBatchName] = useState('');
+  const [deleteConfirmBatch, setDeleteConfirmBatch] = useState<WordBatch | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
+  const [addWordsBatch, setAddWordsBatch] = useState<WordBatch | null>(null);
+  const [addWordsInput, setAddWordsInput] = useState('');
+  const [addWordsLoading, setAddWordsLoading] = useState(false);
+
+  // Gender & Plural drill
+  const [drillWords, setDrillWords] = useState<UserWord[]>([]);
+  const [drillIndex, setDrillIndex] = useState(0);
+  const [drillInput, setDrillInput] = useState('');
+  const [drillAnswered, setDrillAnswered] = useState(false);
+  const [drillCorrect, setDrillCorrect] = useState(false);
+  const [drillCorrectCount, setDrillCorrectCount] = useState(0);
+  const [drillComplete, setDrillComplete] = useState(false);
+  const [aiQuestionLoading, setAiQuestionLoading] = useState(false);
+  const [aiGeneratedQuestion, setAiGeneratedQuestion] = useState<{
+    question: string;
+    correct_answer: string;
+    explanation?: string;
+  } | null>(null);
+
   const fetchBatches = useCallback(async () => {
     setLoading(true);
     try {
@@ -175,6 +240,54 @@ export default function PracticeWordsPage() {
   useEffect(() => {
     fetchBatches();
   }, [fetchBatches]);
+
+  // Fetch AI question when in practice with AI mode
+  useEffect(() => {
+    if (
+      flowMode !== 'practice' ||
+      !useAiQuestions ||
+      !practiceWords[practiceIndex] ||
+      practiceComplete
+    ) {
+      setAiGeneratedQuestion(null);
+      return;
+    }
+    const word = practiceWords[practiceIndex];
+    setAiQuestionLoading(true);
+    setAiGeneratedQuestion(null);
+    fetch('/api/practice/generate-question', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        wordId: word.id,
+        word: word.word,
+        meaning: word.meaning,
+        partOfSpeech: word.partOfSpeech,
+        gender: word.gender,
+        conjugation: word.conjugation,
+        pluralForm: word.pluralForm,
+        questionType: grammarFilter,
+        direction: directionFilter,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setAiGeneratedQuestion({
+          question: data.question || word.word,
+          correct_answer: data.correct_answer || word.meaning,
+          explanation: data.explanation,
+        });
+      })
+      .catch(() => {
+        const fallback = getQuestionForWord(word, filters);
+        setAiGeneratedQuestion(
+          fallback
+            ? { question: fallback.prompt, correct_answer: fallback.correctAnswer }
+            : { question: word.word, correct_answer: word.meaning }
+        );
+      })
+      .finally(() => setAiQuestionLoading(false));
+  }, [flowMode, useAiQuestions, practiceIndex, practiceWords, practiceComplete, grammarFilter, directionFilter]);
 
   // Exam timer
   useEffect(() => {
@@ -260,44 +373,149 @@ export default function PracticeWordsPage() {
     setXpFloat(null);
   };
 
+  const filters: QuestionFilters = { direction: directionFilter, format: formatFilter, grammar: grammarFilter };
+
   const startPractice = (batch: WordBatch) => {
     if (!batch.practiceUnlocked) return;
-    const unlearned = batch.words.filter((w) => !w.learned);
-    const toUse = unlearned.length > 0 ? unlearned : batch.words;
-    const shuffled = [...toUse].sort(() => Math.random() - 0.5);
-    const pairs = shuffled
-      .map((w) => ({ word: w, q: getQuestionForWord(w) }))
-      .filter((p): p is { word: UserWord; q: { type: QuestionType; prompt: string; correctAnswer: string } } => p.q !== null);
-    if (pairs.length === 0) return;
     setSelectedBatch(batch);
-    setPracticeWords(pairs.map((p) => p.word));
-    setPracticeQuestions(pairs.map((p) => p.q));
-    setPracticeIndex(0);
-    setPracticeInput('');
-    setPracticeAnswered(false);
-    setPracticeCorrectCount(0);
-    setPracticeComplete(false);
-    setFlowMode('practice');
+    setSelectedWordIds(new Set(batch.words.map((w) => w.id)));
+    setPendingMode('practice');
+    setFlowMode('select_words');
   };
 
   const startExam = (batch: WordBatch) => {
     if (!batch.examUnlocked) return;
-    const shuffled = [...batch.words].sort(() => Math.random() - 0.5);
-    const questions: Array<{ word: UserWord; type: QuestionType; prompt: string; correctAnswer: string }> = [];
-    for (const w of shuffled) {
-      const q = getQuestionForWord(w);
-      if (q) questions.push({ word: w, ...q });
-    }
     setSelectedBatch(batch);
-    setExamWords(shuffled);
-    setExamQuestions(questions);
-    setExamIndex(0);
-    setExamInput('');
-    setExamAnswers([]);
-    setExamTimeLeft(60);
-    setExamSubmitted(false);
-    setExamResult(null);
-    setFlowMode('exam');
+    setSelectedWordIds(new Set(batch.words.map((w) => w.id)));
+    setPendingMode('exam');
+    setFlowMode('select_words');
+  };
+
+  const proceedFromSelectWords = () => {
+    if (!selectedBatch) return;
+    const selected = selectedBatch.words.filter((w) => selectedWordIds.has(w.id));
+    if (selected.length === 0) return;
+    setFlowMode('filters');
+  };
+
+  const proceedFromFilters = async () => {
+    if (!selectedBatch) return;
+    const selected = selectedBatch.words.filter((w) => selectedWordIds.has(w.id));
+    if (selected.length === 0) return;
+    const shuffled = [...selected].sort(() => Math.random() - 0.5);
+    const unlearned = selected.filter((w) => !w.learned);
+    const toUse = pendingMode === 'practice' && unlearned.length > 0 ? unlearned : selected;
+    const shuffledToUse = [...toUse].sort(() => Math.random() - 0.5);
+
+    if (pendingMode === 'practice') {
+      const pairs = shuffledToUse
+        .map((w) => ({ word: w, q: getQuestionForWord(w, filters) }))
+        .filter((p): p is { word: UserWord; q: { type: QuestionType; prompt: string; correctAnswer: string } } => p.q !== null);
+      if (pairs.length === 0) return;
+      setPracticeWords(pairs.map((p) => p.word));
+      setPracticeQuestions(pairs.map((p) => p.q));
+      setPracticeIndex(0);
+      setPracticeInput('');
+      setPracticeAnswered(false);
+      setPracticeCorrectCount(0);
+      setPracticeComplete(false);
+      setFlowMode('practice');
+    } else {
+      const questions: Array<{ word: UserWord; type: QuestionType; prompt: string; correctAnswer: string }> = [];
+      for (const w of shuffled) {
+        const q = getQuestionForWord(w, filters);
+        if (q) questions.push({ word: w, ...q });
+      }
+      setExamWords(shuffled);
+      setExamQuestions(questions);
+      setExamIndex(0);
+      setExamInput('');
+      setExamAnswers([]);
+      setExamTimeLeft(60);
+      setExamSubmitted(false);
+      setExamResult(null);
+      setFlowMode('exam');
+    }
+  };
+
+  const startGenderDrill = (batch: WordBatch) => {
+    const nouns = batch.words.filter((w) => w.partOfSpeech === 'noun' && w.gender);
+    if (nouns.length === 0) return;
+    setSelectedBatch(batch);
+    setDrillWords([...nouns].sort(() => Math.random() - 0.5));
+    setDrillIndex(0);
+    setDrillInput('');
+    setDrillAnswered(false);
+    setDrillCorrectCount(0);
+    setDrillComplete(false);
+    setFlowMode('gender_drill');
+  };
+
+  const startPluralDrill = (batch: WordBatch) => {
+    const nouns = batch.words.filter((w) => w.partOfSpeech === 'noun' && w.pluralForm);
+    if (nouns.length === 0) return;
+    setSelectedBatch(batch);
+    setDrillWords([...nouns].sort(() => Math.random() - 0.5));
+    setDrillIndex(0);
+    setDrillInput('');
+    setDrillAnswered(false);
+    setDrillCorrectCount(0);
+    setDrillComplete(false);
+    setFlowMode('plural_drill');
+  };
+
+  const handleBatchRename = async (batchId: string, newName: string) => {
+    try {
+      await fetch(`/api/practice/batches/${batchId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+      setEditingBatchId(null);
+      fetchBatches();
+      sfx.correct();
+    } catch {
+      toast.error('Failed to rename');
+    }
+  };
+
+  const handleBatchDelete = async (batch: WordBatch) => {
+    if (deleteConfirmInput !== 'RESET') return;
+    try {
+      await fetch(`/api/practice/batches/${batch.id}`, { method: 'DELETE' });
+      setDeleteConfirmBatch(null);
+      setDeleteConfirmInput('');
+      fetchBatches();
+      setFlowMode('list');
+      setSelectedBatch(null);
+      toast.success('Batch deleted');
+      sfx.complete();
+    } catch {
+      toast.error('Failed to delete');
+    }
+  };
+
+  const handleAddWords = async () => {
+    if (!addWordsBatch || !addWordsInput.trim()) return;
+    setAddWordsLoading(true);
+    try {
+      const res = await fetch(`/api/practice/batches/${addWordsBatch.id}/words`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ words: addWordsInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setAddWordsBatch(null);
+      setAddWordsInput('');
+      fetchBatches();
+      toast.success(`Added ${data.added ?? 0} words`);
+      sfx.complete();
+    } catch {
+      toast.error('Failed to add words');
+    } finally {
+      setAddWordsLoading(false);
+    }
   };
 
   const handleLearnNext = async () => {
@@ -331,10 +549,15 @@ export default function PracticeWordsPage() {
   };
 
   const handlePracticeCheck = () => {
-    const q = practiceQuestions[practiceIndex];
-    if (!q) return;
+    const correctAnswer =
+      useAiQuestions && aiGeneratedQuestion
+        ? aiGeneratedQuestion.correct_answer
+        : practiceQuestions[practiceIndex]?.correctAnswer;
+    if (!correctAnswer) return;
 
-    const correct = checkAnswer(q.type, practiceInput, q.correctAnswer);
+    const correct = useAiQuestions && aiGeneratedQuestion
+      ? matchesMeaning(practiceInput, correctAnswer) || normalizeAnswer(practiceInput) === normalizeAnswer(correctAnswer)
+      : checkAnswer(practiceQuestions[practiceIndex]!.type, practiceInput, correctAnswer);
     setPracticeCorrect(correct);
     setPracticeAnswered(true);
     correct ? sfx.correct() : sfx.wrong();
@@ -420,11 +643,27 @@ export default function PracticeWordsPage() {
                   <motion.div
                     key={batch.id}
                     variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
+                    className="group"
                   >
                     <GlassCard hover={false} className="overflow-hidden">
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <h3 className="text-lg font-semibold">{batch.name}</h3>
+                        <div className="min-w-0 flex-1">
+                          {editingBatchId === batch.id ? (
+                            <input
+                              type="text"
+                              value={editingBatchName}
+                              onChange={(e) => setEditingBatchName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleBatchRename(batch.id, editingBatchName);
+                                if (e.key === 'Escape') setEditingBatchId(null);
+                              }}
+                              onBlur={() => editingBatchId && handleBatchRename(batch.id, editingBatchName)}
+                              className="input-field w-full text-lg font-semibold"
+                              autoFocus
+                            />
+                          ) : (
+                            <h3 className="text-lg font-semibold">{batch.name}</h3>
+                          )}
                           <p className="mt-1 text-sm text-[var(--text-secondary)]">
                             {batch.learnedCount} / {batch.wordCount} words ·{' '}
                             {new Date(batch.createdAt).toLocaleDateString('de-DE')}
@@ -438,6 +677,35 @@ export default function PracticeWordsPage() {
                               }}
                               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                             />
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
+                            <motion.button
+                              onClick={() => {
+                                setEditingBatchId(batch.id);
+                                setEditingBatchName(batch.name);
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <Pencil size={14} />
+                              Rename
+                            </motion.button>
+                            <motion.button
+                              onClick={() => setDeleteConfirmBatch(batch)}
+                              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--danger)] hover:bg-[var(--danger)]/10"
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <Trash2 size={14} />
+                              Delete
+                            </motion.button>
+                            <motion.button
+                              onClick={() => setAddWordsBatch(batch)}
+                              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/10"
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <Plus size={14} />
+                              Add Words
+                            </motion.button>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -494,6 +762,26 @@ export default function PracticeWordsPage() {
                             )}
                             Exam
                           </motion.button>
+                          {batch.words.some((w) => w.partOfSpeech === 'noun' && w.gender) && (
+                            <motion.button
+                              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:bg-[var(--border)]"
+                              onClick={() => startGenderDrill(batch)}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              Gender Drill
+                            </motion.button>
+                          )}
+                          {batch.words.some((w) => w.partOfSpeech === 'noun' && w.pluralForm) && (
+                            <motion.button
+                              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:bg-[var(--border)]"
+                              onClick={() => startPluralDrill(batch)}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              Plural Drill
+                            </motion.button>
+                          )}
                         </div>
                       </div>
                     </GlassCard>
@@ -501,6 +789,200 @@ export default function PracticeWordsPage() {
                 ))}
               </motion.div>
             )}
+          </motion.div>
+        )}
+
+        {flowMode === 'select_words' && selectedBatch && (
+          <motion.div
+            key="select_words"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+          >
+            <button
+              onClick={() => { setFlowMode('list'); setSelectedBatch(null); }}
+              className="mb-6 inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            >
+              <ArrowLeft size={18} />
+              Back
+            </button>
+            <GlassCard hover={false}>
+              <h2 className="text-lg font-semibold">Select words to practice</h2>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                Choose which words to include in your {pendingMode} session
+              </p>
+              <div className="mt-4 flex gap-2">
+                <motion.button
+                  onClick={() => setSelectedWordIds(new Set(selectedBatch.words.map((w) => w.id)))}
+                  className="btn-secondary text-sm"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Select All
+                </motion.button>
+                <motion.button
+                  onClick={() => setSelectedWordIds(new Set())}
+                  className="btn-secondary text-sm"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Deselect All
+                </motion.button>
+              </div>
+              <div className="mt-4 max-h-64 overflow-y-auto rounded-xl border border-[var(--border)] p-4">
+                <div className="flex flex-col gap-2">
+                  {selectedBatch.words.map((w) => (
+                    <label
+                      key={w.id}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 hover:bg-[var(--bg-tertiary)]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedWordIds.has(w.id)}
+                        onChange={(e) => {
+                          const next = new Set(selectedWordIds);
+                          if (e.target.checked) next.add(w.id);
+                          else next.delete(w.id);
+                          setSelectedWordIds(next);
+                        }}
+                        className="h-5 w-5 rounded border-[var(--border)]"
+                      />
+                      <span className="font-medium">{w.word}</span>
+                      <span className="text-sm text-[var(--text-secondary)]">— {w.meaning}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {selectedWordIds.size === 0 && (
+                <p className="mt-3 text-sm text-[var(--danger)]">Select at least one word</p>
+              )}
+              <motion.button
+                className="btn-primary mt-4"
+                onClick={proceedFromSelectWords}
+                disabled={selectedWordIds.size === 0}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Continue
+              </motion.button>
+            </GlassCard>
+          </motion.div>
+        )}
+
+        {flowMode === 'filters' && selectedBatch && (
+          <motion.div
+            key="filters"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+          >
+            <button
+              onClick={() => setFlowMode('select_words')}
+              className="mb-6 inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            >
+              <ArrowLeft size={18} />
+              Back
+            </button>
+            <GlassCard hover={false}>
+              <h2 className="text-lg font-semibold">Practice filters</h2>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                Customize how questions appear
+              </p>
+
+              <div className="mt-6 space-y-4">
+                <div>
+                  <p className="text-xs font-medium text-[var(--text-secondary)]">Direction</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(['de_to_en', 'en_to_de', 'both'] as const).map((d) => (
+                      <motion.button
+                        key={d}
+                        onClick={() => setDirectionFilter(d)}
+                        className={cn(
+                          'rounded-xl px-4 py-2 text-sm font-medium transition-all',
+                          directionFilter === d
+                            ? 'bg-[var(--accent)] text-white'
+                            : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border)]'
+                        )}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        {d === 'de_to_en' ? 'German → English' : d === 'en_to_de' ? 'English → German' : 'Both'}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-[var(--text-secondary)]">Format</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(['words', 'sentence', 'mixed'] as const).map((f) => (
+                      <motion.button
+                        key={f}
+                        onClick={() => setFormatFilter(f)}
+                        className={cn(
+                          'rounded-xl px-4 py-2 text-sm font-medium transition-all',
+                          formatFilter === f
+                            ? 'bg-[var(--accent)] text-white'
+                            : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border)]'
+                        )}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        {f === 'words' ? 'Words Only' : f === 'sentence' ? 'Sentence Fill-in' : 'Mixed'}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-[var(--text-secondary)]">Grammar focus</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(['gender', 'plural', 'verb', 'mixed_grammar'] as const).map((g) => (
+                      <motion.button
+                        key={g}
+                        onClick={() => setGrammarFilter(g)}
+                        className={cn(
+                          'rounded-xl px-4 py-2 text-sm font-medium transition-all',
+                          grammarFilter === g
+                            ? 'bg-[var(--accent)] text-white'
+                            : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border)]'
+                        )}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        {g === 'gender' ? 'Gender (der/die/das)' : g === 'plural' ? 'Plural' : g === 'verb' ? 'Verb Conjugation' : 'Mixed'}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+                {pendingMode === 'practice' && (
+                  <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] p-4">
+                    <Sparkles size={20} className="text-[var(--accent)]" />
+                    <div>
+                      <p className="font-medium">AI Questions</p>
+                      <p className="text-xs text-[var(--text-secondary)]">Generate unique questions with AI</p>
+                    </div>
+                    <motion.button
+                      onClick={() => setUseAiQuestions(!useAiQuestions)}
+                      className={cn(
+                        'relative h-8 w-14 rounded-full transition-colors',
+                        useAiQuestions ? 'bg-[var(--accent)]' : 'bg-[var(--bg-tertiary)]'
+                      )}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <motion.span
+                        className="absolute top-1 h-6 w-6 rounded-full bg-white shadow"
+                        animate={{ x: useAiQuestions ? 24 : 2 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        style={{ left: 0 }}
+                      />
+                    </motion.button>
+                  </div>
+                )}
+              </div>
+
+              <motion.button
+                className="btn-primary mt-6"
+                onClick={proceedFromFilters}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Start {pendingMode === 'practice' ? 'Practice' : 'Exam'}
+              </motion.button>
+            </GlassCard>
           </motion.div>
         )}
 
@@ -686,7 +1168,7 @@ export default function PracticeWordsPage() {
                   />
                 </div>
 
-                {practiceQuestions[practiceIndex] && (
+                {(practiceQuestions[practiceIndex] || aiGeneratedQuestion) && (
                   <motion.div
                     key={practiceWords[practiceIndex]?.id ?? practiceIndex}
                     initial={{ opacity: 0, x: 20 }}
@@ -694,18 +1176,38 @@ export default function PracticeWordsPage() {
                     exit={{ opacity: 0, x: -20 }}
                   >
                     <GlassCard hover={false}>
-                      {(() => {
-                        const q = practiceQuestions[practiceIndex];
+                      {aiQuestionLoading ? (
+                        <div className="flex flex-col items-center py-12">
+                          <Loader2 size={32} className="animate-spin text-[var(--accent)]" />
+                          <p className="mt-4 text-sm text-[var(--text-secondary)]">Generating question...</p>
+                        </div>
+                      ) : (() => {
+                        const q = useAiQuestions && aiGeneratedQuestion
+                          ? {
+                              type: 'meaning' as QuestionType,
+                              prompt: aiGeneratedQuestion.question,
+                              correctAnswer: aiGeneratedQuestion.correct_answer,
+                            }
+                          : practiceQuestions[practiceIndex];
                         if (!q) return null;
                         return (
                           <>
                             <p className="text-sm text-[var(--text-tertiary)]">
-                              {q.type === 'meaning' && 'What does this mean?'}
-                              {q.type === 'gender' && 'What is the article?'}
-                              {q.type === 'verb_tense' && 'Type the correct form'}
-                              {q.type === 'fill_blank' && 'Fill in the blank'}
+                              {useAiQuestions && aiGeneratedQuestion ? 'Answer the question' : (
+                                <>
+                                  {q.type === 'meaning' && 'What does this mean?'}
+                                  {q.type === 'gender' && 'What is the article?'}
+                                  {q.type === 'verb_tense' && 'Type the correct form'}
+                                  {q.type === 'fill_blank' && 'Fill in the blank'}
+                                </>
+                              )}
                             </p>
                             <h2 className="mt-4 text-2xl font-semibold">{q.prompt}</h2>
+                            {aiGeneratedQuestion?.explanation && (
+                              <p className="mt-2 text-xs text-[var(--text-tertiary)] italic">
+                                {aiGeneratedQuestion.explanation}
+                              </p>
+                            )}
                             <div className="mt-6">
                               <input
                                 type="text"
@@ -968,6 +1470,277 @@ export default function PracticeWordsPage() {
                 </motion.button>
               </motion.div>
             ) : null}
+          </motion.div>
+        )}
+
+        {(flowMode === 'gender_drill' || flowMode === 'plural_drill') && selectedBatch && (
+          <motion.div
+            key={flowMode}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+          >
+            <button
+              onClick={() => { setFlowMode('list'); setSelectedBatch(null); }}
+              className="mb-6 inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            >
+              <ArrowLeft size={18} />
+              Back
+            </button>
+            {!drillComplete ? (
+              <>
+                <div className="mb-6 flex items-center justify-between text-sm">
+                  <span className="text-[var(--text-tertiary)]">
+                    {drillIndex + 1} / {drillWords.length}
+                  </span>
+                  <span className="text-[var(--accent)] font-medium">{drillCorrectCount} correct</span>
+                </div>
+                <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[#5856D6]"
+                    animate={{ width: `${((drillIndex + 1) / drillWords.length) * 100}%` }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  />
+                </div>
+                <GlassCard hover={false}>
+                  <p className="text-sm text-[var(--text-tertiary)]">
+                    {flowMode === 'gender_drill' ? 'What is the article?' : 'Type the plural form'}
+                  </p>
+                  <h2 className="mt-4 text-2xl font-semibold">
+                    {flowMode === 'gender_drill'
+                      ? stripArticle(drillWords[drillIndex]?.word ?? '')
+                      : drillWords[drillIndex]?.word}
+                  </h2>
+                  <div className="mt-6">
+                    <input
+                      type="text"
+                      placeholder="Your answer..."
+                      value={drillInput}
+                      onChange={(e) => setDrillInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !drillAnswered) {
+                          const word = drillWords[drillIndex];
+                          if (!word) return;
+                          const correct =
+                            flowMode === 'gender_drill'
+                              ? ['der', 'die', 'das'].includes(drillInput.trim().toLowerCase()) &&
+                                (word.gender === 'masculine' ? 'der' : word.gender === 'feminine' ? 'die' : 'das') ===
+                                  drillInput.trim().toLowerCase()
+                              : normalizeAnswer(drillInput) === normalizeAnswer(word.pluralForm ?? '');
+                          setDrillCorrect(correct);
+                          setDrillAnswered(true);
+                          correct ? (sfx.correct(), setDrillCorrectCount((c) => c + 1)) : sfx.wrong();
+                        }
+                      }}
+                      disabled={drillAnswered}
+                      className="input-field w-full"
+                      autoFocus
+                    />
+                    {!drillAnswered ? (
+                      <motion.button
+                        className="btn-primary mt-4"
+                        onClick={() => {
+                          const word = drillWords[drillIndex];
+                          if (!word) return;
+                          const correct =
+                            flowMode === 'gender_drill'
+                              ? ['der', 'die', 'das'].includes(drillInput.trim().toLowerCase()) &&
+                                (word.gender === 'masculine' ? 'der' : word.gender === 'feminine' ? 'die' : 'das') ===
+                                  drillInput.trim().toLowerCase()
+                              : normalizeAnswer(drillInput) === normalizeAnswer(word.pluralForm ?? '');
+                          setDrillCorrect(correct);
+                          setDrillAnswered(true);
+                          correct ? (sfx.correct(), setDrillCorrectCount((c) => c + 1)) : sfx.wrong();
+                        }}
+                        disabled={!drillInput.trim()}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        Check
+                      </motion.button>
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-4 flex items-center gap-3"
+                      >
+                        <div
+                          className={`flex items-center gap-2 font-medium ${
+                            drillCorrect ? 'text-[var(--success)]' : 'text-[var(--danger)]'
+                          }`}
+                        >
+                          {drillCorrect ? (
+                            <CheckCircle2 size={20} />
+                          ) : (
+                            <span className="text-lg">✗</span>
+                          )}
+                          {drillCorrect
+                            ? 'Correct!'
+                            : `Correct: ${
+                                flowMode === 'gender_drill'
+                                  ? drillWords[drillIndex]?.gender === 'masculine'
+                                    ? 'der'
+                                    : drillWords[drillIndex]?.gender === 'feminine'
+                                      ? 'die'
+                                      : 'das'
+                                  : drillWords[drillIndex]?.pluralForm
+                              }`}
+                        </div>
+                        <motion.button
+                          className="btn-primary"
+                          onClick={() => {
+                            if (drillIndex + 1 >= drillWords.length) {
+                              sfx.complete();
+                              setDrillComplete(true);
+                            } else {
+                              setDrillIndex((i) => i + 1);
+                              setDrillInput('');
+                              setDrillAnswered(false);
+                              sfx.swoosh();
+                            }
+                          }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          {drillIndex + 1 >= drillWords.length ? 'Finish' : 'Next'}
+                        </motion.button>
+                      </motion.div>
+                    )}
+                  </div>
+                </GlassCard>
+              </>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center py-16"
+              >
+                <GlassCard hover={false} className="max-w-md text-center">
+                  <h2 className="text-xl font-bold">
+                    {flowMode === 'gender_drill' ? 'Gender Drill' : 'Plural Drill'} Complete!
+                  </h2>
+                  <p className="mt-2 text-[var(--text-secondary)]">
+                    {drillCorrectCount} / {drillWords.length} correct
+                  </p>
+                  <motion.button
+                    className="btn-primary mt-6"
+                    onClick={() => {
+                      setFlowMode('list');
+                      setSelectedBatch(null);
+                      fetchBatches();
+                    }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Back to Batches
+                  </motion.button>
+                </GlassCard>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete confirmation modal */}
+      <AnimatePresence>
+        {deleteConfirmBatch && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            onClick={() => setDeleteConfirmBatch(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl bg-[var(--bg-primary)] p-6 shadow-xl"
+            >
+              <div className="flex items-center gap-3">
+                <AlertTriangle size={24} className="text-[var(--danger)]" />
+                <h3 className="text-lg font-semibold">Delete batch</h3>
+              </div>
+              <p className="mt-4 text-sm text-[var(--text-secondary)]">
+                This will permanently delete &quot;{deleteConfirmBatch.name}&quot; and all its words. Type RESET to confirm.
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                placeholder="RESET"
+                className="input-field mt-4 w-full"
+              />
+              <div className="mt-6 flex gap-3">
+                <motion.button
+                  onClick={() => { setDeleteConfirmBatch(null); setDeleteConfirmInput(''); }}
+                  className="btn-secondary flex-1"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  onClick={() => handleBatchDelete(deleteConfirmBatch)}
+                  disabled={deleteConfirmInput !== 'RESET'}
+                  className="btn-primary flex-1 bg-[var(--danger)] hover:bg-[var(--danger)]/90 disabled:opacity-50"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Delete
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Add words modal */}
+      <AnimatePresence>
+        {addWordsBatch && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            onClick={() => !addWordsLoading && setAddWordsBatch(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl bg-[var(--bg-primary)] p-6 shadow-xl"
+            >
+              <h3 className="text-lg font-semibold">Add words to {addWordsBatch.name}</h3>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                Enter German words (one per line or comma-separated)
+              </p>
+              <textarea
+                value={addWordsInput}
+                onChange={(e) => setAddWordsInput(e.target.value)}
+                placeholder="Haus, Buch, gehen..."
+                className="input-field mt-4 min-h-[120px] w-full resize-none"
+                disabled={addWordsLoading}
+              />
+              <div className="mt-6 flex gap-3">
+                <motion.button
+                  onClick={() => { setAddWordsBatch(null); setAddWordsInput(''); }}
+                  disabled={addWordsLoading}
+                  className="btn-secondary flex-1"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  onClick={handleAddWords}
+                  disabled={!addWordsInput.trim() || addWordsLoading}
+                  className="btn-primary flex-1 disabled:opacity-50"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {addWordsLoading ? <Loader2 size={18} className="animate-spin" /> : 'Add Words'}
+                </motion.button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

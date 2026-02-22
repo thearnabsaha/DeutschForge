@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/get-user';
 
 const VALID_LEVELS = ['A1', 'A2', 'B1', 'B2'] as const;
-const VALID_THEMES = ['light', 'dark', 'system'] as const;
+const VALID_THEMES = ['light', 'dark', 'system', 'high-contrast', 'minimal', 'colorful'] as const;
 type TargetLevel = (typeof VALID_LEVELS)[number];
 type Theme = (typeof VALID_THEMES)[number];
 
@@ -21,6 +21,7 @@ export async function GET() {
       theme: settings?.theme ?? 'system',
       focusMode: settings?.focusMode ?? false,
       dailyGoal: settings?.dailyGoal ?? 20,
+      soundEnabled: settings?.soundEnabled ?? true,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Not authenticated') {
@@ -45,6 +46,7 @@ export async function PUT(request: NextRequest) {
       theme?: string;
       focusMode?: boolean;
       dailyGoal?: number;
+      soundEnabled?: boolean;
     };
 
     const level = VALID_LEVELS.includes((body.targetLevel as TargetLevel) ?? ('' as TargetLevel))
@@ -90,6 +92,7 @@ export async function PUT(request: NextRequest) {
           theme: theme ?? existing.theme,
           focusMode: body.focusMode ?? existing.focusMode,
           dailyGoal: dailyGoal ?? existing.dailyGoal,
+          soundEnabled: body.soundEnabled ?? existing.soundEnabled,
           updatedAt: new Date(),
         })
         .where(eq(userSettings.userId, userId));
@@ -99,6 +102,7 @@ export async function PUT(request: NextRequest) {
         theme: theme ?? 'system',
         focusMode: body.focusMode ?? false,
         dailyGoal: dailyGoal ?? 20,
+        soundEnabled: body.soundEnabled ?? true,
       });
     }
 
@@ -112,6 +116,7 @@ export async function PUT(request: NextRequest) {
         theme: settings?.theme ?? 'system',
         focusMode: settings?.focusMode ?? false,
         dailyGoal: settings?.dailyGoal ?? 20,
+        soundEnabled: settings?.soundEnabled ?? true,
       },
     });
   } catch (error) {

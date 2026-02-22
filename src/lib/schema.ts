@@ -34,6 +34,7 @@ export const userSettings = pgTable('user_settings', {
   theme: text('theme').notNull().default('system'),
   focusMode: boolean('focus_mode').notNull().default(false),
   dailyGoal: integer('daily_goal').notNull().default(20),
+  soundEnabled: boolean('sound_enabled').notNull().default(true),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (t) => ({
   userUniq: uniqueIndex('user_settings_user_uniq').on(t.userId),
@@ -217,6 +218,27 @@ export const wordBatchExams = pgTable('word_batch_exams', {
 }, (t) => ({
   userBatchIdx: index('wbe_user_batch_idx').on(t.userId, t.batchId),
 }));
+
+export const questionSnapshots = pgTable('question_snapshots', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  wordId: text('word_id').notNull().references(() => userWords.id, { onDelete: 'cascade' }),
+  questionType: text('question_type').notNull(),
+  prompt: text('prompt').notNull(),
+  correctAnswer: text('correct_answer').notNull(),
+  explanation: text('explanation'),
+  context: text('context'),
+  usedAt: timestamp('used_at').defaultNow().notNull(),
+}, (t) => ({
+  userWordIdx: index('qs_user_word_idx').on(t.userId, t.wordId),
+}));
+
+export const resetLogs = pgTable('reset_logs', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  resetType: text('reset_type').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
 
 // ── EXISTING TABLES (kept for exam system) ───────────────────
 

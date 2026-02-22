@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import {
-  Settings,
   Save,
   Loader2,
   Check,
@@ -12,35 +11,78 @@ import {
   Moon,
   Monitor,
   Eye,
-  Download,
-  Upload,
+  Palette,
+  Contrast,
   User,
   Target,
   LogOut,
+  AlertTriangle,
+  Trash2,
+  RotateCcw,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
 import { GlassCard } from '@/components/ui/glass-card';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { setMuted, isMuted } from '@/lib/sounds';
 
 const levels = ['A1', 'A2', 'B1', 'B2'] as const;
-const themes = [
-  { id: 'light' as const, label: 'Light', icon: Sun, preview: 'bg-white border border-[var(--border)]' },
-  { id: 'dark' as const, label: 'Dark', icon: Moon, preview: 'bg-[#1c1c1e] border border-white/10' },
-  { id: 'system' as const, label: 'System', icon: Monitor, preview: 'bg-gradient-to-r from-white to-[#1c1c1e] border border-[var(--border)]' },
+type ThemeId = 'light' | 'dark' | 'system' | 'high-contrast' | 'minimal' | 'colorful';
+
+const themes: Array<{
+  id: ThemeId;
+  label: string;
+  icon: typeof Sun;
+  preview: string;
+}> = [
+  { id: 'light', label: 'Light', icon: Sun, preview: 'bg-white border border-[var(--border)]' },
+  { id: 'dark', label: 'Dark', icon: Moon, preview: 'bg-[#1c1c1e] border border-white/10' },
+  { id: 'system', label: 'System', icon: Monitor, preview: 'bg-gradient-to-r from-white to-[#1c1c1e] border border-[var(--border)]' },
+  { id: 'high-contrast', label: 'High Contrast', icon: Contrast, preview: 'bg-white border-2 border-black' },
+  { id: 'minimal', label: 'Minimal Focus', icon: Eye, preview: 'bg-[#e5e5e5] dark:bg-[#2a2a2a] border border-[var(--border)]' },
+  { id: 'colorful', label: 'Duolingo Colorful', icon: Palette, preview: 'bg-white border-2 border-[#58cc02]' },
 ];
+
+type ResetType = 'vocabulary' | 'progress' | 'hard';
+
+const resetConfig: Record<ResetType, { title: string; description: string; color: string; icon: typeof Trash2 }> = {
+  vocabulary: {
+    title: 'Reset Vocabulary',
+    description: 'Deletes all uploaded words and batches. Keeps account and progress.',
+    color: 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30',
+    icon: Trash2,
+  },
+  progress: {
+    title: 'Reset Progress',
+    description: 'Clears review logs, exam history, XP, and analytics. Keeps vocabulary.',
+    color: 'text-orange-600 dark:text-orange-400 hover:bg-orange-500/10 border-orange-500/30',
+    icon: RotateCcw,
+  },
+  hard: {
+    title: 'Hard Reset',
+    description: 'Deletes vocabulary, progress, exams, analytics, and word batches. Account remains.',
+    color: 'text-red-600 dark:text-red-400 hover:bg-red-500/10 border-red-500/30',
+    icon: AlertTriangle,
+  },
+};
 
 export default function SettingsPage() {
   const router = useRouter();
   const { setTheme } = useTheme();
   const [name, setName] = useState('Learner');
   const [targetLevel, setTargetLevel] = useState('A1');
-  const [themeChoice, setThemeChoice] = useState<'light' | 'dark' | 'system'>('system');
-  const [focusMode, setFocusMode] = useState(false);
+  const [themeChoice, setThemeChoice] = useState<ThemeId>('system');
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [dailyGoal, setDailyGoal] = useState(20);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [resetModal, setResetModal] = useState<ResetType | null>(null);
+  const [resetInput, setResetInput] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -58,22 +100,18 @@ export default function SettingsPage() {
         setName(data.name || 'Learner');
         setTargetLevel(data.targetLevel || 'A1');
         setThemeChoice(data.theme || 'system');
-        setFocusMode(data.focusMode ?? false);
+        setSoundEnabled(data.soundEnabled ?? true);
         setDailyGoal(data.dailyGoal ?? 20);
         if (data.theme) setTheme(data.theme);
+        setMuted(!(data.soundEnabled ?? true));
       })
       .catch(() => {});
-  }, [router]);
+  }, [router, setTheme]);
 
   useEffect(() => {
     if (!mounted) return;
-    if (focusMode) {
-      document.body.classList.add('focus-mode');
-    } else {
-      document.body.classList.remove('focus-mode');
-    }
-    return () => document.body.classList.remove('focus-mode');
-  }, [focusMode, mounted]);
+    setSoundEnabled(!isMuted());
+  }, [mounted]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -85,20 +123,20 @@ export default function SettingsPage() {
           name,
           targetLevel,
           theme: themeChoice,
-          focusMode,
           dailyGoal,
+          soundEnabled,
         }),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
-      // handle error silently
+      toast.error('Failed to save');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleThemeSelect = (id: 'light' | 'dark' | 'system') => {
+  const handleThemeSelect = (id: ThemeId) => {
     setThemeChoice(id);
     setTheme(id);
     fetch('/api/settings', {
@@ -108,13 +146,39 @@ export default function SettingsPage() {
     }).catch(() => {});
   };
 
-  const handleFocusToggle = (enabled: boolean) => {
-    setFocusMode(enabled);
+  const handleSoundToggle = (enabled: boolean) => {
+    setSoundEnabled(enabled);
+    setMuted(!enabled);
     fetch('/api/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ focusMode: enabled }),
+      body: JSON.stringify({ soundEnabled: enabled }),
     }).catch(() => {});
+  };
+
+  const handleResetConfirm = async (type: ResetType) => {
+    if (resetInput !== 'RESET') return;
+    setResetLoading(true);
+    try {
+      const res = await fetch('/api/settings/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, confirmation: 'RESET' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Reset failed');
+        return;
+      }
+      toast.success('Reset completed successfully');
+      setResetModal(null);
+      setResetInput('');
+      window.location.reload();
+    } catch {
+      toast.error('Reset failed');
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -214,7 +278,7 @@ export default function SettingsPage() {
               Theme
             </h2>
 
-            <div className="mt-6 grid grid-cols-3 gap-4">
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
               {themes.map((t) => {
                 const Icon = t.icon;
                 const isActive = themeChoice === t.id;
@@ -243,28 +307,41 @@ export default function SettingsPage() {
                 );
               })}
             </div>
+          </GlassCard>
+        </motion.div>
 
-            <div className="mt-6 flex items-center justify-between rounded-2xl border border-[var(--border)] p-4">
+        {/* Sound Effects */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.06 }}
+        >
+          <GlassCard hover={false}>
+            <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] p-4">
               <div className="flex items-center gap-3">
-                <Eye size={20} className="text-[var(--text-tertiary)]" />
+                {soundEnabled ? (
+                  <Volume2 size={20} className="text-[var(--text-tertiary)]" />
+                ) : (
+                  <VolumeX size={20} className="text-[var(--text-tertiary)]" />
+                )}
                 <div>
-                  <p className="text-sm font-medium">Focus Mode</p>
+                  <p className="text-sm font-medium">Sound Effects</p>
                   <p className="text-xs text-[var(--text-tertiary)]">
-                    Clean exam-style interface, minimal distractions
+                    Correct, incorrect, and completion sounds
                   </p>
                 </div>
               </div>
               <motion.button
-                onClick={() => handleFocusToggle(!focusMode)}
+                onClick={() => handleSoundToggle(!soundEnabled)}
                 className={cn(
                   'relative h-8 w-14 rounded-full transition-colors',
-                  focusMode ? 'bg-[var(--accent)]' : 'bg-[var(--bg-tertiary)]'
+                  soundEnabled ? 'bg-[var(--accent)]' : 'bg-[var(--bg-tertiary)]'
                 )}
                 whileTap={{ scale: 0.95 }}
               >
                 <motion.span
                   className="absolute top-1 h-6 w-6 rounded-full bg-white shadow"
-                  animate={{ x: focusMode ? 24 : 2 }}
+                  animate={{ x: soundEnabled ? 24 : 2 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   style={{ left: 0 }}
                 />
@@ -310,40 +387,44 @@ export default function SettingsPage() {
           </GlassCard>
         </motion.div>
 
-        {/* Data */}
+        {/* Reset System */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.15 }}
         >
           <GlassCard hover={false}>
-            <h2 className="text-base font-semibold">Data</h2>
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <AlertTriangle size={18} className="text-[var(--danger)]" />
+              Reset System
+            </h2>
             <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-              Export or import your vocabulary and progress
+              Irreversible actions. Confirm carefully.
             </p>
-            <div className="mt-4 flex gap-3">
-              <motion.button
-                className="btn-secondary flex items-center gap-2"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {}}
-              >
-                <Download size={16} />
-                Export
-              </motion.button>
-              <motion.button
-                className="btn-secondary flex items-center gap-2"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {}}
-              >
-                <Upload size={16} />
-                Import
-              </motion.button>
+            <div className="mt-4 space-y-3">
+              {(Object.keys(resetConfig) as ResetType[]).map((type) => {
+                const config = resetConfig[type];
+                const Icon = config.icon;
+                return (
+                  <motion.button
+                    key={type}
+                    onClick={() => setResetModal(type)}
+                    className={cn(
+                      'flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors',
+                      config.color
+                    )}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                  >
+                    <Icon size={20} />
+                    <div>
+                      <p className="font-medium">{config.title}</p>
+                      <p className="text-xs opacity-90">{config.description}</p>
+                    </div>
+                  </motion.button>
+                );
+              })}
             </div>
-            <p className="mt-2 text-[11px] text-[var(--text-tertiary)]">
-              Placeholder — functionality coming soon
-            </p>
           </GlassCard>
         </motion.div>
 
@@ -370,6 +451,72 @@ export default function SettingsPage() {
           </GlassCard>
         </motion.div>
       </div>
+
+      {/* Reset Confirmation Modal */}
+      <AnimatePresence>
+        {resetModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            onClick={() => !resetLoading && setResetModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl bg-[var(--bg-primary)] p-6 shadow-xl"
+            >
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-[var(--danger)]/20 p-3">
+                  <AlertTriangle size={24} className="text-[var(--danger)]" />
+                </div>
+                <h3 className="text-lg font-semibold">Confirm {resetConfig[resetModal].title}</h3>
+              </div>
+              <p className="mt-4 text-sm text-[var(--text-secondary)]">
+                {resetConfig[resetModal].description}
+              </p>
+              <p className="mt-4 text-sm font-medium text-[var(--text-secondary)]">
+                Type <span className="font-mono font-bold text-[var(--danger)]">RESET</span> to confirm:
+              </p>
+              <input
+                type="text"
+                value={resetInput}
+                onChange={(e) => setResetInput(e.target.value)}
+                placeholder="RESET"
+                className="input-field mt-2 w-full"
+                disabled={resetLoading}
+              />
+              <div className="mt-6 flex gap-3">
+                <motion.button
+                  onClick={() => setResetModal(null)}
+                  disabled={resetLoading}
+                  className="btn-secondary flex-1"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  onClick={() => handleResetConfirm(resetModal)}
+                  disabled={resetInput !== 'RESET' || resetLoading}
+                  className="btn-primary flex-1 bg-[var(--danger)] hover:bg-[var(--danger)]/90 disabled:opacity-50"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {resetLoading ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    'Confirm'
+                  )}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
