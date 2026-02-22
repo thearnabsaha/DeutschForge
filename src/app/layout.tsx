@@ -11,10 +11,9 @@ export const metadata: Metadata = {
   title: 'DeutschForge – Cognitive German Mastery',
   description: 'Personal CEFR A1→B2 German learning system with spaced repetition and Goethe exam preparation.',
   manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'DeutschForge',
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/favicon.svg',
   },
 };
 
