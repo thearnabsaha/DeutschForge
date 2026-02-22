@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import { Sidebar } from '@/components/layout/sidebar';
+import { MobileNav } from '@/components/layout/mobile-nav';
 import { PwaRegister } from '@/components/layout/pwa-register';
 import './globals.css';
 
@@ -37,10 +38,11 @@ export default function RootLayout({
           <PwaRegister />
           <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
               {children}
             </main>
           </div>
+          <MobileNav />
           <Toaster
             position="top-right"
             toastOptions={{

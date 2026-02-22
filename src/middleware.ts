@@ -5,7 +5,7 @@ import { jwtVerify } from 'jose';
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'deutschforge-secret-key-change-in-production');
 const COOKIE_NAME = 'df-session';
 
-const PROTECTED_PATHS = ['/', '/practice', '/exam', '/grammar', '/chat', '/vocabulary', '/progress', '/settings'];
+const PROTECTED_PATHS = ['/dashboard', '/practice', '/exam', '/grammar', '/chat', '/vocabulary', '/progress', '/settings'];
 const AUTH_PATHS = ['/login', '/signup'];
 
 export async function middleware(request: NextRequest) {
@@ -34,12 +34,13 @@ export async function middleware(request: NextRequest) {
 
   // If on auth page and already logged in, redirect to dashboard
   if (AUTH_PATHS.some((p) => pathname === p) && isAuthenticated) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   // If on protected page and not logged in, redirect to login
   const isProtected =
     PROTECTED_PATHS.some((p) => pathname === p) ||
+    pathname.startsWith('/dashboard') ||
     pathname.startsWith('/exam/') ||
     pathname.startsWith('/grammar/') ||
     pathname.startsWith('/chat/');

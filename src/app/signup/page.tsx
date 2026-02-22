@@ -30,7 +30,7 @@ export default function SignupPage() {
         setError(data.error || 'Sign up failed');
         return;
       }
-      router.push('/');
+      router.push('/dashboard');
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   Brain,
@@ -11,8 +11,6 @@ import {
   Settings,
   Sun,
   Moon,
-  Menu,
-  X,
   Flame,
   BookOpen,
   MessageCircle,
@@ -21,11 +19,10 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/lib/store';
 import { useEffect, useState } from 'react';
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/practice', label: 'Practice', icon: Brain },
   { href: '/chat', label: 'Chat', icon: MessageCircle },
   { href: '/chat/voice', label: 'Voice Chat', icon: Mic },
@@ -39,48 +36,23 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const { sidebarOpen, toggleSidebar } = useAppStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
   const isExamActive = pathname.includes('/exam/') && pathname !== '/exam' && !pathname.startsWith('/exam/history');
   const isAuthPage = pathname === '/login' || pathname === '/signup';
-  if (isExamActive || isAuthPage) return null;
+  const isLanding = pathname === '/';
+  if (isExamActive || isAuthPage || isLanding) return null;
 
   return (
     <>
-      <button
-        onClick={toggleSidebar}
-        className="fixed left-4 top-4 z-50 rounded-xl p-2 transition-colors hover:bg-black/5 dark:hover:bg-white/5 lg:hidden"
-        aria-label="Toggle menu"
-      >
-        {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
-
-      <AnimatePresence>
-        {sidebarOpen && (
-          <motion.div
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={toggleSidebar}
-          />
-        )}
-      </AnimatePresence>
-
-      <motion.aside
+      <aside
         className={cn(
-          'fixed left-0 top-0 z-40 flex h-screen w-[260px] flex-col border-r py-6 lg:relative',
+          'hidden lg:flex fixed left-0 top-0 z-40 h-screen w-[260px] flex-col border-r py-6 lg:relative',
           'glass-subtle',
           'border-r-[var(--border)]'
         )}
-        initial={false}
-        animate={{
-          x: sidebarOpen ? 0 : -260,
-        }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
         <div className="flex items-center gap-3 px-6 pb-8">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)]">
@@ -137,7 +109,7 @@ export function Sidebar() {
             </p>
           </div>
         </div>
-      </motion.aside>
+      </aside>
     </>
   );
 }

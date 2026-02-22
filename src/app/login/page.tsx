@@ -29,7 +29,7 @@ export default function LoginPage() {
         setError(data.error || 'Login failed');
         return;
       }
-      router.push('/');
+      router.push('/dashboard');
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {

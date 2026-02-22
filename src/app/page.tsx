@@ -1,485 +1,319 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
-  Brain,
   Flame,
+  Brain,
   BookOpen,
-  MessageCircle,
   GraduationCap,
-  Upload,
-  BookMarked,
+  MessageCircle,
+  Mic,
+  BarChart3,
   Sparkles,
   ArrowRight,
-  AlertTriangle,
-  Bell,
-  X,
+  CheckCircle2,
+  Globe,
+  Shield,
+  Zap,
 } from 'lucide-react';
-import { GlassCard } from '@/components/ui/glass-card';
-import { Badge } from '@/components/ui/badge';
-import { PageHeader } from '@/components/ui/page-header';
-import { ProgressRing } from '@/components/ui/progress-ring';
-import { getGreeting } from '@/lib/utils';
-import { useEffect, useState } from 'react';
 
-const container = {
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.23, 1, 0.32, 1] } },
+};
+
+const stagger = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.06 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+
+const features = [
+  {
+    icon: Brain,
+    title: 'Spaced Repetition',
+    desc: 'FSRS-powered flashcards that adapt to your memory patterns for maximum retention.',
+    color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
   },
-};
+  {
+    icon: BookOpen,
+    title: 'Smart Vocabulary',
+    desc: 'Upload words in bulk. AI enriches them with gender, conjugation, examples, and CEFR level.',
+    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  },
+  {
+    icon: GraduationCap,
+    title: 'Goethe Exam Prep',
+    desc: 'Full mock exams for A1–B2 with Lesen, Hören, Schreiben, Sprechen. Detailed review after.',
+    color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  },
+  {
+    icon: MessageCircle,
+    title: 'AI Chat Partner',
+    desc: 'Practice German conversation with AI. Get grammar corrections and translation in real time.',
+    color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  },
+  {
+    icon: Mic,
+    title: 'Voice Mode',
+    desc: 'Speak German. AI listens, responds, and corrects your pronunciation and grammar.',
+    color: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+  },
+  {
+    icon: BarChart3,
+    title: 'Deep Analytics',
+    desc: 'Track hard words, weak areas, study streaks, and memory stability with AI insights.',
+    color: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
+  },
+];
 
-const item = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
-};
+const levels = ['A1', 'A2', 'B1', 'B2'];
 
-interface DashboardData {
-  vocabulary: {
-    totalWords: number;
-    mastered: number;
-    byPOS: Record<string, number>;
-    byGender: Record<string, number>;
-    byCEFR: Record<string, number>;
-    dueWords: number;
-  };
-  reviews: { today: number; streak: number };
-  grammar: {
-    totalTopics: number;
-    completed: number;
-    completion: number;
-    byLevel: Record<string, number>;
-  };
-  exams: { history: Array<{ id: string; totalScore?: number; maxScore?: number; cefrLevel: string; startedAt: string; sections: unknown[] }>; totalAttempts: number };
-  insights: { strengths: string[]; weaknesses: string[]; recommendations: string[]; generatedAt: string } | null;
-  memoryStability: number;
-  conversations: number;
-}
-
-const CEFR_ORDER = ['A1', 'A2', 'B1', 'B2'];
-const POS_COLORS: Record<string, string> = {
-  noun: 'bg-blue-500',
-  verb: 'bg-emerald-500',
-  adjective: 'bg-amber-500',
-  adverb: 'bg-purple-500',
-  preposition: 'bg-rose-500',
-  pronoun: 'bg-cyan-500',
-  conjunction: 'bg-orange-500',
-  article: 'bg-indigo-500',
-  other: 'bg-slate-400',
-};
-
-const GENDER_COLORS: Record<string, string> = {
-  masculine: 'bg-blue-500',
-  feminine: 'bg-rose-500',
-  neuter: 'bg-amber-500',
-};
-
-const GENDER_LABELS: Record<string, string> = {
-  masculine: 'der',
-  feminine: 'die',
-  neuter: 'das',
-};
-
-function ReminderBanner() {
-  const [reminders, setReminders] = useState<Array<{ id: string; message: string; type: string }>>([]);
-
-  useEffect(() => {
-    fetch('/api/reminders')
-      .then((r) => r.json())
-      .then((d) => setReminders(d.reminders || []))
-      .catch(() => {});
-  }, []);
-
-  const dismiss = async (id: string) => {
-    await fetch('/api/reminders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reminderId: id }),
-    });
-    setReminders((prev) => prev.filter((r) => r.id !== id));
-  };
-
-  if (reminders.length === 0) return null;
-
+export default function LandingPage() {
   return (
-    <div className="mb-6 space-y-3">
-      <AnimatePresence>
-        {reminders.map((r) => (
-          <motion.div
-            key={r.id}
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3"
-          >
-          <div className="flex items-center gap-3">
-            <Bell size={18} className="shrink-0 text-amber-500" />
-            <p className="text-sm text-[var(--text-primary)]">{r.message}</p>
-          </div>
-          <button
-            onClick={() => dismiss(r.id)}
-            className="ml-3 shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-          >
-            <X size={16} />
-          </button>
-        </motion.div>
-        ))}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function HardWordsCard() {
-  const [hardWords, setHardWords] = useState<Array<{ word: string; meaning: string; accuracy: number }>>([]);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/vocabulary/analytics')
-      .then((r) => r.json())
-      .then((d) => {
-        setHardWords(d.hardWords || []);
-        setLoaded(true);
-      })
-      .catch(() => setLoaded(true));
-  }, []);
-
-  return (
-    <GlassCard hover={false}>
-      <h2 className="flex items-center gap-2 text-base font-semibold">
-        <AlertTriangle size={18} className="text-red-500" />
-        Top 10 Hardest Words
-      </h2>
-      {!loaded ? (
-        <p className="mt-4 text-sm text-[var(--text-tertiary)]">Loading...</p>
-      ) : hardWords.length === 0 ? (
-        <p className="mt-4 text-sm text-[var(--text-tertiary)]">Review more words to see difficulty analytics.</p>
-      ) : (
-        <div className="mt-4 space-y-2">
-          {hardWords.map((w, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)]/50 px-3 py-2"
-            >
-              <div className="min-w-0 flex-1">
-                <span className="text-sm font-medium">{w.word}</span>
-                <span className="ml-2 text-xs text-[var(--text-tertiary)]">{w.meaning}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-                  <div
-                    className={`h-full ${w.accuracy < 40 ? 'bg-red-500' : w.accuracy < 70 ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                    style={{ width: `${w.accuracy}%` }}
-                  />
-                </div>
-                <span className="w-10 text-right text-xs font-medium text-[var(--text-secondary)]">{w.accuracy}%</span>
-              </div>
+    <div className="min-h-screen bg-[var(--bg-primary)]">
+      {/* Navbar */}
+      <nav className="fixed left-0 right-0 top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)]">
+              <Flame size={18} className="text-white" />
             </div>
+            <span className="text-lg font-semibold tracking-tight">DeutschForge</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="rounded-xl px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            >
+              Log in
+            </Link>
+            <Link
+              href="/signup"
+              className="btn-primary rounded-xl px-5 py-2.5 text-sm"
+            >
+              Get Started
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden pb-20 pt-32 sm:pb-28 sm:pt-40">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute left-1/2 top-0 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-[var(--accent)]/5 blur-[120px]" />
+          <div className="absolute bottom-0 right-0 h-[400px] w-[600px] rounded-full bg-purple-500/5 blur-[100px]" />
+        </div>
+
+        <div className="mx-auto max-w-4xl px-5 text-center">
+          <motion.div initial="hidden" animate="show" variants={stagger}>
+            <motion.div variants={fadeUp} className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-1.5 text-xs font-medium text-[var(--text-secondary)]">
+              <Sparkles size={14} className="text-amber-500" />
+              AI-powered German learning from A1 to B2
+            </motion.div>
+
+            <motion.h1
+              variants={fadeUp}
+              className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl md:text-6xl"
+            >
+              Master German with
+              <br />
+              <span className="bg-gradient-to-r from-[var(--accent)] to-purple-500 bg-clip-text text-transparent">
+                Intelligence
+              </span>
+            </motion.h1>
+
+            <motion.p
+              variants={fadeUp}
+              className="mx-auto mt-5 max-w-2xl text-base text-[var(--text-secondary)] sm:text-lg"
+            >
+              Your personal German learning system. Spaced repetition, AI conversation,
+              Goethe exam prep, and vocabulary analytics — all in one place.
+            </motion.p>
+
+            <motion.div variants={fadeUp} className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <Link
+                href="/signup"
+                className="btn-primary flex items-center gap-2 rounded-2xl px-8 py-3.5 text-base font-semibold shadow-lg shadow-[var(--accent)]/20"
+              >
+                Start Learning Free
+                <ArrowRight size={18} />
+              </Link>
+              <Link
+                href="/login"
+                className="flex items-center gap-2 rounded-2xl px-8 py-3.5 text-base font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+              >
+                Already have an account?
+              </Link>
+            </motion.div>
+
+            <motion.div variants={fadeUp} className="mx-auto mt-10 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-[var(--text-tertiary)]">
+              {['No credit card', 'Works offline', 'CEFR A1→B2'].map((t) => (
+                <span key={t} className="flex items-center gap-1.5">
+                  <CheckCircle2 size={14} className="text-emerald-500" />
+                  {t}
+                </span>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* CEFR Levels */}
+      <section className="border-y border-[var(--border)] bg-[var(--bg-secondary)]/50 py-12">
+        <div className="mx-auto flex max-w-4xl items-center justify-center gap-3 px-5 sm:gap-6">
+          <span className="text-sm font-medium text-[var(--text-tertiary)]">CEFR Levels</span>
+          <div className="h-5 w-px bg-[var(--border)]" />
+          {levels.map((level, i) => (
+            <motion.div
+              key={level}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 * i, duration: 0.4 }}
+              className="flex items-center gap-2"
+            >
+              <div className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-white text-sm ${
+                level === 'A1' ? 'bg-emerald-500' : level === 'A2' ? 'bg-blue-500' : level === 'B1' ? 'bg-amber-500' : 'bg-purple-500'
+              }`}>
+                {level}
+              </div>
+              {i < levels.length - 1 && (
+                <ArrowRight size={14} className="text-[var(--text-tertiary)] hidden sm:block" />
+              )}
+            </motion.div>
           ))}
         </div>
-      )}
-    </GlassCard>
-  );
-}
+      </section>
 
-function strengthColor(idx: number, total: number): string {
-  const ratio = (idx + 1) / total;
-  if (ratio <= 0.33) return 'text-red-500';
-  if (ratio <= 0.66) return 'text-amber-500';
-  return 'text-emerald-500';
-}
+      {/* Features Grid */}
+      <section className="py-20 sm:py-28">
+        <div className="mx-auto max-w-6xl px-5">
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={stagger}
+            className="text-center"
+          >
+            <motion.h2 variants={fadeUp} className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Everything you need to learn German
+            </motion.h2>
+            <motion.p variants={fadeUp} className="mx-auto mt-3 max-w-xl text-[var(--text-secondary)]">
+              Built with modern AI and proven learning science. No fluff.
+            </motion.p>
+          </motion.div>
 
-export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch('/api/dashboard')
-      .then((r) => r.json())
-      .then((d) => {
-        setData(d.error ? null : d);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  const cefrTotal = data ? CEFR_ORDER.reduce((s, l) => s + (data.vocabulary?.byCEFR?.[l] || 0), 0) : 0;
-  const cefrPcts = CEFR_ORDER.map((l) => ({
-    level: l,
-    count: data?.vocabulary?.byCEFR?.[l] || 0,
-    pct: cefrTotal > 0 ? ((data?.vocabulary?.byCEFR?.[l] || 0) / cefrTotal) * 100 : 0,
-  }));
-
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-8 lg:px-8">
-      <PageHeader
-        title={getGreeting()}
-        subtitle="Your German journey continues. Keep the momentum."
-      />
-
-      <ReminderBanner />
-
-      {/* Row 1: Quick Stats */}
-      <motion.div
-        className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4"
-        variants={container}
-        initial="hidden"
-        animate="show"
-      >
-        <motion.div variants={item}>
-          <GlassCard className="flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/20">
-              <Brain size={20} className="text-[var(--accent)]" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{loading ? '–' : data?.vocabulary?.totalWords ?? 0}</p>
-              <p className="text-xs text-[var(--text-tertiary)]">words learned</p>
-            </div>
-          </GlassCard>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <GlassCard className="flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-900/20">
-              <Flame size={20} className="text-amber-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{loading ? '–' : data?.reviews?.streak ?? 0}</p>
-              <p className="text-xs text-[var(--text-tertiary)]">day streak</p>
-            </div>
-          </GlassCard>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <GlassCard className="flex items-center justify-center">
-            <ProgressRing
-              progress={loading ? 0 : (data?.grammar?.completion ?? 0)}
-              size={80}
-              strokeWidth={6}
-              label={loading ? '–' : `${data?.grammar?.completion ?? 0}%`}
-              sublabel="Grammar"
-            />
-          </GlassCard>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <GlassCard className="flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-900/20">
-              <BookOpen size={20} className="text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{loading ? '–' : data?.memoryStability ?? 0}</p>
-              <p className="text-xs text-[var(--text-tertiary)]">memory index</p>
-            </div>
-          </GlassCard>
-        </motion.div>
-      </motion.div>
-
-      {/* Row 2: CEFR Progress */}
-      <motion.div className="mt-8" variants={container} initial="hidden" animate="show">
-        <motion.div variants={item}>
-          <GlassCard hover={false}>
-            <h2 className="text-sm font-semibold text-[var(--text-secondary)]">CEFR Journey (A1 → B2)</h2>
-            <div className="mt-3 flex h-4 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-              {cefrPcts.map(({ level, pct }) => (
-                <motion.div
-                  key={level}
-                  className={level === 'A1' ? 'bg-emerald-500' : level === 'A2' ? 'bg-blue-500' : level === 'B1' ? 'bg-amber-500' : 'bg-purple-500'}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${pct}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                  title={`${level}: ${pct.toFixed(0)}%`}
-                  style={{ minWidth: pct > 0 ? '4px' : 0 }}
-                />
-              ))}
-            </div>
-            <div className="mt-2 flex justify-between text-[11px] text-[var(--text-tertiary)]">
-              {CEFR_ORDER.map((l) => (
-                <span key={l}>{l}: {data?.vocabulary?.byCEFR?.[l] ?? 0}</span>
-              ))}
-            </div>
-          </GlassCard>
-        </motion.div>
-      </motion.div>
-
-      {/* Row 3: Vocabulary Breakdown */}
-      <motion.div
-        className="mt-8 grid gap-6 lg:grid-cols-2"
-        variants={container}
-        initial="hidden"
-        animate="show"
-      >
-        <motion.div variants={item}>
-          <GlassCard hover={false}>
-            <h2 className="text-base font-semibold">Part of Speech</h2>
-            <div className="mt-4 space-y-3">
-              {Object.entries(data?.vocabulary?.byPOS ?? {}).map(([pos, count]) => {
-                const total = Object.values(data?.vocabulary?.byPOS ?? {}).reduce((a, b) => a + b, 0);
-                const pct = total > 0 ? (count / total) * 100 : 0;
-                return (
-                  <div key={pos} className="flex items-center gap-3">
-                    <div className="w-20 shrink-0 text-xs text-[var(--text-secondary)] capitalize">{pos}</div>
-                    <div className="h-3 flex-1 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-                      <motion.div
-                        className={`h-full ${POS_COLORS[pos] ?? 'bg-slate-400'}`}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{ duration: 0.6 }}
-                      />
-                    </div>
-                    <span className="w-8 text-right text-xs font-medium">{count}</span>
-                  </div>
-                );
-              })}
-              {(!data?.vocabulary?.byPOS || Object.keys(data.vocabulary.byPOS).length === 0) && !loading && (
-                <p className="text-sm text-[var(--text-tertiary)]">No vocabulary yet. Start by uploading words.</p>
-              )}
-            </div>
-          </GlassCard>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <GlassCard hover={false}>
-            <h2 className="text-base font-semibold">Gender (der/die/das)</h2>
-            <div className="mt-4 flex gap-4">
-              {(['masculine', 'feminine', 'neuter'] as const).map((g) => {
-                const count = data?.vocabulary?.byGender?.[g] ?? 0;
-                const total = Object.values(data?.vocabulary?.byGender ?? {}).reduce((a, b) => a + b, 0);
-                const h = total > 0 ? Math.max(24, (count / total) * 120) : 24;
-                return (
-                  <div key={g} className="flex flex-1 flex-col items-center gap-2">
-                    <motion.div
-                      className={`w-full rounded-lg ${GENDER_COLORS[g]}`}
-                      initial={{ height: 0 }}
-                      animate={{ height: h }}
-                      transition={{ duration: 0.5 }}
-                      style={{ minHeight: 24 }}
-                    />
-                    <span className="text-xs font-medium">{GENDER_LABELS[g]}</span>
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{count}</span>
-                  </div>
-                );
-              })}
-            </div>
-            {(!data?.vocabulary?.byGender || Object.values(data.vocabulary.byGender).every((v) => v === 0)) && !loading && (
-              <p className="mt-2 text-sm text-[var(--text-tertiary)]">No nouns with gender yet.</p>
-            )}
-          </GlassCard>
-        </motion.div>
-      </motion.div>
-
-      {/* Row 4: Recent Activity */}
-      <motion.div
-        className="mt-8 grid gap-6 lg:grid-cols-2"
-        variants={container}
-        initial="hidden"
-        animate="show"
-      >
-        <motion.div variants={item}>
-          <GlassCard hover={false}>
-            <h2 className="text-base font-semibold">Exam History</h2>
-            <div className="mt-4 space-y-2">
-              {(data?.exams?.history ?? []).slice(0, 5).map((exam) => {
-                const score = exam.totalScore != null && exam.maxScore != null && exam.maxScore > 0
-                  ? Math.round((exam.totalScore / exam.maxScore) * 100)
-                  : null;
-                const color = score == null ? 'text-[var(--text-tertiary)]' : score >= 75 ? 'text-emerald-500' : score >= 60 ? 'text-amber-500' : 'text-red-500';
-                return (
-                  <div
-                    key={exam.id}
-                    className="flex items-center justify-between rounded-xl bg-[var(--bg-tertiary)]/50 px-3 py-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Badge variant="level" level={exam.cefrLevel}>{exam.cefrLevel}</Badge>
-                      <span className="text-xs text-[var(--text-secondary)]">
-                        {new Date(exam.startedAt).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </span>
-                    </div>
-                    <span className={`text-sm font-medium ${color}`}>
-                      {score != null ? `${score}%` : '–'}
-                    </span>
-                  </div>
-                );
-              })}
-              {(!data?.exams?.history?.length) && !loading && (
-                <p className="text-sm text-[var(--text-tertiary)]">No exams yet.</p>
-              )}
-            </div>
-          </GlassCard>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <GlassCard hover={false}>
-            <h2 className="flex items-center gap-2 text-base font-semibold">
-              <Sparkles size={18} className="text-amber-500" />
-              AI Insights
-            </h2>
-            {data?.insights ? (
-              <div className="mt-4 space-y-4">
-                <div>
-                  <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Strengths</p>
-                  <ul className="mt-1 space-y-1">
-                    {data.insights.strengths.slice(0, 3).map((s, i) => (
-                      <li key={i} className="text-sm text-[var(--text-secondary)]">• {s}</li>
-                    ))}
-                  </ul>
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={stagger}
+            className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            {features.map((f) => (
+              <motion.div
+                key={f.title}
+                variants={fadeUp}
+                className="group rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6 transition-all hover:border-[var(--accent)]/20 hover:shadow-lg"
+              >
+                <div className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl ${f.color}`}>
+                  <f.icon size={22} />
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Weaknesses</p>
-                  <ul className="mt-1 space-y-1">
-                    {data.insights.weaknesses.slice(0, 3).map((w, i) => (
-                      <li key={i} className={`text-sm ${strengthColor(i, data.insights!.weaknesses.length)}`}>• {w}</li>
-                    ))}
-                  </ul>
+                <h3 className="text-lg font-semibold">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{f.desc}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="border-t border-[var(--border)] bg-[var(--bg-secondary)]/30 py-20 sm:py-28">
+        <div className="mx-auto max-w-4xl px-5">
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+            variants={stagger}
+            className="text-center"
+          >
+            <motion.h2 variants={fadeUp} className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Start in 3 steps
+            </motion.h2>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+            variants={stagger}
+            className="mt-14 grid gap-8 sm:grid-cols-3"
+          >
+            {[
+              { step: '01', title: 'Create account', desc: 'Sign up with a username and password. No email needed.', icon: Shield },
+              { step: '02', title: 'Upload vocabulary', desc: 'Paste your German words. AI enriches them with gender, meaning, and examples.', icon: Globe },
+              { step: '03', title: 'Practice daily', desc: 'Flashcards, grammar, exams, and AI chat adapt to your level.', icon: Zap },
+            ].map((s) => (
+              <motion.div key={s.step} variants={fadeUp} className="text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent)]/10">
+                  <s.icon size={24} className="text-[var(--accent)]" />
                 </div>
+                <span className="text-xs font-bold tracking-widest text-[var(--accent)]">STEP {s.step}</span>
+                <h3 className="mt-2 text-lg font-semibold">{s.title}</h3>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">{s.desc}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-20 sm:py-28">
+        <div className="mx-auto max-w-3xl px-5 text-center">
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+            variants={stagger}
+          >
+            <motion.div variants={fadeUp}>
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--accent)]">
+                <Flame size={32} className="text-white" />
               </div>
-            ) : (
-              <p className="mt-4 text-sm text-[var(--text-tertiary)]">
-                Complete more reviews to unlock insights.
-              </p>
-            )}
-          </GlassCard>
-        </motion.div>
-      </motion.div>
+            </motion.div>
+            <motion.h2 variants={fadeUp} className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Ready to forge your German?
+            </motion.h2>
+            <motion.p variants={fadeUp} className="mx-auto mt-4 max-w-lg text-[var(--text-secondary)]">
+              Join DeutschForge and start mastering German with AI-powered tools built for real results.
+            </motion.p>
+            <motion.div variants={fadeUp} className="mt-8">
+              <Link
+                href="/signup"
+                className="btn-primary inline-flex items-center gap-2 rounded-2xl px-10 py-4 text-base font-semibold shadow-lg shadow-[var(--accent)]/20"
+              >
+                Create Free Account
+                <ArrowRight size={18} />
+              </Link>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
 
-      {/* Row: Hard Words */}
-      <motion.div className="mt-8" variants={container} initial="hidden" animate="show">
-        <motion.div variants={item}>
-          <HardWordsCard />
-        </motion.div>
-      </motion.div>
-
-      {/* Row 5: Quick Actions */}
-      <motion.div className="mt-8" variants={container} initial="hidden" animate="show">
-        <motion.div variants={item}>
-          <GlassCard hover={false}>
-            <h2 className="text-base font-semibold">Quick Actions</h2>
-            <div className="mt-4 flex flex-wrap gap-3">
-              {[
-                { label: 'Practice', icon: Brain, href: '/practice' },
-                { label: 'Upload Words', icon: Upload, href: '/vocabulary' },
-                { label: 'Grammar', icon: BookMarked, href: '/grammar' },
-                { label: 'Chat', icon: MessageCircle, href: '/chat' },
-                { label: 'Take Exam', icon: GraduationCap, href: '/exam' },
-              ].map(({ label, icon: Icon, href }) => (
-                <Link key={label} href={href}>
-                  <motion.button
-                    className="btn-secondary flex items-center gap-2"
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    <Icon size={16} />
-                    {label}
-                    <ArrowRight size={14} />
-                  </motion.button>
-                </Link>
-              ))}
+      {/* Footer */}
+      <footer className="border-t border-[var(--border)] py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 sm:flex-row">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent)]">
+              <Flame size={14} className="text-white" />
             </div>
-          </GlassCard>
-        </motion.div>
-      </motion.div>
+            <span className="text-sm font-semibold">DeutschForge</span>
+          </div>
+          <p className="text-xs text-[var(--text-tertiary)]">
+            Built for serious German learners. CEFR A1 to B2.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
