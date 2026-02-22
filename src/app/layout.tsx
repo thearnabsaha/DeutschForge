@@ -4,13 +4,13 @@ import { ThemeProvider } from '@/components/layout/theme-provider';
 import { Sidebar } from '@/components/layout/sidebar';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { PwaRegister } from '@/components/layout/pwa-register';
+import { AuthProvider } from '@/components/auth/auth-guard';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'DeutschForge – Cognitive German Mastery',
   description: 'Personal CEFR A1→B2 German learning system with spaced repetition and Goethe exam preparation.',
   manifest: '/manifest.json',
-  themeColor: '#007AFF',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -24,6 +24,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   viewportFit: 'cover',
+  themeColor: '#007AFF',
 };
 
 export default function RootLayout({
@@ -35,14 +36,16 @@ export default function RootLayout({
     <html lang="de" suppressHydrationWarning>
       <body className="min-h-screen bg-[var(--bg-primary)] antialiased">
         <ThemeProvider>
-          <PwaRegister />
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
-              {children}
-            </main>
-          </div>
-          <MobileNav />
+          <AuthProvider>
+            <PwaRegister />
+            <div className="flex min-h-screen">
+              <Sidebar />
+              <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
+                {children}
+              </main>
+            </div>
+            <MobileNav />
+          </AuthProvider>
           <Toaster
             position="top-right"
             toastOptions={{
