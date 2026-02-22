@@ -1,0 +1,271 @@
+import {
+  pgTable,
+  text,
+  timestamp,
+  real,
+  integer,
+  uniqueIndex,
+  index,
+  jsonb,
+  boolean,
+} from 'drizzle-orm/pg-core';
+import { createId } from '@paralleldrive/cuid2';
+
+// ── USERS ────────────────────────────────────────────────────
+
+export const users = pgTable('users', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  name: text('name').notNull().default('Learner'),
+  targetLevel: text('target_level').notNull().default('A1'),
+  timezone: text('timezone').notNull().default('Europe/Berlin'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const userSettings = pgTable('user_settings', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  theme: text('theme').notNull().default('system'),
+  focusMode: boolean('focus_mode').notNull().default(false),
+  dailyGoal: integer('daily_goal').notNull().default(20),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  userUniq: uniqueIndex('user_settings_user_uniq').on(t.userId),
+}));
+
+// ── USER VOCABULARY ──────────────────────────────────────────
+
+export const userWords = pgTable('user_words', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  word: text('word').notNull(),
+  partOfSpeech: text('part_of_speech').notNull(),
+  gender: text('gender'),
+  pluralForm: text('plural_form'),
+  conjugation: jsonb('conjugation').$type<Record<string, string>>(),
+  meaning: text('meaning').notNull(),
+  cefrLevel: text('cefr_level').notNull().default('A1'),
+  exampleSentence: text('example_sentence'),
+  stability: real('stability').notNull().default(0),
+  difficulty: real('difficulty').notNull().default(0),
+  scheduledDays: real('scheduled_days').notNull().default(0),
+  reps: integer('reps').notNull().default(0),
+  lapses: integer('lapses').notNull().default(0),
+  state: integer('state').notNull().default(0),
+  lastReview: timestamp('last_review'),
+  nextReview: timestamp('next_review').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  userWordIdx: index('user_words_user_idx').on(t.userId),
+  userNextReviewIdx: index('user_words_next_review_idx').on(t.userId, t.nextReview),
+  userPosIdx: index('user_words_pos_idx').on(t.userId, t.partOfSpeech),
+}));
+
+export const wordReviewLogs = pgTable('word_review_logs', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  wordId: text('word_id').notNull().references(() => userWords.id, { onDelete: 'cascade' }),
+  mode: text('mode').notNull(),
+  rating: integer('rating').notNull(),
+  correct: boolean('correct').notNull(),
+  reviewedAt: timestamp('reviewed_at').defaultNow().notNull(),
+}, (t) => ({
+  userReviewIdx: index('word_review_user_idx').on(t.userId, t.reviewedAt),
+}));
+
+// ── GRAMMAR ──────────────────────────────────────────────────
+
+export const grammarTopics = pgTable('grammar_topics', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  cefrLevel: text('cefr_level').notNull(),
+  title: text('title').notNull(),
+  slug: text('slug').notNull(),
+  description: text('description').notNull(),
+  theory: text('theory').notNull(),
+  examples: jsonb('examples').$type<Array<{ german: string; english: string; note?: string }>>().notNull(),
+  exercises: jsonb('exercises').$type<Array<{
+    id: string;
+    type: string;
+    question: string;
+    options?: string[];
+    correctAnswer: string;
+    explanation: string;
+  }>>().notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  levelSlugUniq: uniqueIndex('grammar_topics_level_slug_uniq').on(t.cefrLevel, t.slug),
+  levelIdx: index('grammar_topics_level_idx').on(t.cefrLevel),
+}));
+
+export const grammarAttempts = pgTable('grammar_attempts', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  topicId: text('topic_id').notNull().references(() => grammarTopics.id, { onDelete: 'cascade' }),
+  score: real('score').notNull(),
+  maxScore: real('max_score').notNull(),
+  answers: jsonb('answers').$type<Array<{
+    exerciseId: string;
+    userAnswer: string;
+    correct: boolean;
+  }>>().notNull(),
+  completedAt: timestamp('completed_at').defaultNow().notNull(),
+}, (t) => ({
+  userTopicIdx: index('grammar_attempts_user_topic_idx').on(t.userId, t.topicId),
+}));
+
+// ── CONVERSATIONS ────────────────────────────────────────────
+
+export const conversationSessions = pgTable('conversation_sessions', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  topic: text('topic'),
+  cefrLevel: text('cefr_level').notNull().default('A1'),
+  fluencyScore: real('fluency_score'),
+  accuracyScore: real('accuracy_score'),
+  vocabularyScore: real('vocabulary_score'),
+  messageCount: integer('message_count').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  endedAt: timestamp('ended_at'),
+}, (t) => ({
+  userIdx: index('conv_sessions_user_idx').on(t.userId),
+}));
+
+export const conversationMessages = pgTable('conversation_messages', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  sessionId: text('session_id').notNull().references(() => conversationSessions.id, { onDelete: 'cascade' }),
+  role: text('role').notNull(),
+  content: text('content').notNull(),
+  translation: text('translation'),
+  corrections: jsonb('corrections').$type<Array<{ original: string; corrected: string; rule: string }>>(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  sessionIdx: index('conv_messages_session_idx').on(t.sessionId),
+}));
+
+// ── AI INSIGHTS ──────────────────────────────────────────────
+
+export const aiInsights = pgTable('ai_insights', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  strengths: jsonb('strengths').$type<string[]>().notNull(),
+  weaknesses: jsonb('weaknesses').$type<string[]>().notNull(),
+  recommendations: jsonb('recommendations').$type<string[]>().notNull(),
+  dataPoints: integer('data_points').notNull(),
+  generatedAt: timestamp('generated_at').defaultNow().notNull(),
+}, (t) => ({
+  userIdx: index('ai_insights_user_idx').on(t.userId),
+}));
+
+// ── EXISTING TABLES (kept for exam system) ───────────────────
+
+export const decks = pgTable('decks', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  name: text('name').notNull(),
+  description: text('description'),
+  cefrLevel: text('cefr_level').notNull(),
+  module: text('module').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const cards = pgTable('cards', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  deckId: text('deck_id').notNull().references(() => decks.id, { onDelete: 'cascade' }),
+  front: text('front').notNull(),
+  back: text('back').notNull(),
+  contextSentence: text('context_sentence'),
+  explanation: text('explanation'),
+  cefrLevel: text('cefr_level').notNull(),
+  module: text('module').notNull(),
+  tags: jsonb('tags').$type<string[]>().default([]),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  levelModuleIdx: index('cards_level_module_idx').on(t.cefrLevel, t.module),
+  deckIdx: index('cards_deck_idx').on(t.deckId),
+}));
+
+export const cardStates = pgTable('card_states', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  cardId: text('card_id').notNull().references(() => cards.id, { onDelete: 'cascade' }),
+  stability: real('stability').notNull().default(0),
+  difficulty: real('difficulty').notNull().default(0),
+  elapsedDays: real('elapsed_days').notNull().default(0),
+  scheduledDays: real('scheduled_days').notNull().default(0),
+  reps: integer('reps').notNull().default(0),
+  lapses: integer('lapses').notNull().default(0),
+  state: integer('state').notNull().default(0),
+  lastReview: timestamp('last_review'),
+  nextReview: timestamp('next_review').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  userCardUniq: uniqueIndex('card_states_user_card_uniq').on(t.userId, t.cardId),
+  userNextReviewIdx: index('card_states_user_next_review_idx').on(t.userId, t.nextReview),
+  userStateIdx: index('card_states_user_state_idx').on(t.userId, t.state),
+}));
+
+export const reviewLogs = pgTable('review_logs', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  cardId: text('card_id').notNull().references(() => cards.id, { onDelete: 'cascade' }),
+  rating: integer('rating').notNull(),
+  state: integer('state').notNull(),
+  stability: real('stability').notNull(),
+  difficulty: real('difficulty').notNull(),
+  elapsed: real('elapsed').notNull(),
+  scheduled: real('scheduled').notNull(),
+  reviewedAt: timestamp('reviewed_at').defaultNow().notNull(),
+}, (t) => ({
+  userReviewedIdx: index('review_logs_user_reviewed_idx').on(t.userId, t.reviewedAt),
+  cardIdx: index('review_logs_card_idx').on(t.cardId),
+}));
+
+export const examTemplates = pgTable('exam_templates', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  title: text('title').notNull(),
+  cefrLevel: text('cefr_level').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const examTemplateSections = pgTable('exam_template_sections', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  templateId: text('template_id').notNull().references(() => examTemplates.id, { onDelete: 'cascade' }),
+  section: text('section').notNull(),
+  timeMinutes: integer('time_minutes').notNull(),
+  instructions: text('instructions').notNull(),
+  content: jsonb('content').notNull(),
+  maxScore: integer('max_score').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+}, (t) => ({
+  templateSectionIdx: index('ets_template_section_idx').on(t.templateId, t.section),
+}));
+
+export const examAttempts = pgTable('exam_attempts', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  templateId: text('template_id').notNull().references(() => examTemplates.id, { onDelete: 'cascade' }),
+  cefrLevel: text('cefr_level').notNull(),
+  totalScore: real('total_score'),
+  maxScore: real('max_score'),
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
+  status: text('status').notNull().default('in_progress'),
+}, (t) => ({
+  userStartedIdx: index('exam_attempts_user_started_idx').on(t.userId, t.startedAt),
+}));
+
+export const examSectionScores = pgTable('exam_section_scores', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  attemptId: text('attempt_id').notNull().references(() => examAttempts.id, { onDelete: 'cascade' }),
+  section: text('section').notNull(),
+  score: real('score'),
+  maxScore: real('max_score').notNull(),
+  answers: jsonb('answers'),
+  feedback: jsonb('feedback'),
+  questionSnapshot: jsonb('question_snapshot'),
+  timeSpent: integer('time_spent'),
+  completedAt: timestamp('completed_at'),
+}, (t) => ({
+  attemptSectionUniq: uniqueIndex('ess_attempt_section_uniq').on(t.attemptId, t.section),
+}));
