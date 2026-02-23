@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -21,6 +22,37 @@ const tabs = [
 
 export function MobileNav() {
   const pathname = usePathname();
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const vv = window.visualViewport;
+    if (vv) {
+      const threshold = 150;
+      const onResize = () => {
+        const heightDiff = window.innerHeight - vv.height;
+        setKeyboardOpen(heightDiff > threshold);
+      };
+      vv.addEventListener('resize', onResize);
+      return () => vv.removeEventListener('resize', onResize);
+    }
+
+    const onFocus = (e: FocusEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) {
+        setKeyboardOpen(true);
+      }
+    };
+    const onBlur = () => setKeyboardOpen(false);
+
+    document.addEventListener('focusin', onFocus);
+    document.addEventListener('focusout', onBlur);
+    return () => {
+      document.removeEventListener('focusin', onFocus);
+      document.removeEventListener('focusout', onBlur);
+    };
+  }, []);
 
   const isHidden =
     pathname === '/' ||
@@ -28,13 +60,17 @@ export function MobileNav() {
     pathname === '/signup' ||
     (pathname.includes('/exam/') && pathname !== '/exam' && !pathname.startsWith('/exam/history'));
 
-  if (isHidden) return null;
+  if (isHidden || keyboardOpen) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--border)] bg-[var(--bg-primary)]/90 backdrop-blur-xl lg:hidden"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl lg:hidden"
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        transform: 'translate3d(0,0,0)',
+      }}
     >
-      <div className="mx-auto flex h-16 max-w-lg items-stretch justify-around">
+      <div className="mx-auto flex h-14 max-w-lg items-stretch justify-around">
         {tabs.map((tab) => {
           const isActive = pathname === tab.href || pathname.startsWith(tab.href + '/');
           return (

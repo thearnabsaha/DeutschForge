@@ -20,8 +20,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: 'cover',
   themeColor: '#007AFF',
 };
@@ -33,13 +33,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="de" suppressHydrationWarning>
-      <body className="min-h-screen bg-[var(--bg-primary)] antialiased">
+      <body className="bg-[var(--bg-primary)] antialiased" style={{ minHeight: '100dvh' }}>
         <ThemeProvider>
           <AuthProvider>
             <PwaRegister />
-            <div className="flex min-h-screen">
+            <div className="flex" style={{ minHeight: '100dvh' }}>
               <Sidebar />
-              <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
+              <main className="main-scroll flex-1 pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
                 {children}
               </main>
             </div>
