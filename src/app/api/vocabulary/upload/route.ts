@@ -30,9 +30,16 @@ export async function POST(request: NextRequest) {
     if (parsedWords.length === 0) {
       return NextResponse.json({ success: false, error: 'No valid words provided' }, { status: 400 });
     }
-    const enrichedWords = await enrichWords(parsedWords);
+    let enrichedWords;
+    try {
+      enrichedWords = await enrichWords(parsedWords);
+    } catch (enrichErr) {
+      console.error('Enrichment failed:', enrichErr);
+      const msg = enrichErr instanceof Error ? enrichErr.message : 'Unknown enrichment error';
+      return NextResponse.json({ success: false, error: `Enrichment failed: ${msg}` }, { status: 500 });
+    }
     if (enrichedWords.length === 0) {
-      return NextResponse.json({ success: false, error: 'No words could be enriched' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'AI could not process the words. Please try again.' }, { status: 400 });
     }
     const [batch] = await db.insert(wordBatches).values({
       userId,

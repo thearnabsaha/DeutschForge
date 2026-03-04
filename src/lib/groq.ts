@@ -1,5 +1,6 @@
 import Groq from 'groq-sdk';
 import {
+  enrichedWordSchema,
   enrichedWordsResponseSchema,
   chatResponseSchema,
   type EnrichedWord,
@@ -246,14 +247,39 @@ Return ONLY valid JSON matching this structure: { words: [{ word, part_of_speech
   });
 
   const raw = completion.choices[0]?.message?.content;
-  if (!raw) return [];
+  if (!raw) {
+    console.error('[enrichWords] Empty response from Groq');
+    return [];
+  }
 
   try {
     const parsed = JSON.parse(raw);
-    const result = enrichedWordsResponseSchema.safeParse(parsed);
+
+    const wordsArray =
+      parsed.words ?? parsed.Words ?? parsed.WORDS ??
+      (Array.isArray(parsed) ? parsed : null);
+
+    if (!wordsArray || !Array.isArray(wordsArray)) {
+      console.error('[enrichWords] No words array found in response. Keys:', Object.keys(parsed));
+      return [];
+    }
+
+    const result = enrichedWordsResponseSchema.safeParse({ words: wordsArray });
     if (result.success) return result.data.words;
-    return [];
-  } catch {
+
+    console.error('[enrichWords] Batch validation failed, trying individual words...');
+    const salvaged: EnrichedWord[] = [];
+    for (const item of wordsArray) {
+      const single = enrichedWordSchema.safeParse(item);
+      if (single.success) {
+        salvaged.push(single.data);
+      } else {
+        console.error('[enrichWords] Skipped word:', item?.word ?? JSON.stringify(item).slice(0, 80), single.error.issues.map(i => i.message).join(', '));
+      }
+    }
+    return salvaged;
+  } catch (err) {
+    console.error('[enrichWords] JSON parse error:', err, 'Raw response:', raw.slice(0, 500));
     return [];
   }
 }
