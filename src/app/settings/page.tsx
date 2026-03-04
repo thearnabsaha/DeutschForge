@@ -25,6 +25,7 @@ import {
   Flame,
   Smartphone,
   Sparkles,
+  TreePine,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
@@ -34,7 +35,7 @@ import { toast } from 'sonner';
 import { setMuted, isMuted } from '@/lib/sounds';
 
 const levels = ['A1', 'A2', 'B1', 'B2'] as const;
-type ThemeId = 'light' | 'dark' | 'system' | 'high-contrast' | 'minimal' | 'colorful' | 'dark-nord' | 'dark-warm' | 'amoled' | 'dark-purple';
+type ThemeId = 'light' | 'dark' | 'system' | 'high-contrast' | 'minimal' | 'colorful' | 'dark-nord' | 'dark-warm' | 'amoled' | 'dark-duo' | 'dark-purple';
 
 const themes: Array<{
   id: ThemeId;
@@ -52,6 +53,7 @@ const themes: Array<{
   { id: 'dark-nord', label: 'Nord', icon: Snowflake, preview: 'bg-[#2e3440] border border-[#88c0d0]/30', group: 'dark' },
   { id: 'dark-warm', label: 'Warm', icon: Flame, preview: 'bg-[#1a1412] border border-[#e8a44a]/20', group: 'dark' },
   { id: 'amoled', label: 'AMOLED', icon: Smartphone, preview: 'bg-black border border-white/5', group: 'dark' },
+  { id: 'dark-duo', label: 'Duolingo', icon: TreePine, preview: 'bg-[#131f24] border border-[#58cc02]/20', group: 'dark' },
   { id: 'dark-purple', label: 'Purple', icon: Sparkles, preview: 'bg-[#13111c] border border-[#a78bfa]/20', group: 'dark' },
 ];
 

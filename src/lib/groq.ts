@@ -22,13 +22,11 @@ function getGroq(): Groq {
 // ── MODEL CASCADE ────────────────────────────────────────────
 // Ordered by capability. On 429 / 503 / rate-limit the next model is tried.
 const MODEL_CASCADE = [
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
   'llama-3.3-70b-versatile',
-  'llama-3.1-70b-versatile',
-  'llama3-70b-8192',
-  'mixtral-8x7b-32768',
   'llama-3.1-8b-instant',
-  'llama3-8b-8192',
-  'gemma2-9b-it',
+  'openai/gpt-oss-safeguard-20b',
 ] as const;
 
 interface CallGroqParams {
@@ -216,14 +214,7 @@ export async function explainGrammar(
 
 // ── WORD ENRICHMENT ──────────────────────────────────────────
 
-export async function enrichWords(words: string[]): Promise<EnrichedWord[]> {
-  const wordsList = words.map((w, i) => `${i + 1}. ${w}`).join('\n');
-
-  const completion = await callGroq({
-    messages: [
-      {
-        role: 'system',
-        content: `You are a German language lexicography expert. For each German word or phrase provided, return structured linguistic data.
+const ENRICH_SYSTEM_PROMPT = `You are a German language lexicography expert. For each German word or phrase provided, return structured linguistic data.
 
 CRITICAL RULES for interpreting input:
 - If the user writes an article + noun (e.g. "die Frau", "der Hund", "das Kind"), treat it as ONE noun entry. The article indicates the gender. The "word" field should be the noun with its article (e.g. "die Frau").
@@ -234,19 +225,12 @@ CRITICAL RULES for interpreting input:
 - NEVER split an article+noun, reflexive pronoun+verb, or multi-word phrase into separate entries.
 - Return exactly one entry per numbered input item provided by the user.
 
-Return ONLY valid JSON matching this structure: { words: [{ word, part_of_speech (noun/verb/adjective/adverb/preposition/conjunction/pronoun/article/other), gender (masculine/feminine/neuter or null if not noun), plural_form (or null if not noun), conjugation (object with ich/du/er/wir/ihr/sie keys or null if not verb, present tense), meaning (English translation), cefr_level (A1/A2/B1/B2), example_sentence (simple German sentence using the word), verb_type (regular/irregular/mixed or null if not verb), auxiliary_type (haben/sein or null if not verb), present_form (3rd person singular present or null if not verb), simple_past (3rd person singular past or null if not verb), perfect_form (perfect tense with auxiliary e.g. "hat gemacht" or "ist gegangen", or null if not verb) }] }`,
-      },
-      {
-        role: 'user',
-        content: `Provide linguistic data for each of these German words/phrases (one entry per item):\n${wordsList}`,
-      },
-    ],
-    temperature: 0.2,
-    max_tokens: 4000,
-    response_format: { type: 'json_object' },
-  });
+Return ONLY valid JSON matching this structure: { words: [{ word, part_of_speech (noun/verb/adjective/adverb/preposition/conjunction/pronoun/article/other), gender (masculine/feminine/neuter or null if not noun), plural_form (or null if not noun), conjugation (object with ich/du/er/wir/ihr/sie keys or null if not verb, present tense), meaning (English translation), cefr_level (A1/A2/B1/B2), example_sentence (simple German sentence using the word), verb_type (regular/irregular/mixed or null if not verb), auxiliary_type (haben/sein or null if not verb), present_form (3rd person singular present or null if not verb), simple_past (3rd person singular past or null if not verb), perfect_form (perfect tense with auxiliary e.g. "hat gemacht" or "ist gegangen", or null if not verb) }] }`;
 
-  const raw = completion.choices[0]?.message?.content;
+const ENRICH_BATCH_SIZE = 15;
+const MAX_CONCURRENT_BATCHES = 3;
+
+function parseEnrichResponse(raw: string | null | undefined): EnrichedWord[] {
   if (!raw) {
     console.error('[enrichWords] Empty response from Groq');
     return [];
@@ -274,14 +258,66 @@ Return ONLY valid JSON matching this structure: { words: [{ word, part_of_speech
       if (single.success) {
         salvaged.push(single.data);
       } else {
-        console.error('[enrichWords] Skipped word:', item?.word ?? JSON.stringify(item).slice(0, 80), single.error.issues.map(i => i.message).join(', '));
+        console.error('[enrichWords] Skipped word:', item?.word ?? JSON.stringify(item).slice(0, 80), single.error.issues.map((i: { message: string }) => i.message).join(', '));
       }
     }
     return salvaged;
   } catch (err) {
-    console.error('[enrichWords] JSON parse error:', err, 'Raw response:', raw.slice(0, 500));
+    console.error('[enrichWords] JSON parse error:', err, 'Raw response:', (raw ?? '').slice(0, 500));
     return [];
   }
+}
+
+async function enrichBatch(words: string[]): Promise<EnrichedWord[]> {
+  const wordsList = words.map((w, i) => `${i + 1}. ${w}`).join('\n');
+
+  const completion = await callGroq({
+    messages: [
+      { role: 'system', content: ENRICH_SYSTEM_PROMPT },
+      {
+        role: 'user',
+        content: `Provide linguistic data for each of these German words/phrases (one entry per item):\n${wordsList}`,
+      },
+    ],
+    temperature: 0.2,
+    max_tokens: 8000,
+    response_format: { type: 'json_object' },
+  });
+
+  return parseEnrichResponse(completion.choices[0]?.message?.content);
+}
+
+export async function enrichWords(words: string[]): Promise<EnrichedWord[]> {
+  if (words.length <= ENRICH_BATCH_SIZE) {
+    return enrichBatch(words);
+  }
+
+  const chunks: string[][] = [];
+  for (let i = 0; i < words.length; i += ENRICH_BATCH_SIZE) {
+    chunks.push(words.slice(i, i + ENRICH_BATCH_SIZE));
+  }
+
+  console.log(`[enrichWords] Processing ${words.length} words in ${chunks.length} batches`);
+
+  const allResults: EnrichedWord[] = [];
+
+  for (let i = 0; i < chunks.length; i += MAX_CONCURRENT_BATCHES) {
+    const concurrentChunks = chunks.slice(i, i + MAX_CONCURRENT_BATCHES);
+    const batchResults = await Promise.allSettled(
+      concurrentChunks.map((chunk) => enrichBatch(chunk))
+    );
+
+    for (const result of batchResults) {
+      if (result.status === 'fulfilled') {
+        allResults.push(...result.value);
+      } else {
+        console.error('[enrichWords] Batch failed:', result.reason);
+      }
+    }
+  }
+
+  console.log(`[enrichWords] Enriched ${allResults.length}/${words.length} words successfully`);
+  return allResults;
 }
 
 // ── CHAT WITH CORRECTIONS ────────────────────────────────────

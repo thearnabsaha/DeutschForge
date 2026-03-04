@@ -9,7 +9,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       attribute="class"
       defaultTheme="system"
       enableSystem
-      themes={['light', 'dark', 'system', 'high-contrast', 'minimal', 'colorful', 'dark-nord', 'dark-warm', 'amoled', 'dark-purple']}
+      themes={['light', 'dark', 'system', 'high-contrast', 'minimal', 'colorful', 'dark-nord', 'dark-warm', 'amoled', 'dark-duo', 'dark-purple']}
     >
       {children}
     </NextThemesProvider>

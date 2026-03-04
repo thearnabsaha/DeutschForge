@@ -77,13 +77,27 @@ export default function VocabularyPage() {
       return;
     }
     setUploading(true);
+
+    const wordCount = trimmed.split(/[\n,]+/).filter((w) => w.trim()).length;
+    const toastId = wordCount > 15
+      ? toast.loading(`Enriching ${wordCount} words... This may take a moment.`)
+      : undefined;
+
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 150_000);
+
       const res = await fetch('/api/vocabulary/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ words: trimmed }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
+
       const data = await res.json();
+      if (toastId) toast.dismiss(toastId);
+
       if (!res.ok) {
         toast.error(data.error || 'Upload failed');
         return;
@@ -94,7 +108,8 @@ export default function VocabularyPage() {
       setWordsInput('');
       await fetchWords();
     } catch {
-      toast.error('Upload failed');
+      if (toastId) toast.dismiss(toastId);
+      toast.error('Upload failed -- try fewer words at once if it times out');
     } finally {
       setUploading(false);
     }
@@ -159,8 +174,8 @@ export default function VocabularyPage() {
           <textarea
             value={wordsInput}
             onChange={(e) => setWordsInput(e.target.value)}
-            placeholder="Enter German words, one per line or comma-separated..."
-            className="mt-4 min-h-[120px] w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            placeholder="Enter German words, one per line or comma-separated. You can add 100+ words at once!&#10;&#10;Example:&#10;Hund, Katze, Frau&#10;laufen&#10;schön"
+            className="mt-4 min-h-[180px] w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
             disabled={uploading}
           />
           <motion.button

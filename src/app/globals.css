@@ -149,6 +149,24 @@
     --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
   }
 
+  .dark-duo {
+    --bg-primary: #131f24;
+    --bg-secondary: #1a2e35;
+    --bg-tertiary: #233d47;
+    --text-primary: #f0f0f0;
+    --text-secondary: #afafaf;
+    --text-tertiary: #777777;
+    --accent: #58cc02;
+    --accent-hover: #46a302;
+    --success: #58cc02;
+    --warning: #ffc800;
+    --danger: #ff4b4b;
+    --border: rgba(88, 204, 2, 0.10);
+    --glass-bg: rgba(19, 31, 36, 0.85);
+    --glass-border: rgba(88, 204, 2, 0.06);
+    --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+  }
+
   .dark-purple {
     --bg-primary: #13111c;
     --bg-secondary: #1c1929;
@@ -221,6 +239,7 @@
   .dark-nord .glass-heavy,
   .dark-warm .glass-heavy,
   .amoled .glass-heavy,
+  .dark-duo .glass-heavy,
   .dark-purple .glass-heavy {
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
   }
@@ -242,6 +261,7 @@
   .dark-nord .card-surface,
   .dark-warm .card-surface,
   .amoled .card-surface,
+  .dark-duo .card-surface,
   .dark-purple .card-surface {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.2);
   }
@@ -343,6 +363,7 @@ html.dark body.focus-mode,
 html.dark-nord body.focus-mode,
 html.dark-warm body.focus-mode,
 html.amoled body.focus-mode,
+html.dark-duo body.focus-mode,
 html.dark-purple body.focus-mode {
   --glass-bg: rgba(18, 18, 18, 0.95);
   --glass-border: rgba(255, 255, 255, 0.06);

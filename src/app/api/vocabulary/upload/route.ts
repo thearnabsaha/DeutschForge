@@ -5,6 +5,8 @@ import { userWords, wordBatches } from '@/lib/schema';
 import { enrichWords } from '@/lib/groq';
 import { getCurrentUserId } from '@/lib/get-user';
 
+export const maxDuration = 120;
+
 function parseWords(wordsString: string): string[] {
   const lines = wordsString.split(/\n+/).map((l) => l.trim()).filter(Boolean);
 
@@ -78,24 +80,28 @@ export async function POST(request: NextRequest) {
       name: `Batch ${new Date().toLocaleDateString('de-DE')}`,
       wordCount: deduped.length,
     }).returning();
-    for (const w of deduped) {
-      await db.insert(userWords).values({
-        userId,
-        word: w.word,
-        partOfSpeech: w.part_of_speech,
-        gender: w.gender,
-        pluralForm: w.plural_form,
-        conjugation: w.conjugation as Record<string, string> | null,
-        meaning: w.meaning,
-        cefrLevel: w.cefr_level,
-        exampleSentence: w.example_sentence,
-        verbType: w.verb_type ?? null,
-        auxiliaryType: w.auxiliary_type ?? null,
-        presentForm: w.present_form ?? null,
-        simplePast: w.simple_past ?? null,
-        perfectForm: w.perfect_form ?? null,
-        batchId: batch.id,
-      });
+
+    const insertRows = deduped.map((w) => ({
+      userId,
+      word: w.word,
+      partOfSpeech: w.part_of_speech,
+      gender: w.gender,
+      pluralForm: w.plural_form,
+      conjugation: w.conjugation as Record<string, string> | null,
+      meaning: w.meaning,
+      cefrLevel: w.cefr_level,
+      exampleSentence: w.example_sentence,
+      verbType: w.verb_type ?? null,
+      auxiliaryType: w.auxiliary_type ?? null,
+      presentForm: w.present_form ?? null,
+      simplePast: w.simple_past ?? null,
+      perfectForm: w.perfect_form ?? null,
+      batchId: batch.id,
+    }));
+
+    const DB_INSERT_BATCH = 50;
+    for (let i = 0; i < insertRows.length; i += DB_INSERT_BATCH) {
+      await db.insert(userWords).values(insertRows.slice(i, i + DB_INSERT_BATCH));
     }
     return NextResponse.json({
       success: true,

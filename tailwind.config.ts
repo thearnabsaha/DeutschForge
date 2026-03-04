@@ -6,7 +6,7 @@ const config: Config = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  darkMode: ['selector', ':is(.dark, .dark-nord, .dark-warm, .amoled, .dark-purple) &'],
+  darkMode: ['selector', ':is(.dark, .dark-nord, .dark-warm, .amoled, .dark-duo, .dark-purple) &'],
   theme: {
     screens: {
       'xs': '375px',
