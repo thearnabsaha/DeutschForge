@@ -216,17 +216,28 @@ export async function explainGrammar(
 // ── WORD ENRICHMENT ──────────────────────────────────────────
 
 export async function enrichWords(words: string[]): Promise<EnrichedWord[]> {
-  const wordsList = words.join(', ');
+  const wordsList = words.map((w, i) => `${i + 1}. ${w}`).join('\n');
 
   const completion = await callGroq({
     messages: [
       {
         role: 'system',
-        content: `You are a German language lexicography expert. For each German word, provide structured linguistic data. Return ONLY valid JSON matching this structure: { words: [{ word, part_of_speech (noun/verb/adjective/adverb/preposition/conjunction/pronoun/article/other), gender (masculine/feminine/neuter or null if not noun), plural_form (or null if not noun), conjugation (object with ich/du/er/wir/ihr/sie keys or null if not verb, present tense), meaning (English translation), cefr_level (A1/A2/B1/B2), example_sentence (simple German sentence using the word), verb_type (regular/irregular/mixed or null if not verb), auxiliary_type (haben/sein or null if not verb), present_form (3rd person singular present or null if not verb), simple_past (3rd person singular past or null if not verb), perfect_form (perfect tense with auxiliary e.g. "hat gemacht" or "ist gegangen", or null if not verb) }] }`,
+        content: `You are a German language lexicography expert. For each German word or phrase provided, return structured linguistic data.
+
+CRITICAL RULES for interpreting input:
+- If the user writes an article + noun (e.g. "die Frau", "der Hund", "das Kind"), treat it as ONE noun entry. The article indicates the gender. The "word" field should be the noun with its article (e.g. "die Frau").
+- If the user writes a BARE noun WITHOUT an article (e.g. "Frau", "Hund", "Kind", "Tisch"), you MUST still return the word field WITH its correct definite article prepended (e.g. "Frau" → word: "die Frau", "Hund" → word: "der Hund", "Kind" → word: "das Kind"). Always add the correct article for nouns.
+- If the user writes a reflexive verb (e.g. "sich freuen", "sich setzen"), treat it as ONE verb entry.
+- Multi-word expressions (e.g. "auf Wiedersehen", "zum Beispiel", "Guten Morgen") should be treated as ONE entry.
+- Separable prefix verbs (e.g. "aufstehen", "ankommen") are single verbs.
+- NEVER split an article+noun, reflexive pronoun+verb, or multi-word phrase into separate entries.
+- Return exactly one entry per numbered input item provided by the user.
+
+Return ONLY valid JSON matching this structure: { words: [{ word, part_of_speech (noun/verb/adjective/adverb/preposition/conjunction/pronoun/article/other), gender (masculine/feminine/neuter or null if not noun), plural_form (or null if not noun), conjugation (object with ich/du/er/wir/ihr/sie keys or null if not verb, present tense), meaning (English translation), cefr_level (A1/A2/B1/B2), example_sentence (simple German sentence using the word), verb_type (regular/irregular/mixed or null if not verb), auxiliary_type (haben/sein or null if not verb), present_form (3rd person singular present or null if not verb), simple_past (3rd person singular past or null if not verb), perfect_form (perfect tense with auxiliary e.g. "hat gemacht" or "ist gegangen", or null if not verb) }] }`,
       },
       {
         role: 'user',
-        content: `Provide linguistic data for these German words: ${wordsList}`,
+        content: `Provide linguistic data for each of these German words/phrases (one entry per item):\n${wordsList}`,
       },
     ],
     temperature: 0.2,

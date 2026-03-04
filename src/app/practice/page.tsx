@@ -462,7 +462,7 @@ export default function PracticePage() {
                           initial={{ scale: 0.95, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                         >
-                          {currentWord.word}
+                          {stripArticle(currentWord.word)}
                         </motion.h2>
                         {currentWord.exampleSentence && (
                           <p className="mt-4 text-sm italic text-[var(--text-tertiary)]">
@@ -495,6 +495,11 @@ export default function PracticePage() {
                         >
                           {currentWord.meaning}
                         </motion.p>
+                        {currentWord.partOfSpeech === 'noun' && currentWord.gender && (
+                          <p className="mt-2 text-sm font-medium text-[var(--text-secondary)]">
+                            {currentWord.gender === 'masculine' ? 'der' : currentWord.gender === 'feminine' ? 'die' : 'das'}{' '}{stripArticle(currentWord.word)}
+                          </p>
+                        )}
                         {currentWord.exampleSentence && (
                           <p className="mt-3 text-sm italic text-[var(--text-tertiary)]">
                             {currentWord.exampleSentence}
@@ -509,7 +514,7 @@ export default function PracticePage() {
               {/* Meaning Recall */}
               {mode === 'meaning' && (
                 <GlassCard hover={false} className="text-center">
-                  <h2 className="text-3xl font-semibold">{currentWord.word}</h2>
+                  <h2 className="text-3xl font-semibold">{stripArticle(currentWord.word)}</h2>
                   {currentWord.exampleSentence && (
                     <p className="mt-4 text-sm italic text-[var(--text-tertiary)]">
                       {currentWord.exampleSentence}
@@ -540,7 +545,7 @@ export default function PracticePage() {
               {/* Sentence Creation */}
               {mode === 'sentence' && (
                 <GlassCard hover={false} className="text-center">
-                  <h2 className="text-2xl font-semibold">{currentWord.word}</h2>
+                  <h2 className="text-2xl font-semibold">{stripArticle(currentWord.word)}</h2>
                   <p className="mt-2 text-sm text-[var(--text-tertiary)]">
                     {currentWord.meaning}
                   </p>
@@ -595,7 +600,7 @@ export default function PracticePage() {
                         <p className="text-emerald-600 dark:text-emerald-400 font-medium">Correct!</p>
                       ) : (
                         <p className="text-red-600 dark:text-red-400">
-                          Wrong. Correct article: <strong>{currentWord.gender === 'masculine' ? 'der' : currentWord.gender === 'feminine' ? 'die' : 'das'}</strong>
+                          Wrong. Correct: <strong>{currentWord.gender === 'masculine' ? 'der' : currentWord.gender === 'feminine' ? 'die' : 'das'} {stripArticle(currentWord.word)}</strong>
                         </p>
                       )}
                     </div>

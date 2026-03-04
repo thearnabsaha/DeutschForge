@@ -5,11 +5,17 @@ import { enrichWords } from '@/lib/groq';
 import { getCurrentUserId } from '@/lib/get-user';
 
 function parseWords(wordsString: string): string[] {
-  const raw = wordsString
-    .split(/[\n,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return Array.from(new Set(raw));
+  const lines = wordsString.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+
+  const entries: string[] = [];
+  for (const line of lines) {
+    const segments = line.split(/,/).map((s) => s.trim()).filter(Boolean);
+    for (const seg of segments) {
+      entries.push(seg);
+    }
+  }
+
+  return Array.from(new Set(entries));
 }
 
 export async function POST(request: NextRequest) {
