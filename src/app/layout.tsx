@@ -37,9 +37,9 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <PwaRegister />
-            <div className="flex" style={{ minHeight: '100dvh' }}>
+            <div className="flex h-[100dvh]">
               <Sidebar />
-              <main className="main-scroll flex-1 pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
+              <main className="main-scroll flex-1 overflow-y-auto pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
                 {children}
               </main>
             </div>
