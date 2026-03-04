@@ -21,6 +21,10 @@ import {
   RotateCcw,
   Volume2,
   VolumeX,
+  Snowflake,
+  Flame,
+  Smartphone,
+  Sparkles,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
@@ -30,20 +34,25 @@ import { toast } from 'sonner';
 import { setMuted, isMuted } from '@/lib/sounds';
 
 const levels = ['A1', 'A2', 'B1', 'B2'] as const;
-type ThemeId = 'light' | 'dark' | 'system' | 'high-contrast' | 'minimal' | 'colorful';
+type ThemeId = 'light' | 'dark' | 'system' | 'high-contrast' | 'minimal' | 'colorful' | 'dark-nord' | 'dark-warm' | 'amoled' | 'dark-purple';
 
 const themes: Array<{
   id: ThemeId;
   label: string;
   icon: typeof Sun;
   preview: string;
+  group: 'light' | 'dark';
 }> = [
-  { id: 'light', label: 'Light', icon: Sun, preview: 'bg-white border border-[var(--border)]' },
-  { id: 'dark', label: 'Dark', icon: Moon, preview: 'bg-[#1c1c1e] border border-white/10' },
-  { id: 'system', label: 'System', icon: Monitor, preview: 'bg-gradient-to-r from-white to-[#1c1c1e] border border-[var(--border)]' },
-  { id: 'high-contrast', label: 'High Contrast', icon: Contrast, preview: 'bg-white border-2 border-black' },
-  { id: 'minimal', label: 'Minimal Focus', icon: Eye, preview: 'bg-[#e5e5e5] dark:bg-[#2a2a2a] border border-[var(--border)]' },
-  { id: 'colorful', label: 'Duolingo Colorful', icon: Palette, preview: 'bg-white border-2 border-[#58cc02]' },
+  { id: 'system', label: 'System', icon: Monitor, preview: 'bg-gradient-to-r from-white to-[#1c1c1e] border border-[var(--border)]', group: 'light' },
+  { id: 'light', label: 'Light', icon: Sun, preview: 'bg-white border border-[var(--border)]', group: 'light' },
+  { id: 'high-contrast', label: 'High Contrast', icon: Contrast, preview: 'bg-white border-2 border-black', group: 'light' },
+  { id: 'minimal', label: 'Minimal', icon: Eye, preview: 'bg-[#fafafa] border border-gray-200', group: 'light' },
+  { id: 'colorful', label: 'Colorful', icon: Palette, preview: 'bg-[#f0faf0] border-2 border-[#58cc02]', group: 'light' },
+  { id: 'dark', label: 'Dark', icon: Moon, preview: 'bg-[#1c1c1e] border border-white/10', group: 'dark' },
+  { id: 'dark-nord', label: 'Nord', icon: Snowflake, preview: 'bg-[#2e3440] border border-[#88c0d0]/30', group: 'dark' },
+  { id: 'dark-warm', label: 'Warm', icon: Flame, preview: 'bg-[#1a1412] border border-[#e8a44a]/20', group: 'dark' },
+  { id: 'amoled', label: 'AMOLED', icon: Smartphone, preview: 'bg-black border border-white/5', group: 'dark' },
+  { id: 'dark-purple', label: 'Purple', icon: Sparkles, preview: 'bg-[#13111c] border border-[#a78bfa]/20', group: 'dark' },
 ];
 
 type ResetType = 'vocabulary' | 'progress' | 'hard';
@@ -278,34 +287,65 @@ export default function SettingsPage() {
               Theme
             </h2>
 
-            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-              {themes.map((t) => {
-                const Icon = t.icon;
-                const isActive = themeChoice === t.id;
-                return (
-                  <motion.button
-                    key={t.id}
-                    onClick={() => handleThemeSelect(t.id)}
-                    className={cn(
-                      'flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-all',
-                      isActive
-                        ? 'border-[var(--accent)] bg-[var(--accent)]/5'
-                        : 'border-[var(--border)] hover:border-[var(--accent)]/50'
-                    )}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div
-                      className={cn('h-12 w-full rounded-xl', t.preview)}
-                      aria-hidden
-                    />
-                    <div className="flex items-center gap-2">
-                      <Icon size={18} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'} />
-                      <span className="text-sm font-medium">{t.label}</span>
-                    </div>
-                  </motion.button>
-                );
-              })}
+            <div className="mt-6 space-y-6">
+              <div>
+                <p className="mb-3 text-xs font-medium uppercase tracking-wider text-[var(--text-tertiary)]">Light</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {themes.filter((t) => t.group === 'light').map((t) => {
+                    const Icon = t.icon;
+                    const isActive = themeChoice === t.id;
+                    return (
+                      <motion.button
+                        key={t.id}
+                        onClick={() => handleThemeSelect(t.id)}
+                        className={cn(
+                          'flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-all',
+                          isActive
+                            ? 'border-[var(--accent)] bg-[var(--accent)]/5'
+                            : 'border-[var(--border)] hover:border-[var(--accent)]/50'
+                        )}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <div className={cn('h-10 w-full rounded-xl', t.preview)} aria-hidden />
+                        <div className="flex items-center gap-2">
+                          <Icon size={16} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'} />
+                          <span className="text-xs font-medium">{t.label}</span>
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <p className="mb-3 text-xs font-medium uppercase tracking-wider text-[var(--text-tertiary)]">Dark</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {themes.filter((t) => t.group === 'dark').map((t) => {
+                    const Icon = t.icon;
+                    const isActive = themeChoice === t.id;
+                    return (
+                      <motion.button
+                        key={t.id}
+                        onClick={() => handleThemeSelect(t.id)}
+                        className={cn(
+                          'flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-all',
+                          isActive
+                            ? 'border-[var(--accent)] bg-[var(--accent)]/5'
+                            : 'border-[var(--border)] hover:border-[var(--accent)]/50'
+                        )}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <div className={cn('h-10 w-full rounded-xl', t.preview)} aria-hidden />
+                        <div className="flex items-center gap-2">
+                          <Icon size={16} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'} />
+                          <span className="text-xs font-medium">{t.label}</span>
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </GlassCard>
         </motion.div>

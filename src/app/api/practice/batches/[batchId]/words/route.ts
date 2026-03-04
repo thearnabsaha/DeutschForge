@@ -5,6 +5,10 @@ import { eq, and, sql } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 import { enrichWords } from '@/lib/groq';
 
+function normalizeForComparison(word: string): string {
+  return word.toLowerCase().replace(/^(der|die|das|ein|eine|einen|einem|einer|eines)\s+/i, '').trim();
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ batchId: string }> }
@@ -23,14 +27,34 @@ export async function POST(
       return NextResponse.json({ error: 'Words string required' }, { status: 400 });
     }
 
-    const parsed = wordsInput.split(/[\n,]+/).map((s: string) => s.trim()).filter(Boolean);
+    const lines = wordsInput.split(/\n+/).map((l: string) => l.trim()).filter(Boolean);
+    const parsed: string[] = [];
+    for (const line of lines) {
+      const segs = line.split(/,/).map((s: string) => s.trim()).filter(Boolean);
+      for (const seg of segs) parsed.push(seg);
+    }
     const unique = Array.from(new Set(parsed));
     if (unique.length === 0) return NextResponse.json({ error: 'No valid words' }, { status: 400 });
 
-    const enriched = await enrichWords(unique);
+    const existingRows = await db.select({ word: userWords.word })
+      .from(userWords)
+      .where(eq(userWords.userId, session.id));
+    const existingNormalized = new Set(existingRows.map((r) => normalizeForComparison(r.word)));
+
+    const newWords = unique.filter((w) => !existingNormalized.has(normalizeForComparison(w)));
+    if (newWords.length === 0) {
+      return NextResponse.json({ error: 'All words already exist in your vocabulary', added: 0, skipped: unique.length }, { status: 400 });
+    }
+
+    const enriched = await enrichWords(newWords);
     if (enriched.length === 0) return NextResponse.json({ error: 'Enrichment failed' }, { status: 500 });
 
-    for (const w of enriched) {
+    const deduped = enriched.filter((w) => !existingNormalized.has(normalizeForComparison(w.word)));
+    if (deduped.length === 0) {
+      return NextResponse.json({ error: 'All words already exist in your vocabulary', added: 0 }, { status: 400 });
+    }
+
+    for (const w of deduped) {
       await db.insert(userWords).values({
         userId: session.id,
         word: w.word,
@@ -51,10 +75,10 @@ export async function POST(
     }
 
     await db.update(wordBatches)
-      .set({ wordCount: sql`${wordBatches.wordCount} + ${enriched.length}` })
+      .set({ wordCount: sql`${wordBatches.wordCount} + ${deduped.length}` })
       .where(eq(wordBatches.id, batchId));
 
-    return NextResponse.json({ success: true, added: enriched.length });
+    return NextResponse.json({ success: true, added: deduped.length, skipped: unique.length - newWords.length + (enriched.length - deduped.length) });
   } catch {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }

@@ -89,7 +89,8 @@ export default function VocabularyPage() {
         return;
       }
       sfx.streak();
-      toast.success(`Successfully added ${data.count} word${data.count !== 1 ? 's' : ''}`);
+      const skippedMsg = data.skipped ? ` (${data.skipped} duplicate${data.skipped !== 1 ? 's' : ''} skipped)` : '';
+      toast.success(`Added ${data.count} word${data.count !== 1 ? 's' : ''}${skippedMsg}`);
       setWordsInput('');
       await fetchWords();
     } catch {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { userWords, wordBatches } from '@/lib/schema';
 import { enrichWords } from '@/lib/groq';
@@ -18,6 +19,10 @@ function parseWords(wordsString: string): string[] {
   return Array.from(new Set(entries));
 }
 
+function normalizeForComparison(word: string): string {
+  return word.toLowerCase().replace(/^(der|die|das|ein|eine|einen|einem|einer|eines)\s+/i, '').trim();
+}
+
 export async function POST(request: NextRequest) {
   try {
     const userId = await getCurrentUserId();
@@ -30,9 +35,26 @@ export async function POST(request: NextRequest) {
     if (parsedWords.length === 0) {
       return NextResponse.json({ success: false, error: 'No valid words provided' }, { status: 400 });
     }
+
+    const existingRows = await db.select({ word: userWords.word })
+      .from(userWords)
+      .where(eq(userWords.userId, userId));
+    const existingNormalized = new Set(existingRows.map((r) => normalizeForComparison(r.word)));
+
+    const newWords = parsedWords.filter((w) => !existingNormalized.has(normalizeForComparison(w)));
+    const skippedCount = parsedWords.length - newWords.length;
+
+    if (newWords.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: `All ${parsedWords.length} word(s) already exist in your vocabulary.`,
+        skipped: skippedCount,
+      }, { status: 400 });
+    }
+
     let enrichedWords;
     try {
-      enrichedWords = await enrichWords(parsedWords);
+      enrichedWords = await enrichWords(newWords);
     } catch (enrichErr) {
       console.error('Enrichment failed:', enrichErr);
       const msg = enrichErr instanceof Error ? enrichErr.message : 'Unknown enrichment error';
@@ -41,12 +63,22 @@ export async function POST(request: NextRequest) {
     if (enrichedWords.length === 0) {
       return NextResponse.json({ success: false, error: 'AI could not process the words. Please try again.' }, { status: 400 });
     }
+
+    const deduped = enrichedWords.filter((w) => !existingNormalized.has(normalizeForComparison(w.word)));
+    if (deduped.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'All words already exist in your vocabulary.',
+        skipped: enrichedWords.length,
+      }, { status: 400 });
+    }
+
     const [batch] = await db.insert(wordBatches).values({
       userId,
       name: `Batch ${new Date().toLocaleDateString('de-DE')}`,
-      wordCount: enrichedWords.length,
+      wordCount: deduped.length,
     }).returning();
-    for (const w of enrichedWords) {
+    for (const w of deduped) {
       await db.insert(userWords).values({
         userId,
         word: w.word,
@@ -67,8 +99,9 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({
       success: true,
-      count: enrichedWords.length,
-      words: enrichedWords,
+      count: deduped.length,
+      skipped: skippedCount + (enrichedWords.length - deduped.length),
+      words: deduped,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Not authenticated') {
