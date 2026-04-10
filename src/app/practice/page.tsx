@@ -462,8 +462,13 @@ export default function PracticePage() {
                           initial={{ scale: 0.95, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                         >
-                          {stripArticle(currentWord.word)}
+                          {currentWord.word}
                         </motion.h2>
+                        {currentWord.partOfSpeech && (
+                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                            {currentWord.partOfSpeech}
+                          </p>
+                        )}
                         {currentWord.exampleSentence && (
                           <p className="mt-4 text-sm italic text-[var(--text-tertiary)]">
                             {currentWord.exampleSentence}
@@ -495,11 +500,6 @@ export default function PracticePage() {
                         >
                           {currentWord.meaning}
                         </motion.p>
-                        {currentWord.partOfSpeech === 'noun' && currentWord.gender && (
-                          <p className="mt-2 text-sm font-medium text-[var(--text-secondary)]">
-                            {currentWord.gender === 'masculine' ? 'der' : currentWord.gender === 'feminine' ? 'die' : 'das'}{' '}{stripArticle(currentWord.word)}
-                          </p>
-                        )}
                         {currentWord.exampleSentence && (
                           <p className="mt-3 text-sm italic text-[var(--text-tertiary)]">
                             {currentWord.exampleSentence}
@@ -514,7 +514,7 @@ export default function PracticePage() {
               {/* Meaning Recall */}
               {mode === 'meaning' && (
                 <GlassCard hover={false} className="text-center">
-                  <h2 className="text-3xl font-semibold">{stripArticle(currentWord.word)}</h2>
+                  <h2 className="text-3xl font-semibold">{currentWord.word}</h2>
                   {currentWord.exampleSentence && (
                     <p className="mt-4 text-sm italic text-[var(--text-tertiary)]">
                       {currentWord.exampleSentence}
@@ -545,7 +545,7 @@ export default function PracticePage() {
               {/* Sentence Creation */}
               {mode === 'sentence' && (
                 <GlassCard hover={false} className="text-center">
-                  <h2 className="text-2xl font-semibold">{stripArticle(currentWord.word)}</h2>
+                  <h2 className="text-2xl font-semibold">{currentWord.word}</h2>
                   <p className="mt-2 text-sm text-[var(--text-tertiary)]">
                     {currentWord.meaning}
                   </p>

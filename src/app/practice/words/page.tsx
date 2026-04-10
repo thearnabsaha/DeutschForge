@@ -120,7 +120,7 @@ function getQuestionForWord(
   if (type === 'meaning') {
     const deToEn = filters?.direction === 'de_to_en' || (filters?.direction === 'both' && Math.random() > 0.5);
     return deToEn
-      ? { type: 'meaning', prompt: stripArticle(word.word), correctAnswer: word.meaning }
+      ? { type: 'meaning', prompt: word.word, correctAnswer: word.meaning }
       : { type: 'meaning', prompt: word.meaning, correctAnswer: word.word };
   }
   if (type === 'gender') {
@@ -503,7 +503,7 @@ export default function PracticeWordsPage() {
       const dir = direction === 'both' ? (Math.random() > 0.5 ? 'de_to_en' : 'en_to_de') : direction;
       return {
         word: w,
-        prompt: dir === 'de_to_en' ? stripArticle(w.word) : w.meaning,
+        prompt: dir === 'de_to_en' ? w.word : w.meaning,
         correctAnswer: dir === 'de_to_en' ? w.meaning : w.word,
       };
     });
@@ -1134,7 +1134,7 @@ export default function PracticeWordsPage() {
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                     >
-                      {stripArticle(selectedBatch.words[learnIndex]?.word ?? '')}
+                      {selectedBatch.words[learnIndex]?.word ?? ''}
                     </motion.h2>
                     <p className="mt-4 text-lg text-[var(--text-secondary)]">
                       {selectedBatch.words[learnIndex]?.meaning}

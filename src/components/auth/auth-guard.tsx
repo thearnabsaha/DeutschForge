@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
 interface AuthUser {
@@ -33,9 +33,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const redirecting = useRef(false);
 
   const refresh = useCallback(async () => {
     try {
+      setLoading(true);
       const res = await fetch('/api/auth/me');
       const data = await res.json();
       setUser(data?.id ? data : null);
@@ -52,14 +54,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   useEffect(() => {
-    if (!checked) return;
+    if (!checked || redirecting.current) return;
 
     if (!user && !isPublic(pathname)) {
+      redirecting.current = true;
       router.replace('/login');
+      setTimeout(() => { redirecting.current = false; }, 500);
     }
 
     if (user && (pathname === '/login' || pathname === '/signup')) {
+      redirecting.current = true;
       router.replace('/dashboard');
+      setTimeout(() => { redirecting.current = false; }, 500);
     }
   }, [user, pathname, checked, router]);
 

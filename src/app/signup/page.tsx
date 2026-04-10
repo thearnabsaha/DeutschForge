@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Flame } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { sfx } from '@/lib/sounds';
+import { useAuth } from '@/components/auth/auth-guard';
 
 export default function SignupPage() {
-  const router = useRouter();
+  const { refresh } = useAuth();
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +32,7 @@ export default function SignupPage() {
         return;
       }
       sfx.levelUp();
-      router.push('/dashboard');
+      await refresh();
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {

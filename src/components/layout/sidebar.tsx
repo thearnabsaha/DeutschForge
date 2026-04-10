@@ -32,7 +32,7 @@ const navItems = [
   { href: '/vocabulary', label: 'Vocabulary', icon: BookOpen },
   { href: '/grammar', label: 'Grammar', icon: BookMarked },
   { href: '/exam', label: 'Exam', icon: GraduationCap },
-  { href: '/progress', label: 'Progress', icon: BarChart3 },
+  { href: '/progress', label: 'Analytics', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 

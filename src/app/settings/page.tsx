@@ -33,6 +33,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { setMuted, isMuted } from '@/lib/sounds';
+import { useAuth } from '@/components/auth/auth-guard';
 
 const levels = ['A1', 'A2', 'B1', 'B2'] as const;
 type ThemeId = 'light' | 'dark' | 'system' | 'high-contrast' | 'minimal' | 'colorful' | 'dark-nord' | 'dark-warm' | 'amoled' | 'dark-duo' | 'dark-purple';
@@ -83,6 +84,7 @@ const resetConfig: Record<ResetType, { title: string; description: string; color
 export default function SettingsPage() {
   const router = useRouter();
   const { setTheme } = useTheme();
+  const { refresh } = useAuth();
   const [name, setName] = useState('Learner');
   const [targetLevel, setTargetLevel] = useState('A1');
   const [themeChoice, setThemeChoice] = useState<ThemeId>('system');
@@ -195,7 +197,7 @@ export default function SettingsPage() {
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
+      await refresh();
     } catch {}
   };
 

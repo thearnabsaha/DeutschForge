@@ -48,7 +48,7 @@ export default function RootLayout({
           <Toaster
             position="top-right"
             toastOptions={{
-              className: 'glass rounded-xl border-[var(--border)]',
+              className: 'toast-custom rounded-xl',
               duration: 3000,
             }}
           />
