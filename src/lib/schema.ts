@@ -240,6 +240,83 @@ export const resetLogs = pgTable('reset_logs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// ── FIXED EXPRESSIONS ────────────────────────────────────────
+
+export const userExpressions = pgTable('user_expressions', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expression: text('expression').notNull(),
+  meaning: text('meaning').notNull(),
+  literalTranslation: text('literal_translation'),
+  register: text('register'),
+  cefrLevel: text('cefr_level').notNull().default('A1'),
+  exampleSentence: text('example_sentence'),
+  usageNote: text('usage_note'),
+  category: text('category'),
+  learned: boolean('learned').notNull().default(false),
+  batchId: text('batch_id'),
+  stability: real('stability').notNull().default(0),
+  difficulty: real('difficulty').notNull().default(0),
+  scheduledDays: real('scheduled_days').notNull().default(0),
+  reps: integer('reps').notNull().default(0),
+  lapses: integer('lapses').notNull().default(0),
+  state: integer('state').notNull().default(0),
+  lastReview: timestamp('last_review'),
+  nextReview: timestamp('next_review').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  userExprIdx: index('user_expressions_user_idx').on(t.userId),
+  userNextReviewIdx: index('user_expressions_next_review_idx').on(t.userId, t.nextReview),
+  userCategoryIdx: index('user_expressions_category_idx').on(t.userId, t.category),
+}));
+
+export const expressionReviewLogs = pgTable('expression_review_logs', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expressionId: text('expression_id').notNull().references(() => userExpressions.id, { onDelete: 'cascade' }),
+  mode: text('mode').notNull(),
+  rating: integer('rating').notNull(),
+  correct: boolean('correct').notNull(),
+  reviewedAt: timestamp('reviewed_at').defaultNow().notNull(),
+}, (t) => ({
+  userReviewIdx: index('expr_review_user_idx').on(t.userId, t.reviewedAt),
+}));
+
+export const expressionBatches = pgTable('expression_batches', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  expressionCount: integer('expression_count').notNull().default(0),
+  learnedCount: integer('learned_count').notNull().default(0),
+  practiceUnlocked: boolean('practice_unlocked').notNull().default(false),
+  examUnlocked: boolean('exam_unlocked').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  userIdx: index('expression_batches_user_idx').on(t.userId),
+}));
+
+export const expressionBatchExams = pgTable('expression_batch_exams', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  batchId: text('batch_id').notNull().references(() => expressionBatches.id, { onDelete: 'cascade' }),
+  score: real('score').notNull(),
+  maxScore: real('max_score').notNull(),
+  meaningAccuracy: real('meaning_accuracy'),
+  timeSpent: integer('time_spent'),
+  answers: jsonb('answers').$type<Array<{
+    expressionId: string;
+    type: string;
+    userAnswer: string;
+    correctAnswer: string;
+    correct: boolean;
+  }>>().notNull(),
+  completedAt: timestamp('completed_at').defaultNow().notNull(),
+}, (t) => ({
+  userBatchIdx: index('ebe_user_batch_idx').on(t.userId, t.batchId),
+}));
+
+// ── LISTENING ────────────────────────────────────────────────
+
 export const listeningAttempts = pgTable('listening_attempts', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),

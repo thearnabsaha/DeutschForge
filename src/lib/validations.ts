@@ -38,6 +38,33 @@ export const enrichedWordsResponseSchema = z.object({
 
 export type EnrichedWord = z.infer<typeof enrichedWordSchema>;
 
+// Expression enrichment from Groq AI
+export const enrichedExpressionSchema = z.object({
+  expression: z.string(),
+  meaning: z.string().catch(''),
+  literal_translation: z.string().nullable().optional().default(null),
+  register: z.preprocess(
+    (v) => (typeof v === 'string' ? v.toLowerCase() : v),
+    z.enum(['formal', 'informal', 'neutral', 'colloquial', 'slang']).nullable()
+  ).optional().default(null),
+  cefr_level: z.preprocess(
+    (v) => (typeof v === 'string' ? v.toUpperCase() : v),
+    z.enum(['A1', 'A2', 'B1', 'B2'])
+  ).catch('A1'),
+  example_sentence: z.string().nullable().optional().default(null),
+  usage_note: z.string().nullable().optional().default(null),
+  category: z.preprocess(
+    (v) => (typeof v === 'string' ? v.toLowerCase() : v),
+    z.enum(['greeting', 'farewell', 'polite', 'idiom', 'collocation', 'proverb', 'filler', 'connector', 'other']).nullable()
+  ).optional().default(null),
+});
+
+export const enrichedExpressionsResponseSchema = z.object({
+  expressions: z.array(enrichedExpressionSchema),
+});
+
+export type EnrichedExpression = z.infer<typeof enrichedExpressionSchema>;
+
 // Bulk upload input
 export const bulkUploadSchema = z.object({
   words: z.string().min(1, 'At least one word is required'),

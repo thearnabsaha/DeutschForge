@@ -320,6 +320,109 @@ export async function enrichWords(words: string[]): Promise<EnrichedWord[]> {
   return allResults;
 }
 
+// ── EXPRESSION ENRICHMENT ────────────────────────────────────
+
+const ENRICH_EXPRESSION_SYSTEM_PROMPT = `You are a German language expert specializing in fixed expressions, idioms, and collocations. For each German fixed expression or phrase provided, return structured data.
+
+CRITICAL RULES:
+- Treat each input as a single fixed expression (idiom, collocation, greeting, proverb, filler word/phrase, connector phrase, etc.)
+- NEVER split a multi-word expression into separate entries.
+- Return exactly one entry per numbered input item provided by the user.
+- The "expression" field must contain the full expression as typically used.
+
+Return ONLY valid JSON matching this structure: { expressions: [{ expression, meaning (English translation/explanation), literal_translation (word-for-word English translation or null if same as meaning), register (formal/informal/neutral/colloquial/slang or null), cefr_level (A1/A2/B1/B2), example_sentence (simple German sentence using the expression), usage_note (when/how to use it, or null), category (greeting/farewell/polite/idiom/collocation/proverb/filler/connector/other) }] }`;
+
+function parseEnrichExpressionResponse(raw: string | null | undefined): import('./validations').EnrichedExpression[] {
+  const { enrichedExpressionsResponseSchema, enrichedExpressionSchema } = require('./validations');
+
+  if (!raw) {
+    console.error('[enrichExpressions] Empty response from Groq');
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    const expressionsArray =
+      parsed.expressions ?? parsed.Expressions ?? parsed.EXPRESSIONS ??
+      (Array.isArray(parsed) ? parsed : null);
+
+    if (!expressionsArray || !Array.isArray(expressionsArray)) {
+      console.error('[enrichExpressions] No expressions array found in response. Keys:', Object.keys(parsed));
+      return [];
+    }
+
+    const result = enrichedExpressionsResponseSchema.safeParse({ expressions: expressionsArray });
+    if (result.success) return result.data.expressions;
+
+    console.error('[enrichExpressions] Batch validation failed, trying individual...');
+    const salvaged: import('./validations').EnrichedExpression[] = [];
+    for (const item of expressionsArray) {
+      const single = enrichedExpressionSchema.safeParse(item);
+      if (single.success) {
+        salvaged.push(single.data);
+      } else {
+        console.error('[enrichExpressions] Skipped:', item?.expression ?? JSON.stringify(item).slice(0, 80));
+      }
+    }
+    return salvaged;
+  } catch (err) {
+    console.error('[enrichExpressions] JSON parse error:', err);
+    return [];
+  }
+}
+
+async function enrichExpressionBatch(expressions: string[]): Promise<import('./validations').EnrichedExpression[]> {
+  const list = expressions.map((e, i) => `${i + 1}. ${e}`).join('\n');
+
+  const completion = await callGroq({
+    messages: [
+      { role: 'system', content: ENRICH_EXPRESSION_SYSTEM_PROMPT },
+      {
+        role: 'user',
+        content: `Provide linguistic data for each of these German fixed expressions (one entry per item):\n${list}`,
+      },
+    ],
+    temperature: 0.2,
+    max_tokens: 8000,
+    response_format: { type: 'json_object' },
+  });
+
+  return parseEnrichExpressionResponse(completion.choices[0]?.message?.content);
+}
+
+export async function enrichExpressions(expressions: string[]): Promise<import('./validations').EnrichedExpression[]> {
+  if (expressions.length <= ENRICH_BATCH_SIZE) {
+    return enrichExpressionBatch(expressions);
+  }
+
+  const chunks: string[][] = [];
+  for (let i = 0; i < expressions.length; i += ENRICH_BATCH_SIZE) {
+    chunks.push(expressions.slice(i, i + ENRICH_BATCH_SIZE));
+  }
+
+  console.log(`[enrichExpressions] Processing ${expressions.length} expressions in ${chunks.length} batches`);
+
+  const allResults: import('./validations').EnrichedExpression[] = [];
+
+  for (let i = 0; i < chunks.length; i += MAX_CONCURRENT_BATCHES) {
+    const concurrentChunks = chunks.slice(i, i + MAX_CONCURRENT_BATCHES);
+    const batchResults = await Promise.allSettled(
+      concurrentChunks.map((chunk) => enrichExpressionBatch(chunk))
+    );
+
+    for (const result of batchResults) {
+      if (result.status === 'fulfilled') {
+        allResults.push(...result.value);
+      } else {
+        console.error('[enrichExpressions] Batch failed:', result.reason);
+      }
+    }
+  }
+
+  console.log(`[enrichExpressions] Enriched ${allResults.length}/${expressions.length} expressions successfully`);
+  return allResults;
+}
+
 // ── CHAT WITH CORRECTIONS ────────────────────────────────────
 
 export async function chatWithCorrections(

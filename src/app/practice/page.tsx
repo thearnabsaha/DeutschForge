@@ -18,6 +18,7 @@ import {
   Volume2,
   ArrowRight,
   Headphones,
+  MessageSquareQuote,
 } from 'lucide-react';
 import { sfx } from '@/lib/sounds';
 
@@ -292,6 +293,26 @@ export default function PracticePage() {
                 </p>
               </div>
               <ArrowRight size={20} className="ml-auto text-purple-500" />
+            </div>
+          </motion.div>
+        </Link>
+        <Link href="/practice/expressions" onClick={() => sfx.tap()}>
+          <motion.div
+            className="mb-6 rounded-2xl border-2 border-dashed border-teal-400/40 bg-teal-500/5 p-6 transition-colors hover:border-teal-500 hover:bg-teal-500/10"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl bg-teal-500/20 p-3">
+                <MessageSquareQuote size={28} className="text-teal-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Practice Expressions</h3>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                  Learn → Practice Test → Exam. Master fixed expressions, idioms &amp; phrases.
+                </p>
+              </div>
+              <ArrowRight size={20} className="ml-auto text-teal-500" />
             </div>
           </motion.div>
         </Link>

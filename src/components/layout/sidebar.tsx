@@ -18,6 +18,7 @@ import {
   Mic,
   Volume2,
   VolumeX,
+  MessageSquareQuote,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/chat', label: 'Chat', icon: MessageCircle },
   { href: '/chat/voice', label: 'Voice Chat', icon: Mic },
   { href: '/vocabulary', label: 'Vocabulary', icon: BookOpen },
+  { href: '/expressions', label: 'Expressions', icon: MessageSquareQuote },
   { href: '/grammar', label: 'Grammar', icon: BookMarked },
   { href: '/exam', label: 'Exam', icon: GraduationCap },
   { href: '/progress', label: 'Analytics', icon: BarChart3 },
