@@ -20,6 +20,7 @@ import {
   Sparkles,
   AlertTriangle,
   RotateCcw,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { sfx } from '@/lib/sounds';
@@ -270,6 +271,37 @@ export default function PracticeWordsPage() {
       setLoading(false);
     }
   }, []);
+
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncWords = async () => {
+    setSyncing(true);
+    const toastId = toast.loading('Synchronizing & checking for duplicate words...');
+    try {
+      const res = await fetch('/api/vocabulary/sync', { method: 'POST' });
+      const data = await res.json();
+      toast.dismiss(toastId);
+
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to synchronize words');
+        return;
+      }
+
+      sfx.correct();
+      if (data.removedDuplicatesCount > 0) {
+        toast.success(`Synchronized! Removed ${data.removedDuplicatesCount} duplicate word${data.removedDuplicatesCount !== 1 ? 's' : ''} across your sets.`);
+      } else {
+        toast.success('All words are clean and unique! No duplicates found.');
+      }
+
+      await fetchBatches();
+    } catch {
+      toast.dismiss(toastId);
+      toast.error('Failed to synchronize words');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     fetchBatches();
@@ -746,6 +778,17 @@ export default function PracticeWordsPage() {
             <PageHeader
               title="Practice the Word"
               subtitle="Learn → Practice → Exam"
+              action={
+                <button
+                  onClick={handleSyncWords}
+                  disabled={syncing}
+                  className="btn-duo-secondary py-2 px-3.5 text-xs sm:text-sm font-black flex items-center gap-2"
+                  title="Synchronize and remove duplicate words"
+                >
+                  <RefreshCw size={15} className={cn('text-[var(--accent)]', syncing && 'animate-spin')} />
+                  <span>{syncing ? 'Syncing...' : 'Synchronize'}</span>
+                </button>
+              }
             />
 
             {loading ? (

@@ -24,6 +24,7 @@ import {
   ChevronUp,
   FolderPlus,
   BookMarked,
+  RefreshCw,
 } from 'lucide-react';
 import { sfx } from '@/lib/sounds';
 import { cn } from '@/lib/utils';
@@ -83,6 +84,7 @@ export default function VocabularyPage() {
   const [newSetName, setNewSetName] = useState('');
   const [newSetWords, setNewSetWords] = useState('');
   const [creatingSet, setCreatingSet] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   // Set Actions State
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
@@ -147,6 +149,39 @@ export default function VocabularyPage() {
     fetchSets();
     fetchWords();
   }, [fetchSets, fetchWords]);
+
+  // Synchronize and Deduplicate Words
+  const handleSyncWords = async () => {
+    setSyncing(true);
+    const toastId = toast.loading('Synchronizing & checking for duplicate words...');
+    try {
+      const res = await fetch('/api/vocabulary/sync', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      toast.dismiss(toastId);
+
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to synchronize words');
+        return;
+      }
+
+      sfx.correct();
+      if (data.removedDuplicatesCount > 0) {
+        toast.success(`Synchronized! Removed ${data.removedDuplicatesCount} duplicate word${data.removedDuplicatesCount !== 1 ? 's' : ''} across your sets.`);
+      } else {
+        toast.success('All words are synchronized! No duplicate words found.');
+      }
+
+      await fetchSets();
+      await fetchWords();
+    } catch {
+      toast.dismiss(toastId);
+      toast.error('Failed to synchronize words');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Create New Word Set
   const handleCreateSet = async (e: React.FormEvent) => {
@@ -335,12 +370,22 @@ export default function VocabularyPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleSyncWords}
+            disabled={syncing}
+            className="btn-duo-secondary py-2 px-3 text-xs sm:text-sm font-black flex items-center gap-1.5"
+            title="Synchronize and remove duplicate words"
+          >
+            <RefreshCw size={15} className={cn('text-[var(--accent)]', syncing && 'animate-spin')} />
+            <span>{syncing ? 'Syncing...' : 'Synchronize'}</span>
+          </button>
+
           <Link
             href="/vocabulary/book"
-            className="btn-duo-secondary py-2 px-3.5 text-xs sm:text-sm font-black flex items-center gap-2"
+            className="btn-duo-secondary py-2 px-3 text-xs sm:text-sm font-black flex items-center gap-1.5"
           >
-            <BookMarked size={16} className="text-[var(--accent)]" />
+            <BookMarked size={15} className="text-[var(--accent)]" />
             <span>Vocab Book</span>
           </Link>
 
@@ -348,18 +393,18 @@ export default function VocabularyPage() {
             <button
               onClick={() => setIsCreateOpen((prev) => !prev)}
               className={cn(
-                'py-2 px-3.5 text-xs sm:text-sm font-black flex items-center gap-2 transition-all',
+                'py-2 px-3.5 text-xs sm:text-sm font-black flex items-center gap-1.5 transition-all',
                 isCreateOpen ? 'btn-duo-secondary' : 'btn-duo-primary'
               )}
             >
               {isCreateOpen ? (
                 <>
-                  <X size={16} />
+                  <X size={15} />
                   <span>Close</span>
                 </>
               ) : (
                 <>
-                  <Plus size={16} />
+                  <Plus size={15} />
                   <span>New Set</span>
                 </>
               )}
