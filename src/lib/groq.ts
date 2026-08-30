@@ -23,13 +23,11 @@ function getGroq(): Groq {
 }
 
 // ── MODEL CASCADE ────────────────────────────────────────────
-// Ordered by capability and live availability on Groq.
+// Ordered by speed, responsiveness, and rate-limit headroom on Groq.
 const MODEL_CASCADE = [
-  'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b',
   'qwen/qwen3.8-27b',
-  'qwen/qwen3.6-27b',
-  'groq/compound',
+  'openai/gpt-oss-20b',
+  'openai/gpt-oss-120b',
   'groq/compound-mini',
   'openai/gpt-oss-safeguard-20b',
 ] as const;
@@ -50,7 +48,7 @@ function isRetryableError(err: unknown): boolean {
     if (e.status === 404 || e.statusCode === 404) return true;
     if (e.status === 400 || e.statusCode === 400) return true;
     if (e.error?.type === 'rate_limit_exceeded') return true;
-    if (typeof e.message === 'string' && /rate.?limit|429|too many|quota|capacity|not found|decommissioned|not exist/i.test(e.message)) return true;
+    if (typeof e.message === 'string' && /rate.?limit|429|too many|quota|capacity|not found|decommissioned|not exist|timeout/i.test(e.message)) return true;
   }
   return false;
 }
@@ -60,41 +58,43 @@ async function sleep(ms: number) {
 }
 
 /**
- * Calls Groq chat completions with automatic model fallback.
- * Automatically tries all available models in the cascade on 429/503/404/400 errors.
+ * Calls Groq chat completions with automatic model fallback and per-model timeout.
  */
 export async function callGroq(
   params: CallGroqParams,
-  opts?: { preferredModel?: string }
+  opts?: { preferredModel?: string; timeoutMs?: number }
 ) {
   const groq = getGroq();
   const startIdx = opts?.preferredModel
     ? Math.max(0, MODEL_CASCADE.indexOf(opts.preferredModel as typeof MODEL_CASCADE[number]))
     : 0;
 
+  const timeoutMs = opts?.timeoutMs ?? 10_000;
   let lastError: unknown;
 
   for (let mi = startIdx; mi < MODEL_CASCADE.length; mi++) {
     const model = MODEL_CASCADE[mi];
-    const maxRetries = mi === startIdx ? 2 : 1;
 
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        const completion = await groq.chat.completions.create({
+    try {
+      // Per-model race against timeout
+      const completion = await Promise.race([
+        groq.chat.completions.create({
           ...params,
           model,
-        });
-        return completion;
-      } catch (err: unknown) {
-        lastError = err;
-        if (isRetryableError(err)) {
-          const backoff = (attempt + 1) * 600;
-          console.warn(`[Groq] Error on ${model} (attempt ${attempt + 1}/${maxRetries}), trying fallback in ${backoff}ms...`);
-          await sleep(backoff);
-          continue;
-        }
-        throw err;
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Model ${model} timed out after ${timeoutMs}ms`)), timeoutMs)
+        ),
+      ]);
+      return completion;
+    } catch (err: unknown) {
+      lastError = err;
+      if (isRetryableError(err)) {
+        console.warn(`[Groq] Error/timeout on ${model}, falling back to next model...`);
+        await sleep(200);
+        continue;
       }
+      throw err;
     }
   }
 
@@ -231,8 +231,8 @@ CRITICAL RULES for interpreting input:
 
 Return ONLY valid JSON matching this structure: { words: [{ word, part_of_speech (noun/verb/adjective/adverb/preposition/conjunction/pronoun/article/other), gender (masculine/feminine/neuter or null if not noun), plural_form (or null if not noun), conjugation (object with ich/du/er/wir/ihr/sie keys or null if not verb, present tense), meaning (English translation), cefr_level (A1/A2/B1/B2), example_sentence (simple German sentence using the word), verb_type (regular/irregular/mixed or null if not verb), auxiliary_type (haben/sein or null if not verb), present_form (3rd person singular present or null if not verb), simple_past (3rd person singular past or null if not verb), perfect_form (perfect tense with auxiliary e.g. "hat gemacht" or "ist gegangen", or null if not verb) }] }`;
 
-const ENRICH_BATCH_SIZE = 15;
-const MAX_CONCURRENT_BATCHES = 3;
+const ENRICH_BATCH_SIZE = 10;
+const MAX_CONCURRENT_BATCHES = 2;
 
 function parseEnrichResponse(raw: string | null | undefined): EnrichedWord[] {
   if (!raw) {
@@ -365,7 +365,7 @@ async function enrichBatch(words: string[]): Promise<EnrichedWord[]> {
         },
       ],
       temperature: 0.2,
-      max_tokens: 8000,
+      max_tokens: 2500,
       response_format: { type: 'json_object' },
     });
 
