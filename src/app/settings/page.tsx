@@ -12,6 +12,7 @@ import {
   Moon,
   Monitor,
   Eye,
+  EyeOff,
   Palette,
   Contrast,
   User,
@@ -39,6 +40,12 @@ import {
   ChevronRight,
   Compass,
   Sliders,
+  KeyRound,
+  ShieldCheck,
+  AtSign,
+  Copy,
+  CheckCheck,
+  Lock,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
@@ -185,12 +192,12 @@ const featureHubItems = [
 export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') === 'preferences' ? 'preferences' : 'all';
 
-  const [activeSectionTab, setActiveSectionTab] = useState<'all' | 'explore' | 'preferences'>('all');
+  const [activeSectionTab, setActiveSectionTab] = useState<'all' | 'explore' | 'account' | 'preferences'>('all');
 
   const { setTheme } = useTheme();
   const { refresh } = useAuth();
+  const [username, setUsername] = useState('learner');
   const [name, setName] = useState('Learner');
   const [targetLevel, setTargetLevel] = useState('A1');
   const [themeChoice, setThemeChoice] = useState<ThemeId>('system');
@@ -199,6 +206,20 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [copiedUsername, setCopiedUsername] = useState(false);
+
+  // ─── Password Change State ───
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [hasExistingPassword, setHasExistingPassword] = useState(true);
+
+  // ─── Reset Modal State ───
   const [resetModal, setResetModal] = useState<ResetType | null>(null);
   const [resetInput, setResetInput] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
@@ -216,11 +237,13 @@ export default function SettingsPage() {
       })
       .then((data) => {
         if (!data) return;
+        setUsername(data.username || 'learner');
         setName(data.name || 'Learner');
         setTargetLevel(data.targetLevel || 'A1');
         setThemeChoice(data.theme || 'system');
         setSoundEnabled(data.soundEnabled ?? true);
         setDailyGoal(data.dailyGoal ?? 20);
+        setHasExistingPassword(data.hasPassword ?? true);
         if (data.theme) setTheme(data.theme);
         setMuted(!(data.soundEnabled ?? true));
       })
@@ -232,13 +255,21 @@ export default function SettingsPage() {
     setSoundEnabled(!isMuted());
   }, [mounted]);
 
+  const handleCopyUsername = () => {
+    navigator.clipboard.writeText(username);
+    setCopiedUsername(true);
+    setTimeout(() => setCopiedUsername(false), 2000);
+    toast.success('Username copied to clipboard!');
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await fetch('/api/settings', {
+      const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          username,
           name,
           targetLevel,
           theme: themeChoice,
@@ -246,13 +277,57 @@ export default function SettingsPage() {
           soundEnabled,
         }),
       });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to save settings');
+        return;
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-      toast.success('Settings saved!');
+      toast.success('Settings & profile updated!');
     } catch {
       toast.error('Failed to save');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to update password');
+        return;
+      }
+      toast.success('Password updated successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPasswordChange(false);
+    } catch {
+      toast.error('Error updating password');
+    } finally {
+      setPasswordSaving(false);
     }
   };
 
@@ -312,7 +387,7 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="More & Settings"
-        subtitle="Explore all features, vocabulary books, grammar masterclass, exams, and app preferences."
+        subtitle="Manage your credentials, password, learning tracks, and app preferences."
         action={
           <motion.button
             onClick={handleSave}
@@ -334,32 +409,43 @@ export default function SettingsPage() {
       />
 
       {/* ─── Navigation Switcher Tabs ─── */}
-      <div className="mt-6 flex gap-2 rounded-2xl bg-[var(--bg-secondary)] p-1.5 border border-[var(--border)]">
+      <div className="mt-6 flex flex-wrap gap-2 rounded-2xl bg-[var(--bg-secondary)] p-1.5 border border-[var(--border)]">
         <button
           onClick={() => setActiveSectionTab('all')}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
             activeSectionTab === 'all'
               ? 'bg-[var(--accent)] text-white shadow-md'
               : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
           }`}
         >
           <Compass size={16} />
-          <span>All Modules & Settings</span>
+          <span>All Modules</span>
         </button>
         <button
           onClick={() => setActiveSectionTab('explore')}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
             activeSectionTab === 'explore'
               ? 'bg-[var(--accent)] text-white shadow-md'
               : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
           }`}
         >
           <BookMarked size={16} />
-          <span>Explore Features</span>
+          <span>Features Hub</span>
+        </button>
+        <button
+          onClick={() => setActiveSectionTab('account')}
+          className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            activeSectionTab === 'account'
+              ? 'bg-[var(--accent)] text-white shadow-md'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+          }`}
+        >
+          <ShieldCheck size={16} />
+          <span>Account & Security</span>
         </button>
         <button
           onClick={() => setActiveSectionTab('preferences')}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
             activeSectionTab === 'preferences'
               ? 'bg-[var(--accent)] text-white shadow-md'
               : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
@@ -381,7 +467,7 @@ export default function SettingsPage() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-black text-[var(--text-primary)]">Explore & Learn Modules</h2>
-                <p className="text-xs text-[var(--text-tertiary)]">Quick navigation to all learning tracks and tools</p>
+                <p className="text-xs text-[var(--text-tertiary)]">Direct access to all learning tracks on mobile and desktop</p>
               </div>
             </div>
 
@@ -423,7 +509,206 @@ export default function SettingsPage() {
           </motion.div>
         )}
 
-        {/* ═══ 2. PREFERENCES & CONFIGURATION ═══ */}
+        {/* ═══ 2. ACCOUNT CREDENTIALS & SECURITY ═══ */}
+        {(activeSectionTab === 'all' || activeSectionTab === 'account') && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <GlassCard hover={false} className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                    <ShieldCheck size={22} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-extrabold text-[var(--text-primary)]">
+                      Account Credentials & Security
+                    </h2>
+                    <p className="text-xs text-[var(--text-tertiary)]">
+                      View your username, account details, and update your password
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-6">
+                {/* Username Row */}
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-secondary)]">
+                        <AtSign size={14} className="text-[var(--accent)]" />
+                        <span>Account Username</span>
+                      </div>
+                      <p className="mt-1 text-base font-black text-[var(--text-primary)] tracking-wide">
+                        @{username}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleCopyUsername}
+                        className="btn-3d btn-duo-secondary text-xs font-bold flex items-center gap-1.5 py-2 px-3"
+                      >
+                        {copiedUsername ? <CheckCheck size={14} /> : <Copy size={14} />}
+                        <span>{copiedUsername ? 'Copied' : 'Copy'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Password Status & Change Toggle */}
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-secondary)]">
+                        <KeyRound size={14} className="text-amber-500" />
+                        <span>Account Password</span>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <span className="font-mono text-base tracking-widest text-[var(--text-secondary)] font-bold">
+                          ••••••••••••
+                        </span>
+                        <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-black text-emerald-600 dark:text-emerald-400">
+                          Bcrypt Secured
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setShowPasswordChange(!showPasswordChange)}
+                      className="btn-3d btn-duo-secondary text-xs font-bold flex items-center gap-1.5 py-2 px-3 self-start sm:self-auto"
+                    >
+                      <Lock size={14} />
+                      <span>{showPasswordChange ? 'Cancel' : 'Change Password'}</span>
+                    </button>
+                  </div>
+
+                  {/* Expandable Change Password Form */}
+                  <AnimatePresence>
+                    {showPasswordChange && (
+                      <motion.form
+                        onSubmit={handleChangePassword}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="mt-5 border-t border-[var(--border)] pt-5 space-y-4"
+                      >
+                        <h4 className="text-xs font-black uppercase tracking-wider text-[var(--text-tertiary)]">
+                          Set New Password
+                        </h4>
+
+                        {hasExistingPassword && (
+                          <div>
+                            <label className="text-xs font-bold text-[var(--text-secondary)]">
+                              Current Password
+                            </label>
+                            <div className="relative mt-1">
+                              <input
+                                type={showCurrentPass ? 'text' : 'password'}
+                                value={currentPassword}
+                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                placeholder="Enter current password"
+                                className="input-field bg-[var(--bg-primary)] pr-10"
+                                required
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowCurrentPass(!showCurrentPass)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                              >
+                                {showCurrentPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div>
+                            <label className="text-xs font-bold text-[var(--text-secondary)]">
+                              New Password (min. 6 characters)
+                            </label>
+                            <div className="relative mt-1">
+                              <input
+                                type={showNewPass ? 'text' : 'password'}
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="Enter new password"
+                                className="input-field bg-[var(--bg-primary)] pr-10"
+                                minLength={6}
+                                required
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowNewPass(!showNewPass)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                              >
+                                {showNewPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-bold text-[var(--text-secondary)]">
+                              Confirm New Password
+                            </label>
+                            <div className="relative mt-1">
+                              <input
+                                type={showConfirmPass ? 'text' : 'password'}
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="Re-type new password"
+                                className="input-field bg-[var(--bg-primary)] pr-10"
+                                minLength={6}
+                                required
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowConfirmPass(!showConfirmPass)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                              >
+                                {showConfirmPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowPasswordChange(false)}
+                            className="btn-3d btn-duo-secondary text-xs"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={passwordSaving}
+                            className="btn-3d btn-duo-primary text-xs"
+                          >
+                            {passwordSaving ? (
+                              <>
+                                <Loader2 size={14} className="animate-spin" />
+                                <span>Updating...</span>
+                              </>
+                            ) : (
+                              'Save New Password'
+                            )}
+                          </button>
+                        </div>
+                      </motion.form>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </GlassCard>
+          </motion.div>
+        )}
+
+        {/* ═══ 3. PROFILE & PREFERENCES ═══ */}
         {(activeSectionTab === 'all' || activeSectionTab === 'preferences') && (
           <>
             {/* Profile */}
@@ -663,16 +948,16 @@ export default function SettingsPage() {
               </GlassCard>
             </motion.div>
 
-            {/* Account */}
+            {/* Account Sign Out */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.2 }}
             >
               <GlassCard hover={false} className="p-6">
-                <h2 className="text-base font-extrabold text-[var(--text-primary)]">Account</h2>
+                <h2 className="text-base font-extrabold text-[var(--text-primary)]">Sign Out</h2>
                 <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-                  Sign out of your active session
+                  End your active session securely
                 </p>
                 <button
                   onClick={handleLogout}
