@@ -1,5 +1,20 @@
-const CACHE_NAME = 'deutschforge-v2';
-const STATIC_ASSETS = ['/', '/vocabulary', '/practice', '/grammar', '/chat', '/exam'];
+const CACHE_NAME = 'deutschforge-v4';
+const STATIC_ASSETS = [
+  '/',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon-512-maskable.png',
+  '/apple-touch-icon.png',
+  '/apple-touch-icon-precomposed.png',
+  '/favicon.ico',
+  '/favicon.svg',
+  '/manifest.json',
+  '/vocabulary',
+  '/practice',
+  '/grammar',
+  '/chat',
+  '/exam',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

@@ -7,8 +7,19 @@ const PUBLIC_API_PREFIXES = ['/api/auth/'];
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;
   if (PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return true;
-  // Static assets and Next.js internals
-  if (pathname.startsWith('/_next/') || pathname.startsWith('/favicon') || pathname === '/manifest.json' || pathname === '/sw.js') return true;
+  // Static assets, icons, audio, and Next.js internals
+  if (
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/icons/') ||
+    pathname.startsWith('/favicon') ||
+    pathname.startsWith('/apple-touch-icon') ||
+    pathname.startsWith('/icon-') ||
+    pathname === '/manifest.json' ||
+    pathname === '/sw.js' ||
+    pathname.match(/\.(png|ico|svg|jpg|jpeg|webp|gif|mp3|wav|json|webmanifest|txt)$/i)
+  ) {
+    return true;
+  }
   return false;
 }
 
@@ -52,11 +63,9 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico, favicon.svg
-     * - public files (sw.js, manifest.json)
+     * - _next/static, _next/image
+     * - all static files with image/audio/web extensions (.png, .ico, .svg, .json, .mp3, etc.)
      */
-    '/((?!_next/static|_next/image|favicon\\.ico|favicon\\.svg|sw\\.js|manifest\\.json).*)',
+    '/((?!_next/static|_next/image|.*\\.(?:png|ico|svg|jpg|jpeg|webp|gif|mp3|wav|json|webmanifest|txt)$).*)',
   ],
 };
