@@ -32,6 +32,7 @@ import {
   CheckCheck,
   HelpCircle,
   Award,
+  Flame,
 } from 'lucide-react';
 import { sfx } from '@/lib/sounds';
 import {
@@ -91,7 +92,6 @@ export default function GrammarTopicPage() {
   const [practiceProgress, setPracticeProgress] = useState<PracticeProgress>({ chapters: {} });
 
   // ─── Quick Drills State ───
-  const [drillAnswers, setDrillAnswers] = useState<Record<number, string>>({});
   const [drillRevealed, setDrillRevealed] = useState<Record<number, boolean>>({});
 
   // ─── 10-Level Practice State ───
@@ -100,7 +100,6 @@ export default function GrammarTopicPage() {
   const [selectedOpt, setSelectedOpt] = useState<number | null>(null);
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState<boolean>(false);
   const [levelScore, setLevelScore] = useState<number>(0);
-  const [levelAnswers, setLevelAnswers] = useState<Array<{ qIdx: number; selected: number; correct: boolean }>>([]);
   const [levelCompleted, setLevelCompleted] = useState<boolean>(false);
 
   // ─── AI Prompt Copy State ───
@@ -140,7 +139,6 @@ export default function GrammarTopicPage() {
 
   const handleLaunchChat = () => {
     if (!chapter?.aiPrompt) return;
-    // Store in session storage for chat page to pick up if needed
     try {
       sessionStorage.setItem('pending_ai_prompt', chapter.aiPrompt);
     } catch {}
@@ -172,11 +170,6 @@ export default function GrammarTopicPage() {
     } else {
       sfx.wrong();
     }
-
-    setLevelAnswers((prev) => [
-      ...prev,
-      { qIdx: currentQIdx, selected: selectedOpt, correct: isCorrect },
-    ]);
   };
 
   const handleNextQuestion = () => {
@@ -186,17 +179,16 @@ export default function GrammarTopicPage() {
       setIsAnswerSubmitted(false);
       sfx.swoosh();
     } else {
-      // Level Completed!
       finishLevel();
     }
   };
 
   const finishLevel = () => {
     if (!chapter) return;
-    const finalScore = levelScore + (selectedOpt === currentQ?.answer ? 1 : 0);
+    const finalScore = levelScore;
     setLevelCompleted(true);
 
-    const result = recordLevelAttempt(chapter.id, selectedLevelIdx, finalScore);
+    recordLevelAttempt(chapter.id, selectedLevelIdx, finalScore);
     setPracticeProgress(loadPracticeProgress());
 
     if (finalScore >= 7) {
@@ -222,7 +214,6 @@ export default function GrammarTopicPage() {
     setSelectedOpt(null);
     setIsAnswerSubmitted(false);
     setLevelScore(0);
-    setLevelAnswers([]);
     setLevelCompleted(false);
   };
 
@@ -236,17 +227,16 @@ export default function GrammarTopicPage() {
     setSelectedOpt(null);
     setIsAnswerSubmitted(false);
     setLevelScore(0);
-    setLevelAnswers([]);
     setLevelCompleted(false);
     sfx.click();
   };
 
   if (!chapter) {
     return (
-      <div className="mx-auto max-w-4xl px-6 py-12 text-center">
+      <div className="mx-auto max-w-4xl px-6 py-16 text-center">
         <Loader2 size={36} className="mx-auto animate-spin text-[var(--accent)]" />
-        <p className="mt-4 text-sm text-[var(--text-secondary)]">Loading grammar chapter...</p>
-        <Link href="/grammar" className="btn-secondary mt-6 inline-flex items-center gap-2">
+        <p className="mt-4 text-sm font-semibold text-[var(--text-secondary)]">Loading grammar chapter...</p>
+        <Link href="/grammar" className="btn-3d btn-duo-secondary mt-6 inline-flex items-center gap-2">
           <ArrowLeft size={16} /> Back to Grammar
         </Link>
       </div>
@@ -255,11 +245,11 @@ export default function GrammarTopicPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* ─── Top Navigation & Header ─── */}
+      {/* ─── Breadcrumb & Top Bar ─── */}
       <div className="mb-6">
         <Link
           href="/grammar"
-          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
+          className="mb-4 inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
         >
           <ArrowLeft size={16} />
           Back to all Grammar Chapters
@@ -267,29 +257,29 @@ export default function GrammarTopicPage() {
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-lg bg-[var(--accent)]/10 px-2.5 py-0.5 text-xs font-extrabold text-[var(--accent)]">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-lg bg-[var(--accent)]/15 px-2.5 py-0.5 text-xs font-black text-[var(--accent)] border border-[var(--accent)]/30">
                 Ch. {chapter.number}
               </span>
               <Badge variant="level" level={chapter.cefrLevel || 'A1'}>
                 {chapter.cefrLevel || 'A1'}
               </Badge>
               {chapter.difficulty && (
-                <span className="text-xs font-semibold text-[var(--text-tertiary)] capitalize">
+                <span className="text-xs font-bold text-[var(--text-tertiary)] capitalize">
                   • {chapter.difficulty}
                 </span>
               )}
               {chapter.estimatedMinutes && (
-                <span className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]">
+                <span className="flex items-center gap-1 text-xs font-medium text-[var(--text-tertiary)]">
                   • <Clock size={12} /> {chapter.estimatedMinutes} min
                 </span>
               )}
             </div>
 
-            <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)]">
+            <h1 className="mt-2 text-2xl sm:text-3xl font-black text-[var(--text-primary)] leading-tight">
               {chapter.title}
             </h1>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">
               {chapter.subtitle}
             </p>
           </div>
@@ -297,23 +287,23 @@ export default function GrammarTopicPage() {
           <div className="flex items-center gap-2">
             <motion.button
               onClick={handleToggleComplete}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`btn-3d flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all border ${
                 isCompleted
-                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
-                  : 'border border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:border-emerald-500 hover:text-emerald-500'
+                  ? 'bg-emerald-500 text-white border-emerald-600 shadow-md shadow-emerald-500/20'
+                  : 'bg-[var(--bg-secondary)] border-[var(--border)] text-[var(--text-secondary)] hover:border-emerald-500 hover:text-emerald-500'
               }`}
             >
-              <CheckCircle2 size={18} />
+              <CheckCircle2 size={18} className={isCompleted ? 'fill-white text-emerald-500' : ''} />
               <span>{isCompleted ? 'Completed' : 'Mark as Done'}</span>
             </motion.button>
           </div>
         </div>
       </div>
 
-      {/* ─── Navigation Tabs ─── */}
-      <div className="mb-6 flex overflow-x-auto gap-1.5 rounded-2xl bg-[var(--bg-secondary)]/80 p-1.5 border border-[var(--border)] scrollbar-none">
+      {/* ─── Navigation Tabs (Duolingo Style) ─── */}
+      <div className="mb-6 flex overflow-x-auto gap-1.5 rounded-2xl bg-[var(--bg-secondary)] p-1.5 border border-[var(--border)] scrollbar-none shadow-sm">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -324,7 +314,7 @@ export default function GrammarTopicPage() {
                 setActiveTab(tab.id);
                 sfx.click();
               }}
-              className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all ${
+              className={`flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-bold transition-all ${
                 isActive
                   ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/20'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
@@ -354,114 +344,111 @@ export default function GrammarTopicPage() {
             transition={{ duration: 0.2 }}
             className="space-y-6"
           >
-            {/* Rule Callout */}
+            {/* Rule Callout Banner */}
             {chapter.rule && (
-              <div className="rounded-2xl border-2 border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-5">
-                <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                  <Lightbulb size={16} />
-                  <span>The Core Grammar Rule</span>
+              <div className="rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-transparent p-5 sm:p-6 shadow-sm">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  <Lightbulb size={18} />
+                  <span>The Fundamental Rule</span>
                 </div>
-                <p className="mt-2 text-base font-semibold text-[var(--text-primary)] leading-relaxed">
+                <p className="mt-2.5 text-base sm:text-lg font-bold text-[var(--text-primary)] leading-relaxed">
                   {chapter.rule}
                 </p>
               </div>
             )}
 
-            {/* Explanation */}
+            {/* Overview / Explanation Card */}
             {chapter.explanation && (
               <GlassCard hover={false} className="p-6">
-                <h2 className="text-base font-bold text-[var(--text-primary)]">Overview & Context</h2>
-                <p className="mt-2 text-sm text-[var(--text-secondary)] leading-relaxed">
+                <h2 className="text-base font-extrabold text-[var(--text-primary)]">Explanation & Concept</h2>
+                <p className="mt-2.5 text-sm font-medium text-[var(--text-secondary)] leading-relaxed">
                   {chapter.explanation}
                 </p>
               </GlassCard>
             )}
 
-            {/* Theory Sections */}
+            {/* Theory Breakdown Sections */}
             {chapter.theory?.map((section, idx) => (
               <GlassCard key={idx} hover={false} className="p-6">
-                <h3 className="text-base font-bold text-[var(--text-primary)]">{section.heading}</h3>
-                <div className="mt-3 text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
+                <h3 className="text-base font-extrabold text-[var(--text-primary)]">{section.heading}</h3>
+                <div className="mt-3 text-sm font-medium text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
                   {section.body}
                 </div>
               </GlassCard>
             ))}
 
-            {/* Grammar Table */}
+            {/* Grammar Reference Table */}
             {chapter.table && (
-              <GlassCard hover={false} className="overflow-hidden p-0">
-                <div className="p-4 border-b border-[var(--border)]">
-                  <h3 className="text-sm font-bold text-[var(--text-primary)]">Grammar Reference Table</h3>
+              <div className="grammar-table-container shadow-sm">
+                <div className="p-4 border-b border-[var(--border)] bg-[var(--bg-tertiary)]/50">
+                  <h3 className="text-sm font-extrabold text-[var(--text-primary)]">Grammar Reference Table</h3>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs sm:text-sm">
-                    <thead className="bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
-                      <tr>
-                        {chapter.table.headers.map((h, i) => (
-                          <th key={i} className="px-4 py-3 font-bold whitespace-nowrap">
-                            {h}
-                          </th>
+                <table className="grammar-table">
+                  <thead>
+                    <tr>
+                      {chapter.table.headers.map((h, i) => (
+                        <th key={i}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chapter.table.rows.map((row, rIdx) => (
+                      <tr key={rIdx}>
+                        {row.map((cell, cIdx) => (
+                          <td key={cIdx} className={cIdx === 0 ? 'font-bold text-[var(--text-primary)]' : ''}>
+                            {cell}
+                          </td>
                         ))}
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--border)]">
-                      {chapter.table.rows.map((row, rIdx) => (
-                        <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-transparent' : 'bg-[var(--bg-secondary)]/40'}>
-                          {row.map((cell, cIdx) => (
-                            <td key={cIdx} className="px-4 py-3 font-medium text-[var(--text-secondary)]">
-                              {cell}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </GlassCard>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
 
             {/* Important Notes */}
             {chapter.notes && chapter.notes.length > 0 && (
-              <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/5 p-5">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+              <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-5 sm:p-6 shadow-sm">
+                <h3 className="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                   Key Observations & Pro-Tips
                 </h3>
-                <ul className="mt-3 space-y-2 text-sm text-[var(--text-secondary)]">
+                <ul className="mt-3 space-y-2.5 text-sm text-[var(--text-secondary)]">
                   {chapter.notes.map((note, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500" />
-                      <span>{note}</span>
+                    <li key={i} className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500" />
+                      <span className="font-medium leading-relaxed">{note}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {/* Common Mistakes */}
+            {/* Common Mistakes to Avoid */}
             {chapter.mistakes && chapter.mistakes.length > 0 && (
-              <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-5">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">
+              <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5 sm:p-6 shadow-sm">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-red-600 dark:text-red-400">
                   <AlertTriangle size={16} />
-                  <span>Common Mistakes to Avoid</span>
+                  <span>Common Mistakes (Häufige Fehler)</span>
                 </div>
-                <ul className="mt-3 space-y-2 text-sm text-[var(--text-secondary)]">
+                <ul className="mt-3 space-y-2.5 text-sm text-[var(--text-secondary)]">
                   {chapter.mistakes.map((m, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-red-500 font-bold">✗</span>
-                      <span>{m}</span>
+                    <li key={i} className="flex items-start gap-2.5">
+                      <span className="text-red-500 font-extrabold">✗</span>
+                      <span className="font-medium leading-relaxed">{m}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {/* Summary */}
+            {/* Summary Box */}
             {chapter.summary && (
-              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                  Chapter Summary
-                </h3>
-                <p className="mt-2 text-sm font-medium text-[var(--text-secondary)] leading-relaxed">
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 sm:p-6 shadow-sm">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 size={16} />
+                  <span>Chapter Summary</span>
+                </div>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-primary)] leading-relaxed">
                   {chapter.summary}
                 </p>
               </div>
@@ -479,24 +466,24 @@ export default function GrammarTopicPage() {
             transition={{ duration: 0.2 }}
             className="space-y-4"
           >
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
               Listen and repeat to internalize native sentence rhythm ({chapter.examples.length} sentences)
             </p>
 
             <div className="grid gap-3">
               {chapter.examples.map((ex, idx) => (
-                <GlassCard key={idx} hover={false} className="flex items-center justify-between gap-4 p-4">
+                <GlassCard key={idx} hover={false} className="btn-3d flex items-center justify-between gap-4 p-4 sm:p-5">
                   <div className="min-w-0 flex-1">
-                    <p className="text-base font-bold text-[var(--text-primary)]">{ex.de}</p>
-                    <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{ex.en}</p>
+                    <p className="text-base sm:text-lg font-black text-[var(--text-primary)] leading-snug">{ex.de}</p>
+                    <p className="mt-1 text-xs sm:text-sm font-medium text-[var(--text-secondary)]">{ex.en}</p>
                   </div>
 
                   <button
                     onClick={() => speakGerman(ex.de)}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
-                    title="Listen to native pronunciation"
+                    className="btn-3d flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)] text-white hover:brightness-105 transition-all shadow-md"
+                    title="Pronounce German audio"
                   >
-                    <Volume2 size={18} />
+                    <Volume2 size={20} />
                   </button>
                 </GlassCard>
               ))}
@@ -514,8 +501,8 @@ export default function GrammarTopicPage() {
             transition={{ duration: 0.2 }}
             className="space-y-4"
           >
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
-              Test your recall on the core concepts of this chapter
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
+              Test your recall on the core concepts of this chapter ({chapter.exercises.length} drills)
             </p>
 
             <div className="space-y-4">
@@ -525,13 +512,13 @@ export default function GrammarTopicPage() {
                 const isRevealed = drillRevealed[idx] ?? false;
 
                 return (
-                  <GlassCard key={idx} hover={false} className="p-5">
-                    <div className="flex items-start justify-between gap-4">
+                  <GlassCard key={idx} hover={false} className="p-5 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
-                        <span className="rounded bg-[var(--bg-tertiary)] px-2 py-0.5 text-[11px] font-bold text-[var(--text-tertiary)]">
+                        <span className="rounded-md bg-[var(--bg-tertiary)] px-2 py-0.5 text-[11px] font-black text-[var(--text-tertiary)]">
                           Drill #{idx + 1}
                         </span>
-                        <p className="mt-2 text-sm sm:text-base font-bold text-[var(--text-primary)]">
+                        <p className="mt-2 text-base font-extrabold text-[var(--text-primary)] leading-snug">
                           {promptText}
                         </p>
                       </div>
@@ -541,7 +528,7 @@ export default function GrammarTopicPage() {
                           setDrillRevealed((prev) => ({ ...prev, [idx]: !prev[idx] }));
                           sfx.click();
                         }}
-                        className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-1.5 text-xs font-bold text-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                        className="btn-3d btn-duo-secondary text-xs shrink-0 self-start"
                       >
                         {isRevealed ? 'Hide Answer' : 'Show Answer'}
                       </button>
@@ -551,13 +538,13 @@ export default function GrammarTopicPage() {
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
-                        className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3"
+                        className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4"
                       >
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-emerald-700 dark:text-emerald-400">
                           <CheckCircle2 size={14} />
                           <span>Correct Answer:</span>
                         </div>
-                        <p className="mt-1 text-sm font-extrabold text-[var(--text-primary)]">{answerText}</p>
+                        <p className="mt-1 text-base font-black text-[var(--text-primary)]">{answerText}</p>
                       </motion.div>
                     )}
                   </GlassCard>
@@ -567,7 +554,7 @@ export default function GrammarTopicPage() {
           </motion.div>
         )}
 
-        {/* ═══ 4. 10-LEVEL PRACTICE ═══ */}
+        {/* ═══ 4. 10-LEVEL PRACTICE (TROPHY DRILLS) ═══ */}
         {activeTab === 'practice' && (
           <motion.div
             key="practice"
@@ -579,17 +566,17 @@ export default function GrammarTopicPage() {
           >
             {!practiceData ? (
               <GlassCard hover={false} className="py-12 text-center">
-                <Trophy size={36} className="mx-auto text-[var(--text-tertiary)]" />
+                <Trophy size={40} className="mx-auto text-[var(--text-tertiary)]" />
                 <p className="mt-3 text-base font-bold">10-Level Practice Not Available</p>
                 <p className="mt-1 text-xs text-[var(--text-tertiary)]">This chapter focuses primarily on phonetics & basic foundation drills.</p>
               </GlassCard>
             ) : (
               <>
-                {/* Level Ladder Selector */}
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)]/80 p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
-                      Select Mastery Level (10 Questions Each · Score ≥ 70% to Unlock Next)
+                {/* Level Ladder Selector (3D Duolingo Ladder) */}
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-3.5">
+                    <span className="text-xs font-black uppercase tracking-wider text-[var(--text-tertiary)]">
+                      Level Ladder (10 Questions Each · Score ≥ 70% to Unlock Next)
                     </span>
                   </div>
 
@@ -604,9 +591,9 @@ export default function GrammarTopicPage() {
                           key={idx}
                           onClick={() => handleSelectLevel(idx)}
                           disabled={state === 'locked'}
-                          className={`relative flex flex-col items-center justify-center rounded-xl p-2.5 transition-all text-xs font-extrabold ${
+                          className={`btn-3d relative flex flex-col items-center justify-center rounded-xl p-2.5 transition-all text-xs font-black ${
                             isSelected
-                              ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/30 ring-2 ring-[var(--accent)]/40'
+                              ? 'bg-[var(--accent)] text-white border-2 border-[var(--accent-hover)] ring-2 ring-[var(--accent)]/30'
                               : state === 'passed'
                               ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
                               : state === 'unlocked'
@@ -636,28 +623,28 @@ export default function GrammarTopicPage() {
                   <GlassCard hover={false} className="p-8 text-center">
                     <div className="flex justify-center">
                       {levelScore >= 7 ? (
-                        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                          <Trophy size={40} />
+                        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-500">
+                          <Trophy size={42} />
                         </div>
                       ) : (
-                        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
-                          <RotateCcw size={40} />
+                        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-500/15 text-amber-500">
+                          <RotateCcw size={42} />
                         </div>
                       )}
                     </div>
 
                     <h3 className="mt-4 text-2xl font-black text-[var(--text-primary)]">
-                      {levelScore >= 7 ? 'Level Passed! 🎉' : 'Keep Practicing!'}
+                      {levelScore >= 7 ? 'Level Mastered! 🎉' : 'Keep Practicing!'}
                     </h3>
-                    <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                      You scored <span className="font-bold text-[var(--text-primary)]">{levelScore}</span> out of{' '}
+                    <p className="mt-1.5 text-sm font-semibold text-[var(--text-secondary)]">
+                      You scored <span className="font-extrabold text-[var(--text-primary)]">{levelScore}</span> out of{' '}
                       {currentLevelQuestions.length} ({Math.round((levelScore / currentLevelQuestions.length) * 100)}%)
                     </p>
 
                     <div className="mt-6 flex flex-wrap justify-center gap-3">
                       <button
                         onClick={handleRestartLevel}
-                        className="btn-secondary flex items-center gap-2"
+                        className="btn-3d btn-duo-secondary flex items-center gap-2"
                       >
                         <RotateCcw size={16} />
                         <span>Retry Level {selectedLevelIdx + 1}</span>
@@ -666,7 +653,7 @@ export default function GrammarTopicPage() {
                       {levelScore >= 7 && selectedLevelIdx < 9 && (
                         <button
                           onClick={() => handleSelectLevel(selectedLevelIdx + 1)}
-                          className="btn-primary flex items-center gap-2"
+                          className="btn-3d btn-duo-primary flex items-center gap-2"
                         >
                           <span>Next Level ({selectedLevelIdx + 2})</span>
                           <ChevronRight size={16} />
@@ -675,18 +662,20 @@ export default function GrammarTopicPage() {
                     </div>
                   </GlassCard>
                 ) : currentQ ? (
-                  <GlassCard hover={false} className="p-6">
+                  <GlassCard hover={false} className="p-6 sm:p-7">
                     {/* Progress indicator */}
-                    <div className="mb-4 flex items-center justify-between text-xs font-semibold text-[var(--text-tertiary)]">
+                    <div className="mb-4 flex items-center justify-between text-xs font-bold text-[var(--text-tertiary)]">
                       <span>
                         Level {selectedLevelIdx + 1} · Question {currentQIdx + 1} of {currentLevelQuestions.length}
                       </span>
-                      <span>Score: {levelScore}</span>
+                      <span className="rounded-md bg-[var(--bg-tertiary)] px-2 py-0.5 font-black text-[var(--text-primary)]">
+                        Score: {levelScore}
+                      </span>
                     </div>
 
-                    <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                    <div className="mb-6 h-2.5 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                       <motion.div
-                        className="h-full bg-[var(--accent)]"
+                        className="h-full bg-gradient-to-r from-[var(--accent)] to-emerald-400"
                         initial={{ width: 0 }}
                         animate={{ width: `${((currentQIdx + 1) / currentLevelQuestions.length) * 100}%` }}
                         transition={{ duration: 0.3 }}
@@ -695,12 +684,12 @@ export default function GrammarTopicPage() {
 
                     {/* Question Text */}
                     <div className="mb-6">
-                      <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] leading-snug">
+                      <h3 className="text-lg sm:text-xl font-black text-[var(--text-primary)] leading-snug">
                         {currentQ.q}
                       </h3>
                     </div>
 
-                    {/* Options Grid */}
+                    {/* Options Grid (3D Duolingo Choice Buttons) */}
                     <div className="grid gap-3">
                       {currentQ.options.map((opt, optIdx) => {
                         const isSelected = selectedOpt === optIdx;
@@ -710,14 +699,14 @@ export default function GrammarTopicPage() {
 
                         if (isAnswerSubmitted) {
                           if (isCorrectOpt) {
-                            btnClass = 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold';
+                            btnClass = 'border-emerald-500 bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold border-2';
                           } else if (isSelected && !isCorrectOpt) {
-                            btnClass = 'border-red-500 bg-red-500/15 text-red-700 dark:text-red-400 font-bold';
+                            btnClass = 'border-red-500 bg-red-500/20 text-red-700 dark:text-red-300 font-bold border-2';
                           } else {
                             btnClass = 'opacity-40 border-[var(--border)] bg-[var(--bg-secondary)]';
                           }
                         } else if (isSelected) {
-                          btnClass = 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)] font-bold';
+                          btnClass = 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)] font-bold border-2';
                         }
 
                         return (
@@ -725,11 +714,11 @@ export default function GrammarTopicPage() {
                             key={optIdx}
                             onClick={() => handleSelectOption(optIdx)}
                             disabled={isAnswerSubmitted}
-                            className={`flex items-center justify-between rounded-xl border p-4 text-left text-sm transition-all ${btnClass}`}
+                            className={`btn-3d flex items-center justify-between rounded-xl p-4 text-left text-sm font-semibold transition-all ${btnClass}`}
                           >
                             <span>{opt}</span>
-                            {isAnswerSubmitted && isCorrectOpt && <CheckCircle2 size={18} className="text-emerald-500" />}
-                            {isAnswerSubmitted && isSelected && !isCorrectOpt && <XCircle size={18} className="text-red-500" />}
+                            {isAnswerSubmitted && isCorrectOpt && <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />}
+                            {isAnswerSubmitted && isSelected && !isCorrectOpt && <XCircle size={18} className="text-red-500 shrink-0" />}
                           </button>
                         );
                       })}
@@ -742,10 +731,10 @@ export default function GrammarTopicPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="mt-5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-4"
                       >
-                        <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                        <p className="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                           Explanation
                         </p>
-                        <p className="mt-1 text-sm text-[var(--text-secondary)]">{currentQ.explanation}</p>
+                        <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">{currentQ.explanation}</p>
                       </motion.div>
                     )}
 
@@ -755,14 +744,14 @@ export default function GrammarTopicPage() {
                         <button
                           onClick={handleCheckAnswer}
                           disabled={selectedOpt === null}
-                          className="btn-primary disabled:opacity-50"
+                          className="btn-3d btn-duo-primary disabled:opacity-50"
                         >
                           Check Answer
                         </button>
                       ) : (
                         <button
                           onClick={handleNextQuestion}
-                          className="btn-primary flex items-center gap-2"
+                          className="btn-3d btn-duo-primary flex items-center gap-2"
                         >
                           <span>{currentQIdx < currentLevelQuestions.length - 1 ? 'Next Question' : 'Finish Level'}</span>
                           <ChevronRight size={16} />
@@ -786,19 +775,19 @@ export default function GrammarTopicPage() {
             transition={{ duration: 0.2 }}
             className="space-y-4"
           >
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
               Oral Fluency Prompts & Speaking Challenges
             </p>
 
             <div className="grid gap-3">
               {chapter.speakingPrompts.map((prompt, idx) => (
-                <GlassCard key={idx} hover={false} className="flex items-start gap-4 p-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                    <Mic size={18} />
+                <GlassCard key={idx} hover={false} className="btn-3d flex items-start gap-4 p-4 sm:p-5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                    <Mic size={20} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <span className="text-xs font-bold text-[var(--text-tertiary)]">Prompt #{idx + 1}</span>
-                    <p className="mt-1 text-sm font-semibold text-[var(--text-primary)] leading-relaxed">
+                    <span className="text-xs font-black text-[var(--text-tertiary)]">Prompt #{idx + 1}</span>
+                    <p className="mt-1 text-base font-bold text-[var(--text-primary)] leading-relaxed">
                       {prompt}
                     </p>
                   </div>
@@ -818,33 +807,33 @@ export default function GrammarTopicPage() {
             transition={{ duration: 0.2 }}
             className="space-y-6"
           >
-            <div className="rounded-2xl border-2 border-purple-500/30 bg-purple-500/5 p-6">
-              <div className="flex items-center gap-3">
+            <div className="rounded-2xl border-2 border-purple-500/30 bg-purple-500/10 p-6 sm:p-7 shadow-sm">
+              <div className="flex items-center gap-3.5">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500 text-white shadow-lg shadow-purple-500/25">
                   <Sparkles size={24} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-[var(--text-primary)]">Interactive AI Tutor Drill</h3>
-                  <p className="text-xs text-[var(--text-secondary)]">
+                  <h3 className="text-lg font-black text-[var(--text-primary)]">Interactive AI Tutor Drill</h3>
+                  <p className="text-xs font-medium text-[var(--text-secondary)]">
                     Practice this exact chapter interactively with conversational corrections and custom pedagogical drills.
                   </p>
                 </div>
               </div>
 
-              <div className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+              <div className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
+                  <span className="text-xs font-black uppercase tracking-wider text-[var(--text-tertiary)]">
                     Pedagogical Drill Prompt
                   </span>
                   <button
                     onClick={handleCopyAiPrompt}
-                    className="flex items-center gap-1 text-xs font-bold text-[var(--accent)] hover:underline"
+                    className="flex items-center gap-1.5 text-xs font-bold text-[var(--accent)] hover:underline"
                   >
                     {copiedPrompt ? <CheckCheck size={14} /> : <Copy size={14} />}
                     <span>{copiedPrompt ? 'Copied!' : 'Copy Prompt'}</span>
                   </button>
                 </div>
-                <p className="text-xs text-[var(--text-secondary)] whitespace-pre-line leading-relaxed font-mono">
+                <p className="text-xs font-mono text-[var(--text-secondary)] whitespace-pre-line leading-relaxed">
                   {chapter.aiPrompt}
                 </p>
               </div>
@@ -852,7 +841,7 @@ export default function GrammarTopicPage() {
               <div className="mt-5 flex justify-end">
                 <button
                   onClick={handleLaunchChat}
-                  className="btn-primary flex items-center gap-2 text-sm font-bold"
+                  className="btn-3d btn-duo-primary text-sm font-extrabold"
                 >
                   <MessageSquare size={16} />
                   <span>Start AI Chat Session</span>

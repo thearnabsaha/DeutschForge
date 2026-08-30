@@ -437,6 +437,85 @@ body.focus-mode [data-focus-hide] {
   display: none !important;
 }
 
+/* ─── Grammar Masterclass Component Styles ─── */
+.grammar-table-container {
+  overflow-x: auto;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.grammar-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.grammar-table th {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+
+.grammar-table td {
+  padding: 0.75rem 1rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.grammar-table tr:last-child td {
+  border-bottom: none;
+}
+
+.grammar-table tr:hover td {
+  background: var(--bg-tertiary);
+}
+
+/* Duolingo 3D Button style */
+.btn-3d {
+  transition: all 0.1s ease;
+  position: relative;
+  box-shadow: 0 4px 0 0 rgba(0, 0, 0, 0.15);
+}
+.btn-3d:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 0 rgba(0, 0, 0, 0.15);
+}
+.btn-3d:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.15);
+}
+
+.dark .btn-3d,
+.dark-nord .btn-3d,
+.dark-warm .btn-3d,
+.amoled .btn-3d,
+.dark-duo .btn-3d,
+.dark-purple .btn-3d {
+  box-shadow: 0 4px 0 0 rgba(0, 0, 0, 0.4);
+}
+.dark .btn-3d:hover,
+.dark-nord .btn-3d:hover,
+.dark-warm .btn-3d:hover,
+.amoled .btn-3d:hover,
+.dark-duo .btn-3d:hover,
+.dark-purple .btn-3d:hover {
+  box-shadow: 0 5px 0 0 rgba(0, 0, 0, 0.4);
+}
+.dark .btn-3d:active,
+.dark-nord .btn-3d:active,
+.dark-warm .btn-3d:active,
+.amoled .btn-3d:active,
+.dark-duo .btn-3d:active,
+.dark-purple .btn-3d:active {
+  box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.4);
+}
+
+
 /* ── Mobile scroll container for fixed navbar ── */
 .main-scroll {
   overflow-y: auto;
