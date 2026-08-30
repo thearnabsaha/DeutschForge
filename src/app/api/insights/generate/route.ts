@@ -5,12 +5,15 @@ import {
   examAttempts,
   examSectionScores,
   grammarAttempts,
-  grammarTopics,
-  aiInsights,
+  wordBatches,
+  wordBatchExams,
+  listeningAttempts,
 } from '@/lib/schema';
-import { eq, sql, inArray } from 'drizzle-orm';
+import { GRAMMAR_TOPIC_MAP } from '@/lib/grammar-data';
+import { eq, sql, inArray, count } from 'drizzle-orm';
 import { generateInsights } from '@/lib/groq';
 import { getCurrentUserId } from '@/lib/get-user';
+import { aiInsights } from '@/lib/schema';
 
 export async function POST(_request: NextRequest) {
   try {
@@ -43,20 +46,24 @@ export async function POST(_request: NextRequest) {
     const correctRate = total > 0 ? correct / total : 0;
 
     // Get weak areas from grammar attempts
-    const grammarTopicScores = await db
+    const grammarStatsRaw = await db
       .select({
         topicId: grammarAttempts.topicId,
-        topicTitle: grammarTopics.title,
-        avgScore: sql<number>`avg(${grammarAttempts.score} / nullif(${grammarAttempts.maxScore}, 0) * 100)::numeric`,
+        avgScore: sql<number>`avg(${grammarAttempts.score}::float / ${grammarAttempts.maxScore}::float)`,
+        attemptsCount: count(grammarAttempts.id),
       })
       .from(grammarAttempts)
-      .innerJoin(grammarTopics, eq(grammarTopics.id, grammarAttempts.topicId))
       .where(eq(grammarAttempts.userId, userId))
-      .groupBy(grammarAttempts.topicId, grammarTopics.title);
+      .groupBy(grammarAttempts.topicId);
 
-    const weakGrammarTopics = grammarTopicScores
-      .filter((r) => (r.avgScore ?? 0) < 70)
-      .map((r) => `${r.topicTitle} (grammar: ${Math.round(r.avgScore ?? 0)}%)`);
+    const grammarStats = grammarStatsRaw.map(s => ({
+      ...s,
+      topicTitle: GRAMMAR_TOPIC_MAP[s.topicId]?.title || 'Unknown Topic',
+    }));
+
+    const weakGrammarTopics = grammarStats
+      .filter((r) => (r.avgScore ?? 0) < 0.7)
+      .map((r) => `${r.topicTitle} (grammar: ${Math.round((r.avgScore ?? 0) * 100)}%)`);
 
     // Get weak areas from exam section scores
     const userAttempts = await db

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { userWords, wordReviewLogs, grammarTopics, grammarAttempts, examAttempts, examSectionScores, aiInsights, conversationSessions, users } from '@/lib/schema';
+import { userWords, wordReviewLogs, grammarAttempts, examAttempts, examSectionScores, aiInsights, conversationSessions, users } from '@/lib/schema';
+import { GRAMMAR_TOPICS } from '@/lib/grammar-data';
 import { eq, and, gte, desc, inArray } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/get-user';
 
@@ -68,10 +69,11 @@ export async function GET() {
     }
 
     // 3. Grammar completion
-    const allTopics = await db.select().from(grammarTopics);
+    const allTopics = GRAMMAR_TOPICS;
     const topicsByLevel: Record<string, number> = {};
     for (const t of allTopics) {
-      topicsByLevel[t.cefrLevel] = (topicsByLevel[t.cefrLevel] || 0) + 1;
+      const level = t.cefrLevel || 'A1';
+      topicsByLevel[level] = (topicsByLevel[level] || 0) + 1;
     }
 
     const allGrammarAttempts = await db.select().from(grammarAttempts)

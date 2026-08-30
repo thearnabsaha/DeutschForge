@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import {
   Brain,
@@ -13,8 +13,6 @@ import {
   Sparkles,
   ArrowRight,
   AlertTriangle,
-  Bell,
-  X,
   Zap,
   Star,
 } from 'lucide-react';
@@ -96,54 +94,7 @@ const GENDER_LABELS: Record<string, string> = {
   neuter: 'das',
 };
 
-function ReminderBanner() {
-  const [reminders, setReminders] = useState<Array<{ id: string; message: string; type: string }>>([]);
 
-  useEffect(() => {
-    fetch('/api/reminders')
-      .then((r) => r.json())
-      .then((d) => setReminders(d.reminders || []))
-      .catch(() => {});
-  }, []);
-
-  const dismiss = async (id: string) => {
-    await fetch('/api/reminders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reminderId: id }),
-    });
-    setReminders((prev) => prev.filter((r) => r.id !== id));
-  };
-
-  if (reminders.length === 0) return null;
-
-  return (
-    <div className="mb-6 space-y-3">
-      <AnimatePresence>
-        {reminders.map((r) => (
-          <motion.div
-            key={r.id}
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3"
-          >
-          <div className="flex items-center gap-3">
-            <Bell size={18} className="shrink-0 text-amber-500" />
-            <p className="text-sm text-[var(--text-primary)]">{r.message}</p>
-          </div>
-          <button
-            onClick={() => dismiss(r.id)}
-            className="ml-3 shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-          >
-            <X size={16} />
-          </button>
-        </motion.div>
-        ))}
-      </AnimatePresence>
-    </div>
-  );
-}
 
 function HardWordsCard() {
   const [hardWords, setHardWords] = useState<Array<{ word: string; meaning: string; accuracy: number }>>([]);
@@ -232,7 +183,7 @@ export default function DashboardPage() {
         subtitle="Your German journey continues. Keep the momentum."
       />
 
-      <ReminderBanner />
+
 
       {/* XP Progress Bar */}
       {data?.xp && (

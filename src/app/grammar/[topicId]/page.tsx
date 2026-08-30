@@ -10,7 +10,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import {
   Loader2,
   BookOpen,
-  Lightbulb,
   PenLine,
   ArrowLeft,
   CheckCircle2,
@@ -19,25 +18,33 @@ import {
 } from 'lucide-react';
 import { sfx } from '@/lib/sounds';
 
-type Example = { german: string; english: string; note?: string };
+type GrammarExample = { de: string; en: string };
+type GrammarTable = { headers: string[]; rows: string[][] };
+type GrammarSection = {
+  heading: string;
+  explanation: string;
+  table?: GrammarTable;
+  examples: GrammarExample[];
+  notes: string[];
+};
 
 type Exercise = {
   id: string;
   type: string;
   question: string;
   options?: string[];
-  correctAnswer: string;
-  explanation: string;
+  answer: string;
+  hint?: string;
 };
 
 type Topic = {
   id: string;
   cefrLevel: string;
   title: string;
-  slug: string;
-  description: string;
-  theory: string;
-  examples: Example[];
+  subtitle: string;
+  icon: string;
+  color: string;
+  sections: GrammarSection[];
   exercises: Exercise[];
 };
 
@@ -52,37 +59,8 @@ type ResultItem = {
 
 const TABS = [
   { id: 'theory', label: 'Theory', icon: BookOpen },
-  { id: 'examples', label: 'Examples', icon: Lightbulb },
   { id: 'practice', label: 'Practice', icon: PenLine },
 ] as const;
-
-function renderTheory(text: string) {
-  const paragraphs = text.split(/\n\n+/);
-  return paragraphs.map((p, i) => {
-    const parts: React.ReactNode[] = [];
-    let remaining = p;
-    let key = 0;
-    while (remaining.length > 0) {
-      const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
-      if (boldMatch) {
-        const idx = remaining.indexOf(boldMatch[0]);
-        if (idx > 0) {
-          parts.push(<span key={key++}>{remaining.slice(0, idx)}</span>);
-        }
-        parts.push(<strong key={key++} className="font-semibold">{boldMatch[1]}</strong>);
-        remaining = remaining.slice(idx + boldMatch[0].length);
-      } else {
-        parts.push(<span key={key++}>{remaining}</span>);
-        break;
-      }
-    }
-    return (
-      <p key={i} className="mb-4 leading-relaxed text-[var(--text-primary)]">
-        {parts}
-      </p>
-    );
-  });
-}
 
 export default function GrammarTopicPage() {
   const params = useParams();
@@ -123,7 +101,7 @@ export default function GrammarTopicPage() {
 
   const handleAnswerChange = (value: string) => {
     if (currentExercise) {
-      sfx.click();
+      if (currentExercise.type === 'multiple_choice') sfx.click();
       setAnswers((prev) => ({ ...prev, [currentExercise.id]: value }));
     }
   };
@@ -199,13 +177,21 @@ export default function GrammarTopicPage() {
           <ArrowLeft size={16} />
           Back to Grammar
         </Link>
-        <PageHeader
-          title={topic.title}
-          subtitle={topic.description}
-        />
-        <div className="mt-2 flex gap-2">
-          <Badge variant="level" level={topic.cefrLevel}>
-            {topic.cefrLevel}
+        <div className="flex items-center gap-4">
+          <div 
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl"
+            style={{ backgroundColor: `${topic.color}20`, color: topic.color }}
+          >
+            {topic.icon}
+          </div>
+          <PageHeader
+            title={topic.title}
+            subtitle={topic.subtitle}
+          />
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Badge variant="level" level={topic.cefrLevel || 'A1'}>
+            {topic.cefrLevel || 'A1'}
           </Badge>
         </div>
       </div>
@@ -236,36 +222,68 @@ export default function GrammarTopicPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
+            className="space-y-8"
           >
-            <GlassCard hover={false} className="prose prose-invert max-w-none">
-              {renderTheory(topic.theory)}
-            </GlassCard>
-          </motion.div>
-        )}
+            {topic.sections.map((section, idx) => (
+              <GlassCard key={idx} hover={false} className="overflow-hidden">
+                <h3 className="mb-3 text-xl font-bold text-[var(--text-primary)]" style={{ color: topic.color }}>
+                  {section.heading}
+                </h3>
+                <p className="mb-6 text-[var(--text-secondary)] leading-relaxed">
+                  {section.explanation}
+                </p>
 
-        {activeTab === 'examples' && (
-          <motion.div
-            key="examples"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-4"
-          >
-            {(topic.examples ?? []).map((ex, i) => (
-              <GlassCard key={i} hover={false}>
-                <p className="text-lg font-medium text-[var(--text-primary)]">{ex.german}</p>
-                <p className="mt-2 text-sm text-[var(--text-secondary)]">{ex.english}</p>
-                {ex.note && (
-                  <p className="mt-2 text-sm italic text-[var(--text-tertiary)]">{ex.note}</p>
+                {section.table && (
+                  <div className="mb-6 overflow-x-auto rounded-xl border border-[var(--border)]">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-[var(--bg-tertiary)]">
+                        <tr>
+                          {section.table.headers.map((h, i) => (
+                            <th key={i} className="px-4 py-3 font-semibold text-[var(--text-primary)]">
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border)]">
+                        {section.table.rows.map((row, rIdx) => (
+                          <tr key={rIdx} className="hover:bg-[var(--bg-secondary)]">
+                            {row.map((cell, cIdx) => (
+                              <td key={cIdx} className="px-4 py-3 text-[var(--text-secondary)]">
+                                {cell}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {section.examples.length > 0 && (
+                  <div className="mb-6 space-y-3">
+                    <h4 className="font-semibold text-[var(--text-primary)]">Examples:</h4>
+                    {section.examples.map((ex, i) => (
+                      <div key={i} className="rounded-lg bg-[var(--bg-tertiary)] p-3">
+                        <p className="font-medium text-[var(--text-primary)]">{ex.de}</p>
+                        <p className="text-sm text-[var(--text-secondary)]">{ex.en}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {section.notes.length > 0 && (
+                  <div className="space-y-2 rounded-lg border-l-4 p-4 text-sm" style={{ backgroundColor: `${topic.color}10`, borderColor: topic.color }}>
+                    <h4 className="font-semibold" style={{ color: topic.color }}>Important Notes:</h4>
+                    <ul className="list-inside list-disc space-y-1 text-[var(--text-secondary)]">
+                      {section.notes.map((note, i) => (
+                        <li key={i}>{note}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </GlassCard>
             ))}
-            {(!topic.examples || topic.examples.length === 0) && (
-              <GlassCard hover={false}>
-                <p className="text-sm text-[var(--text-tertiary)]">No examples for this topic yet.</p>
-              </GlassCard>
-            )}
           </motion.div>
         )}
 
@@ -288,7 +306,7 @@ export default function GrammarTopicPage() {
                     {Math.round((results.score / results.maxScore) * 100)}%
                   </p>
                   <motion.button
-                    className="btn-primary mt-6 flex items-center gap-2"
+                    className="btn-primary mt-6 flex items-center justify-center gap-2"
                     onClick={handleTryAgain}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -328,7 +346,9 @@ export default function GrammarTopicPage() {
                           </p>
                         </>
                       )}
-                      <p className="mt-2 text-sm text-[var(--text-secondary)]">{r.explanation}</p>
+                      {r.explanation && (
+                         <p className="mt-2 text-sm text-[var(--text-secondary)]">Hint: {r.explanation}</p>
+                      )}
                     </GlassCard>
                   ))}
                 </div>
@@ -346,9 +366,18 @@ export default function GrammarTopicPage() {
 
                 {currentExercise ? (
                   <GlassCard hover={false}>
-                    <p className="mb-4 text-base font-medium text-[var(--text-primary)]">
-                      {currentExercise.question}
-                    </p>
+                    <div className="mb-4">
+                      <Badge className="mb-2 bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
+                        {currentExercise.type.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                      <p className="text-lg font-medium text-[var(--text-primary)]">
+                        {currentExercise.question}
+                      </p>
+                      {currentExercise.hint && (
+                        <p className="mt-1 text-sm italic text-[var(--text-tertiary)]">{currentExercise.hint}</p>
+                      )}
+                    </div>
+
                     {currentExercise.type === 'multiple_choice' ? (
                       <div className="space-y-2">
                         {(currentExercise.options ?? []).map((opt) => (
@@ -357,8 +386,8 @@ export default function GrammarTopicPage() {
                             onClick={() => handleAnswerChange(opt)}
                             className={`block w-full rounded-xl border px-4 py-3 text-left text-sm transition-colors ${
                               (answers[currentExercise.id] ?? '') === opt
-                                ? 'border-[var(--accent)] bg-[var(--accent)]/10'
-                                : 'border-[var(--border)] hover:bg-[var(--bg-tertiary)]'
+                                ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                                : 'border-[var(--border)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
                             }`}
                           >
                             {opt}
@@ -371,6 +400,8 @@ export default function GrammarTopicPage() {
                         value={answers[currentExercise.id] ?? ''}
                         onChange={(e) => handleAnswerChange(e.target.value)}
                         placeholder="Type your answer..."
+                        autoComplete="off"
+                        spellCheck={false}
                         className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                       />
                     )}

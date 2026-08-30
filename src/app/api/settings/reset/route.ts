@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { userWords, wordReviewLogs, wordBatches, wordBatchExams, examAttempts, examSectionScores, aiInsights, reminders, users, resetLogs, questionSnapshots } from '@/lib/schema';
+import { userWords, wordReviewLogs, wordBatches, wordBatchExams, examAttempts, examSectionScores, aiInsights, users, resetLogs, questionSnapshots } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       await db.delete(examAttempts).where(eq(examAttempts.userId, userId));
 
       await db.delete(aiInsights).where(eq(aiInsights.userId, userId));
-      await db.delete(reminders).where(eq(reminders.userId, userId));
+
       await db.delete(questionSnapshots).where(eq(questionSnapshots.userId, userId));
       await db.update(users).set({ xp: 0, level: 1 }).where(eq(users.id, userId));
     }

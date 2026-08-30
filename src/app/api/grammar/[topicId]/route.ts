@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { grammarTopics } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { GRAMMAR_TOPIC_MAP } from '@/lib/grammar-data';
 
 export async function GET(
   _request: NextRequest,
@@ -9,12 +7,8 @@ export async function GET(
 ) {
   try {
     const { topicId } = await params;
-    const rows = await db
-      .select()
-      .from(grammarTopics)
-      .where(eq(grammarTopics.id, topicId));
-
-    const topic = rows[0];
+    const topic = GRAMMAR_TOPIC_MAP[topicId];
+    
     if (!topic) {
       return NextResponse.json({ error: 'Topic not found' }, { status: 404 });
     }

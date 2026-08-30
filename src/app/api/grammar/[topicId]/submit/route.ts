@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { grammarTopics, grammarAttempts } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { grammarAttempts } from '@/lib/schema';
+import { GRAMMAR_TOPIC_MAP } from '@/lib/grammar-data';
 import { getCurrentUserId } from '@/lib/get-user';
 
 interface AnswerInput {
@@ -30,10 +30,7 @@ export async function POST(
       return NextResponse.json({ error: 'answers array required' }, { status: 400 });
     }
 
-    const [topic] = await db
-      .select()
-      .from(grammarTopics)
-      .where(eq(grammarTopics.id, topicId));
+    const topic = GRAMMAR_TOPIC_MAP[topicId];
 
     if (!topic) {
       return NextResponse.json({ error: 'Topic not found' }, { status: 404 });
@@ -57,7 +54,7 @@ export async function POST(
     for (const { exerciseId, userAnswer } of answersInput) {
       const exercise = exerciseMap.get(exerciseId);
       const userAns = typeof userAnswer === 'string' ? userAnswer : String(userAnswer ?? '');
-      const correctAns = exercise?.correctAnswer ?? '';
+      const correctAns = exercise?.answer ?? '';
       const correct = answersMatch(userAns, correctAns);
       if (correct) score += 1;
 
@@ -67,7 +64,7 @@ export async function POST(
         userAnswer: userAns,
         correctAnswer: correctAns,
         correct,
-        explanation: exercise?.explanation ?? '',
+        explanation: exercise?.hint ?? '',
       });
       answerRows.push({ exerciseId, userAnswer: userAns, correct });
     }

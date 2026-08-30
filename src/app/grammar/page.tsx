@@ -13,8 +13,9 @@ type TopicRow = {
   id: string;
   cefrLevel: string;
   title: string;
-  slug: string;
-  description: string;
+  subtitle: string;
+  icon: string;
+  color: string;
   bestScore: number | null;
   bestMaxScore: number | null;
   attemptCount: number;
@@ -137,15 +138,21 @@ export default function GrammarPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
+                              <div 
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-lg"
+                                style={{ backgroundColor: `${topic.color}20`, color: topic.color }}
+                              >
+                                {topic.icon}
+                              </div>
                               <h3 className="text-base font-semibold text-[var(--text-primary)]">
                                 {topic.title}
                               </h3>
-                              <Badge variant="level" level={topic.cefrLevel}>
-                                {topic.cefrLevel}
+                              <Badge variant="level" level={topic.cefrLevel || 'A1'}>
+                                {topic.cefrLevel || 'A1'}
                               </Badge>
                             </div>
                             <p className="mt-2 line-clamp-2 text-sm text-[var(--text-secondary)]">
-                              {topic.description}
+                              {topic.subtitle}
                             </p>
                           </div>
                           <ChevronRight

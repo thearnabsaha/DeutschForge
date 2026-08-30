@@ -89,33 +89,10 @@ export const wordReviewLogs = pgTable('word_review_logs', {
 
 // ── GRAMMAR ──────────────────────────────────────────────────
 
-export const grammarTopics = pgTable('grammar_topics', {
-  id: text('id').primaryKey().$defaultFn(() => createId()),
-  cefrLevel: text('cefr_level').notNull(),
-  title: text('title').notNull(),
-  slug: text('slug').notNull(),
-  description: text('description').notNull(),
-  theory: text('theory').notNull(),
-  examples: jsonb('examples').$type<Array<{ german: string; english: string; note?: string }>>().notNull(),
-  exercises: jsonb('exercises').$type<Array<{
-    id: string;
-    type: string;
-    question: string;
-    options?: string[];
-    correctAnswer: string;
-    explanation: string;
-  }>>().notNull(),
-  sortOrder: integer('sort_order').notNull().default(0),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (t) => ({
-  levelSlugUniq: uniqueIndex('grammar_topics_level_slug_uniq').on(t.cefrLevel, t.slug),
-  levelIdx: index('grammar_topics_level_idx').on(t.cefrLevel),
-}));
-
 export const grammarAttempts = pgTable('grammar_attempts', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  topicId: text('topic_id').notNull().references(() => grammarTopics.id, { onDelete: 'cascade' }),
+  topicId: text('topic_id').notNull(), // References static GrammarTopic.id
   score: real('score').notNull(),
   maxScore: real('max_score').notNull(),
   answers: jsonb('answers').$type<Array<{
@@ -171,18 +148,7 @@ export const aiInsights = pgTable('ai_insights', {
   userIdx: index('ai_insights_user_idx').on(t.userId),
 }));
 
-// ── REMINDERS ────────────────────────────────────────────────
-
-export const reminders = pgTable('reminders', {
-  id: text('id').primaryKey().$defaultFn(() => createId()),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  type: text('type').notNull(), // 'missed_days' | 'overdue_cards'
-  message: text('message').notNull(),
-  read: boolean('read').notNull().default(false),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (t) => ({
-  userIdx: index('reminders_user_idx').on(t.userId, t.createdAt),
-}));
+// ── REMINDERS REMOVED ────────────────────────────────────────
 
 export const wordBatches = pgTable('word_batches', {
   id: text('id').primaryKey().$defaultFn(() => createId()),

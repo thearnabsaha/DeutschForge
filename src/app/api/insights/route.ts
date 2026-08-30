@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import {
   wordReviewLogs,
+  wordBatches,
+  wordBatchExams,
   examAttempts,
   examSectionScores,
   grammarAttempts,
-  grammarTopics,
   aiInsights,
+  listeningAttempts,
 } from '@/lib/schema';
-import { eq, sql, desc, inArray } from 'drizzle-orm';
+import { GRAMMAR_TOPIC_MAP } from '@/lib/grammar-data';
+import { eq, sql, desc, inArray, count } from 'drizzle-orm';
 import { generateInsights } from '@/lib/groq';
 import { getCurrentUserId } from '@/lib/get-user';
 
@@ -53,20 +56,24 @@ async function buildAndSaveInsights(forceRegenerate: boolean, userId: string) {
   const correctRate = total > 0 ? correct / total : 0;
 
   // 5. Get weak areas from grammar attempts (topics with low scores)
-  const grammarTopicScores = await db
-    .select({
-      topicId: grammarAttempts.topicId,
-      topicTitle: grammarTopics.title,
-      avgScore: sql<number>`avg(${grammarAttempts.score} / nullif(${grammarAttempts.maxScore}, 0) * 100)::numeric`,
-    })
-    .from(grammarAttempts)
-    .innerJoin(grammarTopics, eq(grammarTopics.id, grammarAttempts.topicId))
-    .where(eq(grammarAttempts.userId, userId))
-    .groupBy(grammarAttempts.topicId, grammarTopics.title);
+    const grammarStatsRaw = await db
+      .select({
+        topicId: grammarAttempts.topicId,
+        avgScore: sql<number>`avg(${grammarAttempts.score}::float / ${grammarAttempts.maxScore}::float)`,
+        attemptsCount: count(grammarAttempts.id),
+      })
+      .from(grammarAttempts)
+      .where(eq(grammarAttempts.userId, userId))
+      .groupBy(grammarAttempts.topicId);
 
-  const weakGrammarTopics = grammarTopicScores
-    .filter((r) => (r.avgScore ?? 0) < 70)
-    .map((r) => `${r.topicTitle} (grammar: ${Math.round(r.avgScore ?? 0)}%)`);
+    const grammarStats = grammarStatsRaw.map(s => ({
+      ...s,
+      topicTitle: GRAMMAR_TOPIC_MAP[s.topicId]?.title || 'Unknown Topic',
+    }));
+
+  const weakGrammarTopics = grammarStats
+    .filter((r) => (r.avgScore ?? 0) < 0.7)
+    .map((r) => `${r.topicTitle} (grammar: ${Math.round((r.avgScore ?? 0) * 100)}%)`);
 
   // 6. Get weak areas from exam section scores
   const userAttempts = await db

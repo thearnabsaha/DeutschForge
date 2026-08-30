@@ -5,6 +5,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, CheckCircle2, Plus, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface Section {
   id: string;
@@ -114,13 +115,21 @@ export default function BookGrid({ initialSections }: BookGridProps) {
                 
                 <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">{section.name}</h3>
                 
-                <button 
-                  onClick={() => setExpandedId(isExpanded ? null : section.id)}
-                  className="text-xs text-[var(--accent)]/80 hover:text-[var(--accent)] flex items-center gap-1 mt-2 transition-colors"
-                >
-                  {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                  Preview words
-                </button>
+                <div className="flex items-center gap-4 mt-2">
+                  <button 
+                    onClick={() => setExpandedId(isExpanded ? null : section.id)}
+                    className="text-xs font-bold text-[var(--text-tertiary)] hover:text-[var(--text-primary)] flex items-center gap-1 transition-colors"
+                  >
+                    {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    Preview
+                  </button>
+                  <Link 
+                    href={`/vocabulary/book/${section.id}`}
+                    className="text-xs font-bold text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
+                  >
+                    View all words &rarr;
+                  </Link>
+                </div>
                 
                 {isExpanded && (
                   <div className="mt-3 text-sm text-[var(--text-secondary)] italic bg-[var(--bg-tertiary)]/50 p-3 rounded-lg border border-[var(--border)]">

@@ -5,7 +5,6 @@ import {
   wordReviewLogs,
   wordBatches,
   wordBatchExams,
-  grammarTopics,
   grammarAttempts,
   examAttempts,
   examSectionScores,
@@ -15,6 +14,7 @@ import {
 } from '@/lib/schema';
 import { eq, and, gte, desc, sql, count } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/get-user';
+import { GRAMMAR_TOPICS } from '@/lib/grammar-data';
 
 export async function GET() {
   try {
@@ -36,7 +36,7 @@ export async function GET() {
       db.select().from(wordReviewLogs).where(eq(wordReviewLogs.userId, userId)).orderBy(desc(wordReviewLogs.reviewedAt)),
       db.select().from(wordBatches).where(eq(wordBatches.userId, userId)),
       db.select().from(wordBatchExams).where(eq(wordBatchExams.userId, userId)).orderBy(desc(wordBatchExams.completedAt)),
-      db.select().from(grammarTopics),
+      Promise.resolve(GRAMMAR_TOPICS),
       db.select().from(grammarAttempts).where(eq(grammarAttempts.userId, userId)),
       db.select().from(examAttempts).where(and(eq(examAttempts.userId, userId), eq(examAttempts.status, 'completed'))).orderBy(desc(examAttempts.completedAt)),
       db.select().from(listeningAttempts).where(eq(listeningAttempts.userId, userId)).orderBy(desc(listeningAttempts.createdAt)),

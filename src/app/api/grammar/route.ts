@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { grammarTopics, grammarAttempts } from '@/lib/schema';
-import { eq, asc } from 'drizzle-orm';
+import { grammarAttempts } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/get-user';
+import { GRAMMAR_TOPICS } from '@/lib/grammar-data';
 
 export async function GET() {
   try {
     const userId = await getCurrentUserId();
-    const topics = await db
-      .select()
-      .from(grammarTopics)
-      .orderBy(asc(grammarTopics.cefrLevel), asc(grammarTopics.sortOrder));
+    const topics = GRAMMAR_TOPICS;
 
     const attempts = await db
       .select()
@@ -21,7 +19,7 @@ export async function GET() {
     for (const t of topics) {
       const topicAttempts = attempts.filter((a) => a.topicId === t.id);
       const bestAttempt = topicAttempts.sort((a, b) => b.score - a.score)[0];
-      const arr = grouped[t.cefrLevel] as unknown[];
+      const arr = grouped[t.cefrLevel || 'A1'] as unknown[];
       if (arr) {
         arr.push({
           ...t,
