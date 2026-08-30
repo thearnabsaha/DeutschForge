@@ -23,13 +23,15 @@ function getGroq(): Groq {
 }
 
 // ── MODEL CASCADE ────────────────────────────────────────────
-// Ordered by speed, responsiveness, and rate-limit headroom on Groq.
+// Ordered by speed, reliability, and rate-limit resilience on Groq.
 const MODEL_CASCADE = [
+  'openai/gpt-oss-safeguard-20b',
   'qwen/qwen3.8-27b',
   'openai/gpt-oss-20b',
-  'openai/gpt-oss-120b',
   'groq/compound-mini',
-  'openai/gpt-oss-safeguard-20b',
+  'openai/gpt-oss-120b',
+  'groq/compound',
+  'allam-2-7b',
 ] as const;
 
 interface CallGroqParams {
