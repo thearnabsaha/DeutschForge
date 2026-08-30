@@ -167,9 +167,18 @@ export default function VocabularyPage() {
         transition={{ duration: 0.4 }}
       >
         <GlassCard hover={false}>
-          <div className="flex items-center gap-2">
-            <Plus size={18} className="text-[var(--accent)]" />
-            <h2 className="text-base font-semibold">Add Words</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Plus size={18} className="text-[var(--accent)]" />
+              <h2 className="text-base font-semibold">Add Words</h2>
+            </div>
+            <a 
+              href="/vocabulary/book" 
+              className="text-sm flex items-center gap-1 font-medium text-[var(--accent)] hover:underline"
+            >
+              <BookOpen size={16} />
+              Browse Vocab Book
+            </a>
           </div>
           <textarea
             value={wordsInput}

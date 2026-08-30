@@ -31,6 +31,7 @@ const navItems = [
   { href: '/chat', label: 'Chat', icon: MessageCircle },
   { href: '/chat/voice', label: 'Voice Chat', icon: Mic },
   { href: '/vocabulary', label: 'Vocabulary', icon: BookOpen },
+  { href: '/vocabulary/book', label: 'Vocab Book', icon: BookMarked },
   { href: '/expressions', label: 'Expressions', icon: MessageSquareQuote },
   { href: '/grammar', label: 'Grammar', icon: BookMarked },
   { href: '/exam', label: 'Exam', icon: GraduationCap },
