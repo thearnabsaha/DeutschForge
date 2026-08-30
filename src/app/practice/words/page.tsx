@@ -183,6 +183,7 @@ export default function PracticeWordsPage() {
   // Learn flow
   const [learnIndex, setLearnIndex] = useState(0);
   const [learnFlipped, setLearnFlipped] = useState(false);
+  const [isLearnTransitioning, setIsLearnTransitioning] = useState(false);
   const [xpFloat, setXpFloat] = useState<number | null>(null);
 
   // Practice flow
@@ -647,10 +648,17 @@ export default function PracticeWordsPage() {
         fetchBatches();
       }, 1200);
     } else {
-      sfx.swoosh();
+      // 1. First turn the card around back to the front
+      setIsLearnTransitioning(true);
       setLearnFlipped(false);
-      setLearnIndex((i) => i + 1);
-      setXpFloat(null);
+      sfx.swoosh();
+
+      // 2. Wait for the flip animation (320ms) before changing the word in state
+      setTimeout(() => {
+        setLearnIndex((i) => i + 1);
+        setIsLearnTransitioning(false);
+        setXpFloat(null);
+      }, 320);
     }
   };
 
@@ -704,18 +712,18 @@ export default function PracticeWordsPage() {
     } catch {}
   }, []);
 
-  // Auto-pronounce word when flashcard is opened or card index changes
+  // Auto-pronounce word when flashcard is opened or card index changes (after flip completes)
   useEffect(() => {
-    if (flowMode === 'learn' && selectedBatch && selectedBatch.words[learnIndex]) {
+    if (flowMode === 'learn' && selectedBatch && selectedBatch.words[learnIndex] && !isLearnTransitioning) {
       const word = selectedBatch.words[learnIndex]?.word;
       if (word) {
         const timer = setTimeout(() => {
           speak(word);
-        }, 200);
+        }, 220);
         return () => clearTimeout(timer);
       }
     }
-  }, [flowMode, selectedBatch, learnIndex, speak]);
+  }, [flowMode, selectedBatch, learnIndex, isLearnTransitioning, speak]);
 
   const genderColor = (g: string | null) => {
     if (!g) return '';

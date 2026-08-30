@@ -113,6 +113,7 @@ export default function PracticePage() {
   const [answered, setAnswered] = useState(false);
   const [correct, setCorrect] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [reviewCount, setReviewCount] = useState(0);
@@ -169,7 +170,7 @@ export default function PracticePage() {
   const progress = queue.length > 0 ? (currentIndex / queue.length) * 100 : 0;
 
   const handleRate = async (rating: 1 | 2 | 3 | 4) => {
-    if (!currentWord || submitting) return;
+    if (!currentWord || submitting || isTransitioning) return;
     sfx.xp();
 
     setSubmitting(true);
@@ -190,17 +191,35 @@ export default function PracticePage() {
     }
 
     setSubmitting(false);
-    setRevealed(false);
-    setAnswered(false);
-    setMeaningInput('');
-    setSentenceInput('');
-    setGenderInput('');
-    setConjugationInput('');
 
     if (currentIndex + 1 < queue.length) {
-      sfx.swoosh();
-      setCurrentIndex((i) => i + 1);
+      if (revealed) {
+        // 1. First turn the card around back to the front
+        setIsTransitioning(true);
+        setRevealed(false);
+        sfx.swoosh();
+
+        // 2. Only advance after the card has turned around (320ms)
+        setTimeout(() => {
+          setCurrentIndex((i) => i + 1);
+          setAnswered(false);
+          setMeaningInput('');
+          setSentenceInput('');
+          setGenderInput('');
+          setConjugationInput('');
+          setIsTransitioning(false);
+        }, 320);
+      } else {
+        sfx.swoosh();
+        setCurrentIndex((i) => i + 1);
+        setAnswered(false);
+        setMeaningInput('');
+        setSentenceInput('');
+        setGenderInput('');
+        setConjugationInput('');
+      }
     } else {
+      setRevealed(false);
       sfx.complete();
       setSessionComplete(true);
     }
@@ -257,15 +276,15 @@ export default function PracticePage() {
     } catch {}
   }, []);
 
-  // Auto-pronounce word when flashcard is displayed or word changes
+  // Auto-pronounce word when flashcard is displayed or word changes (after flip completes)
   useEffect(() => {
-    if (mode === 'flashcard' && currentWord && !sessionComplete) {
+    if (mode === 'flashcard' && currentWord && !sessionComplete && !isTransitioning) {
       const timer = setTimeout(() => {
         speak(currentWord.word);
-      }, 200);
+      }, 220);
       return () => clearTimeout(timer);
     }
-  }, [mode, currentWord, sessionComplete, speak]);
+  }, [mode, currentWord, sessionComplete, isTransitioning, speak]);
 
   if (mode === null) {
     return (
