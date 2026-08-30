@@ -208,7 +208,7 @@ export default function GrammarPage() {
 
                 <ProgressRing
                   progress={pct}
-                  size={28}
+                  size={36}
                   strokeWidth={3.5}
                   color={lvl.color}
                   label={`${pct}%`}
