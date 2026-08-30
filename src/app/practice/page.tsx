@@ -21,6 +21,7 @@ import {
   MessageSquareQuote,
 } from 'lucide-react';
 import { sfx } from '@/lib/sounds';
+import { cn } from '@/lib/utils';
 
 type PracticeMode = 'flashcard' | 'meaning' | 'sentence' | 'gender' | 'conjugation' | null;
 
@@ -482,67 +483,181 @@ export default function PracticePage() {
             >
               {/* Flashcard */}
               {mode === 'flashcard' && (
-                <div className="flashcard-flip mx-auto w-full max-w-lg">
-                  <div
-                    className={`flashcard-inner relative ${revealed ? 'flipped' : ''}`}
-                    style={{ minHeight: 280 }}
-                  >
+                <div className="mx-auto w-full max-w-lg">
+                  <div className="flashcard-flip mx-auto w-full">
                     <div
-                      className="flashcard-front absolute inset-0 cursor-pointer"
+                      className={`flashcard-inner relative transition-transform duration-500 cursor-pointer ${revealed ? 'flipped' : ''}`}
+                      style={{ minHeight: 400 }}
                       onClick={() => !revealed && handleReveal()}
                     >
-                      <div className="card-surface flex h-full flex-col items-center justify-center rounded-3xl p-8 text-center">
-                        <motion.h2
-                          className="text-3xl font-semibold tracking-tight"
-                          initial={{ scale: 0.95, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                        >
-                          {currentWord.word}
-                        </motion.h2>
-                        {currentWord.partOfSpeech && (
-                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
-                            {currentWord.partOfSpeech}
-                          </p>
-                        )}
-                        {currentWord.exampleSentence && (
-                          <p className="mt-4 text-sm italic text-[var(--text-tertiary)]">
-                            {currentWord.exampleSentence}
-                          </p>
-                        )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            speak(currentWord.word);
-                          }}
-                          className="mt-4 rounded-full p-2 hover:bg-black/5 dark:hover:bg-white/5"
-                        >
-                          <Volume2 size={18} className="text-[var(--text-tertiary)]" />
-                        </button>
-                        <p className="mt-6 text-xs text-[var(--text-tertiary)]">
-                          Tap to reveal
-                        </p>
+                      {/* ── CARD FRONT ── */}
+                      <div className="flashcard-front absolute inset-0">
+                        <div className="flex h-full flex-col justify-between rounded-[32px] border-2 border-black/[0.08] dark:border-white/[0.12] bg-[var(--bg-card)] p-6 sm:p-8 shadow-xl shadow-black/5 dark:shadow-black/20 text-center relative select-none">
+                          {/* Top Badges & Sound Button */}
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {currentWord.partOfSpeech && (
+                                <span className="rounded-full border border-purple-400/80 bg-purple-50 dark:bg-purple-950/40 px-3 py-1 text-xs font-black text-purple-600 dark:text-purple-300">
+                                  {currentWord.partOfSpeech.charAt(0).toUpperCase() + currentWord.partOfSpeech.slice(1)}
+                                </span>
+                              )}
+                              {currentWord.cefrLevel && (
+                                <span className="rounded-full border border-emerald-500/80 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 text-xs font-black text-emerald-600 dark:text-emerald-300">
+                                  {currentWord.cefrLevel}
+                                </span>
+                              )}
+                              {currentWord.gender && (
+                                <span
+                                  className={cn(
+                                    'rounded-full border px-3 py-1 text-xs font-black',
+                                    currentWord.gender === 'masculine'
+                                      ? 'border-blue-400/80 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300'
+                                      : currentWord.gender === 'feminine'
+                                        ? 'border-rose-400/80 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300'
+                                        : 'border-amber-400/80 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-300'
+                                  )}
+                                >
+                                  {currentWord.gender === 'masculine'
+                                    ? 'Masculine'
+                                    : currentWord.gender === 'feminine'
+                                      ? 'Feminine'
+                                      : 'Neuter'}
+                                </span>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                speak(currentWord.word);
+                              }}
+                              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-tertiary)] hover:bg-[var(--accent)]/15 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all shadow-sm"
+                              title="Pronounce"
+                            >
+                              <Volume2 size={20} />
+                            </button>
+                          </div>
+
+                          {/* Center German Word & Article Tag */}
+                          <div className="my-auto py-6 flex flex-col items-center">
+                            <motion.h2
+                              className="text-4xl sm:text-5xl font-black tracking-tight text-[var(--text-primary)]"
+                              initial={{ scale: 0.95, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                            >
+                              {currentWord.word}
+                            </motion.h2>
+
+                            {currentWord.gender && (
+                              <span
+                                className={cn(
+                                  'mt-3 inline-flex items-center justify-center px-4 py-1 rounded-full border text-xs font-black',
+                                  currentWord.gender === 'masculine'
+                                    ? 'border-blue-400/80 bg-blue-50/50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-300'
+                                    : currentWord.gender === 'feminine'
+                                      ? 'border-rose-400/80 bg-rose-50/50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-300'
+                                      : 'border-amber-400/80 bg-amber-50/50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-300'
+                                )}
+                              >
+                                {currentWord.gender === 'masculine' ? 'der' : currentWord.gender === 'feminine' ? 'die' : 'das'}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Example Box */}
+                          {currentWord.exampleSentence ? (
+                            <div className="w-full rounded-2xl border border-sky-200 dark:border-sky-800/60 bg-sky-50/80 dark:bg-sky-950/30 p-4 sm:p-5 text-left relative overflow-hidden">
+                              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-sky-500 rounded-l" />
+                              <span className="text-[10px] font-black uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                                EXAMPLE
+                              </span>
+                              <p className="mt-1 text-sm sm:text-base font-semibold italic text-[var(--text-primary)] leading-relaxed">
+                                „{currentWord.exampleSentence}"
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="h-6" />
+                          )}
+
+                          {/* Bottom Helper */}
+                          <div className="mt-4 text-xs font-bold text-[var(--text-tertiary)]">
+                            Tap to reveal meaning
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flashcard-back absolute inset-0">
-                      <div className="card-surface flex h-full flex-col items-center justify-center rounded-3xl p-8 text-center">
-                        <p className="text-sm text-[var(--text-tertiary)]">
-                          {currentWord.word}
-                        </p>
-                        <motion.p
-                          className="mt-2 text-2xl font-semibold text-[var(--accent)]"
-                          initial={{ scale: 0.95 }}
-                          animate={{ scale: 1 }}
-                        >
-                          {currentWord.meaning}
-                        </motion.p>
-                        {currentWord.exampleSentence && (
-                          <p className="mt-3 text-sm italic text-[var(--text-tertiary)]">
-                            {currentWord.exampleSentence}
-                          </p>
-                        )}
+
+                      {/* ── CARD BACK ── */}
+                      <div className="flashcard-back absolute inset-0">
+                        <div className="flex h-full flex-col justify-between rounded-[32px] border-2 border-[var(--accent)]/40 bg-[var(--bg-secondary)] p-6 sm:p-8 shadow-xl shadow-black/5 dark:shadow-black/20 text-center relative select-none">
+                          {/* Top Badges & Sound Button */}
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {currentWord.partOfSpeech && (
+                                <span className="rounded-full border border-purple-400/80 bg-purple-50 dark:bg-purple-950/40 px-3 py-1 text-xs font-black text-purple-600 dark:text-purple-300">
+                                  {currentWord.partOfSpeech.charAt(0).toUpperCase() + currentWord.partOfSpeech.slice(1)}
+                                </span>
+                              )}
+                              {currentWord.cefrLevel && (
+                                <span className="rounded-full border border-emerald-500/80 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 text-xs font-black text-emerald-600 dark:text-emerald-300">
+                                  {currentWord.cefrLevel}
+                                </span>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                speak(currentWord.word);
+                              }}
+                              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-tertiary)] hover:bg-[var(--accent)]/15 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all shadow-sm"
+                              title="Pronounce"
+                            >
+                              <Volume2 size={20} />
+                            </button>
+                          </div>
+
+                          {/* Center Meaning */}
+                          <div className="my-auto py-4 flex flex-col items-center">
+                            <p className="text-sm font-bold text-[var(--text-tertiary)]">
+                              {currentWord.word}
+                            </p>
+
+                            <motion.h3
+                              className="mt-1 text-3xl sm:text-4xl font-black text-[var(--accent)] tracking-tight"
+                              initial={{ scale: 0.95 }}
+                              animate={{ scale: 1 }}
+                            >
+                              {currentWord.meaning}
+                            </motion.h3>
+
+                            {/* Example Sentence Box */}
+                            {currentWord.exampleSentence && (
+                              <div className="mt-4 w-full rounded-2xl border border-sky-200 dark:border-sky-800/60 bg-sky-50/80 dark:bg-sky-950/30 p-3.5 text-left relative overflow-hidden max-w-md">
+                                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-sky-500 rounded-l" />
+                                <span className="text-[10px] font-black uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                                  EXAMPLE
+                                </span>
+                                <p className="mt-0.5 text-xs sm:text-sm font-semibold italic text-[var(--text-primary)]">
+                                  „{currentWord.exampleSentence}"
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mt-2 text-xs font-bold text-[var(--text-tertiary)]">
+                            Select below how well you recalled this word:
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  <p className="mt-6 text-center text-xs font-bold text-[var(--text-tertiary)]">
+                    Tap the card to flip
+                  </p>
                 </div>
               )}
 

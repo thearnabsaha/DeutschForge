@@ -1127,206 +1127,291 @@ export default function PracticeWordsPage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="mx-auto w-full max-w-xl"
+            className="mx-auto w-full max-w-lg"
           >
-            <button
-              onClick={() => {
-                setFlowMode('list');
-                setSelectedBatch(null);
-                setLearnFlipped(false);
-              }}
-              className="btn-3d btn-duo-secondary mb-6 inline-flex items-center gap-2 text-xs sm:text-sm font-bold"
-            >
-              <ArrowLeft size={18} />
-              Back to Word Batches
-            </button>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-2">
+              <button
+                onClick={() => {
+                  setFlowMode('list');
+                  setSelectedBatch(null);
+                  setLearnFlipped(false);
+                }}
+                className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] transition-colors"
+                title="Back to Word Batches"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <h3 className="text-base font-black text-[var(--text-primary)]">
+                Word Repetition
+              </h3>
+              <span className="text-xs font-black text-[var(--text-secondary)]">
+                {learnIndex + 1} / {selectedBatch.words.length}
+              </span>
+            </div>
 
-            {/* Header & Progress */}
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider text-[var(--accent)]">
-                  Flashcard Review
-                </span>
-                <span className="text-xs text-[var(--text-tertiary)]">·</span>
-                <span className="text-xs font-bold text-[var(--text-secondary)]">
-                  Card {learnIndex + 1} of {selectedBatch.words.length}
-                </span>
-              </div>
-              <div className="h-2.5 w-36 overflow-hidden rounded-full bg-[var(--bg-tertiary)] border border-[var(--border)]">
-                <motion.div
-                  layoutId="learn-progress"
-                  className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[#5856D6]"
-                  animate={{
-                    width: `${((learnIndex + 1) / selectedBatch.words.length) * 100}%`,
-                  }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                />
-              </div>
+            {/* Full-width thin progress bar */}
+            <div className="mb-6 h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+              <motion.div
+                layoutId="learn-progress"
+                className="h-full rounded-full bg-[#58CC02]"
+                animate={{
+                  width: `${((learnIndex + 1) / selectedBatch.words.length) * 100}%`,
+                }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              />
             </div>
 
             {learnIndex < selectedBatch.words.length ? (
-              <div className="flashcard-flip mx-auto w-full">
-                <div
-                  className={`flashcard-inner relative transition-transform duration-500 cursor-pointer ${learnFlipped ? 'flipped' : ''}`}
-                  style={{ minHeight: 380 }}
-                  onClick={() => setLearnFlipped(!learnFlipped)}
-                >
-                  {/* ── CARD FRONT ── */}
-                  <div className="flashcard-front absolute inset-0">
-                    <GlassCard hover={false} className="btn-3d flex h-full flex-col items-center justify-center rounded-3xl p-8 text-center border-2 border-[var(--border)] bg-[var(--bg-card)]">
-                      {xpFloat && (
-                        <motion.span
-                          className="absolute right-6 top-6 text-sm font-black text-[var(--accent)]"
-                          initial={{ opacity: 1, y: 0 }}
-                          animate={{ opacity: 0, y: -30 }}
-                          transition={{ duration: 0.8 }}
-                        >
-                          +10 XP
-                        </motion.span>
-                      )}
-
-                      {selectedBatch.words[learnIndex]?.partOfSpeech && (
-                        <span className="rounded-full bg-[var(--bg-tertiary)] px-3 py-1 text-xs font-black uppercase tracking-wider text-[var(--text-tertiary)]">
-                          {selectedBatch.words[learnIndex]?.partOfSpeech}
-                        </span>
-                      )}
-
-                      <motion.h2
-                        className="mt-4 text-4xl sm:text-5xl font-black tracking-tight text-[var(--text-primary)]"
-                        initial={{ scale: 0.95, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                      >
-                        {selectedBatch.words[learnIndex]?.word ?? ''}
-                      </motion.h2>
-
-                      {selectedBatch.words[learnIndex]?.gender && (
-                        <Badge
-                          className={`mt-3 text-xs font-black px-3 py-1 ${genderColor(selectedBatch.words[learnIndex]?.gender ?? null)}`}
-                        >
-                          {selectedBatch.words[learnIndex]?.gender === 'masculine'
-                            ? 'der'
-                            : selectedBatch.words[learnIndex]?.gender === 'feminine'
-                              ? 'die'
-                              : 'das'}
-                        </Badge>
-                      )}
-
-                      {selectedBatch.words[learnIndex]?.exampleSentence && (
-                        <p className="mt-4 text-sm font-medium italic text-[var(--text-secondary)] line-clamp-2">
-                          „{selectedBatch.words[learnIndex]?.exampleSentence}"
-                        </p>
-                      )}
-
-                      <div className="mt-6 flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            speak(selectedBatch.words[learnIndex]?.word ?? '');
-                          }}
-                          className="btn-3d btn-duo-secondary rounded-full p-3 transition-colors"
-                          title="Pronounce"
-                        >
-                          <Volume2 size={22} className="text-[var(--accent)]" />
-                        </button>
-                      </div>
-
-                      <div className="mt-8 flex items-center gap-2 text-xs font-bold text-[var(--text-tertiary)]">
-                        <RotateCcw size={14} />
-                        <span>Tap card to flip & reveal meaning</span>
-                      </div>
-                    </GlassCard>
-                  </div>
-
-                  {/* ── CARD BACK ── */}
-                  <div className="flashcard-back absolute inset-0">
-                    <GlassCard hover={false} className="btn-3d flex h-full flex-col items-center justify-between rounded-3xl p-6 sm:p-8 text-center border-2 border-[var(--accent)]/40 bg-[var(--bg-secondary)]">
-                      <div className="w-full flex flex-col items-center">
-                        <p className="text-xs font-bold text-[var(--text-tertiary)]">
-                          {selectedBatch.words[learnIndex]?.word}
-                        </p>
-
-                        <motion.h3
-                          className="mt-2 text-3xl sm:text-4xl font-black text-[var(--accent)]"
-                          initial={{ scale: 0.95 }}
-                          animate={{ scale: 1 }}
-                        >
-                          {selectedBatch.words[learnIndex]?.meaning}
-                        </motion.h3>
-
-                        {selectedBatch.words[learnIndex]?.exampleSentence && (
-                          <div className="mt-3 rounded-xl bg-[var(--bg-primary)] p-3 text-xs sm:text-sm italic text-[var(--text-secondary)] border border-[var(--border)] max-w-md">
-                            „{selectedBatch.words[learnIndex]?.exampleSentence}"
-                          </div>
+              <div>
+                <div className="flashcard-flip mx-auto w-full">
+                  <div
+                    className={`flashcard-inner relative transition-transform duration-500 cursor-pointer ${learnFlipped ? 'flipped' : ''}`}
+                    style={{ minHeight: 400 }}
+                    onClick={() => setLearnFlipped(!learnFlipped)}
+                  >
+                    {/* ── CARD FRONT ── */}
+                    <div className="flashcard-front absolute inset-0">
+                      <div className="flex h-full flex-col justify-between rounded-[32px] border-2 border-black/[0.08] dark:border-white/[0.12] bg-[var(--bg-card)] p-6 sm:p-8 shadow-xl shadow-black/5 dark:shadow-black/20 text-center relative select-none">
+                        {xpFloat && (
+                          <motion.span
+                            className="absolute right-6 top-6 text-sm font-black text-[var(--accent)]"
+                            initial={{ opacity: 1, y: 0 }}
+                            animate={{ opacity: 0, y: -30 }}
+                            transition={{ duration: 0.8 }}
+                          >
+                            +10 XP
+                          </motion.span>
                         )}
 
-                        {/* Verb Conjugation Table */}
-                        {selectedBatch.words[learnIndex]?.partOfSpeech === 'verb' && (
-                          <div className="mt-3 w-full max-w-sm overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] text-xs">
-                            <table className="w-full text-left">
-                              <tbody>
-                                {selectedBatch.words[learnIndex]?.presentForm && (
-                                  <tr>
-                                    <td className="border-b border-[var(--border)] px-3 py-1.5 font-bold text-[var(--text-tertiary)]">Präsens</td>
-                                    <td className="border-b border-[var(--border)] px-3 py-1.5 font-semibold text-[var(--text-primary)]">{selectedBatch.words[learnIndex]?.presentForm}</td>
-                                  </tr>
+                        {/* Top Badges & Sound Button */}
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {selectedBatch.words[learnIndex]?.partOfSpeech && (
+                              <span className="rounded-full border border-purple-400/80 bg-purple-50 dark:bg-purple-950/40 px-3 py-1 text-xs font-black text-purple-600 dark:text-purple-300">
+                                {selectedBatch.words[learnIndex]?.partOfSpeech.charAt(0).toUpperCase() + selectedBatch.words[learnIndex]?.partOfSpeech.slice(1)}
+                              </span>
+                            )}
+                            {selectedBatch.words[learnIndex]?.cefrLevel && (
+                              <span className="rounded-full border border-emerald-500/80 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 text-xs font-black text-emerald-600 dark:text-emerald-300">
+                                {selectedBatch.words[learnIndex]?.cefrLevel}
+                              </span>
+                            )}
+                            {selectedBatch.words[learnIndex]?.gender && (
+                              <span
+                                className={cn(
+                                  'rounded-full border px-3 py-1 text-xs font-black',
+                                  selectedBatch.words[learnIndex]?.gender === 'masculine'
+                                    ? 'border-blue-400/80 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300'
+                                    : selectedBatch.words[learnIndex]?.gender === 'feminine'
+                                      ? 'border-rose-400/80 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300'
+                                      : 'border-amber-400/80 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-300'
                                 )}
-                                {selectedBatch.words[learnIndex]?.simplePast && (
-                                  <tr>
-                                    <td className="border-b border-[var(--border)] px-3 py-1.5 font-bold text-[var(--text-tertiary)]">Präteritum</td>
-                                    <td className="border-b border-[var(--border)] px-3 py-1.5 font-semibold text-[var(--text-primary)]">{selectedBatch.words[learnIndex]?.simplePast}</td>
-                                  </tr>
-                                )}
-                                {selectedBatch.words[learnIndex]?.perfectForm && (
-                                  <tr>
-                                    <td className="px-3 py-1.5 font-bold text-[var(--text-tertiary)]">Perfekt</td>
-                                    <td className="px-3 py-1.5 font-semibold text-[var(--text-primary)]">{selectedBatch.words[learnIndex]?.perfectForm}</td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
+                              >
+                                {selectedBatch.words[learnIndex]?.gender === 'masculine'
+                                  ? 'Masculine'
+                                  : selectedBatch.words[learnIndex]?.gender === 'feminine'
+                                    ? 'Feminine'
+                                    : 'Neuter'}
+                              </span>
+                            )}
                           </div>
-                        )}
-                      </div>
 
-                      {/* FSRS Rating Buttons on Card Back */}
-                      <div className="mt-6 w-full" onClick={(e) => e.stopPropagation()}>
-                        <p className="mb-2 text-xs font-bold text-[var(--text-tertiary)]">How well did you know this word?</p>
-                        <div className="grid grid-cols-4 gap-2">
                           <button
                             type="button"
-                            onClick={() => handleLearnRating(1)}
-                            className="btn-3d rounded-xl py-2 text-xs font-black text-red-500 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              speak(selectedBatch.words[learnIndex]?.word ?? '');
+                            }}
+                            className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-tertiary)] hover:bg-[var(--accent)]/15 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all shadow-sm"
+                            title="Pronounce"
                           >
-                            Again (1)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleLearnRating(2)}
-                            className="btn-3d rounded-xl py-2 text-xs font-black text-amber-500 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20"
-                          >
-                            Hard (2)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleLearnRating(3)}
-                            className="btn-3d btn-duo-primary rounded-xl py-2 text-xs font-black"
-                          >
-                            Good (3)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleLearnRating(4)}
-                            className="btn-3d rounded-xl py-2 text-xs font-black text-blue-500 bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20"
-                          >
-                            Easy (4)
+                            <Volume2 size={20} />
                           </button>
                         </div>
+
+                        {/* Center German Word & Article Tag */}
+                        <div className="my-auto py-6 flex flex-col items-center">
+                          <motion.h2
+                            className="text-4xl sm:text-5xl font-black tracking-tight text-[var(--text-primary)]"
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                          >
+                            {selectedBatch.words[learnIndex]?.word ?? ''}
+                          </motion.h2>
+
+                          {selectedBatch.words[learnIndex]?.gender && (
+                            <span
+                              className={cn(
+                                'mt-3 inline-flex items-center justify-center px-4 py-1 rounded-full border text-xs font-black',
+                                selectedBatch.words[learnIndex]?.gender === 'masculine'
+                                  ? 'border-blue-400/80 bg-blue-50/50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-300'
+                                  : selectedBatch.words[learnIndex]?.gender === 'feminine'
+                                    ? 'border-rose-400/80 bg-rose-50/50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-300'
+                                    : 'border-amber-400/80 bg-amber-50/50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-300'
+                              )}
+                            >
+                              {selectedBatch.words[learnIndex]?.gender === 'masculine' ? 'der' : selectedBatch.words[learnIndex]?.gender === 'feminine' ? 'die' : 'das'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Example Box */}
+                        {selectedBatch.words[learnIndex]?.exampleSentence ? (
+                          <div className="w-full rounded-2xl border border-sky-200 dark:border-sky-800/60 bg-sky-50/80 dark:bg-sky-950/30 p-4 sm:p-5 text-left relative overflow-hidden">
+                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-sky-500 rounded-l" />
+                            <span className="text-[10px] font-black uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                              EXAMPLE
+                            </span>
+                            <p className="mt-1 text-sm sm:text-base font-semibold italic text-[var(--text-primary)] leading-relaxed">
+                              „{selectedBatch.words[learnIndex]?.exampleSentence}"
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="h-6" />
+                        )}
+
+                        {/* Bottom Helper */}
+                        <div className="mt-4 text-xs font-bold text-[var(--text-tertiary)]">
+                          Tap to reveal meaning
+                        </div>
                       </div>
-                    </GlassCard>
+                    </div>
+
+                    {/* ── CARD BACK ── */}
+                    <div className="flashcard-back absolute inset-0">
+                      <div className="flex h-full flex-col justify-between rounded-[32px] border-2 border-[var(--accent)]/40 bg-[var(--bg-secondary)] p-6 sm:p-8 shadow-xl shadow-black/5 dark:shadow-black/20 text-center relative select-none">
+                        {/* Top Badges & Sound Button */}
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {selectedBatch.words[learnIndex]?.partOfSpeech && (
+                              <span className="rounded-full border border-purple-400/80 bg-purple-50 dark:bg-purple-950/40 px-3 py-1 text-xs font-black text-purple-600 dark:text-purple-300">
+                                {selectedBatch.words[learnIndex]?.partOfSpeech.charAt(0).toUpperCase() + selectedBatch.words[learnIndex]?.partOfSpeech.slice(1)}
+                              </span>
+                            )}
+                            {selectedBatch.words[learnIndex]?.cefrLevel && (
+                              <span className="rounded-full border border-emerald-500/80 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 text-xs font-black text-emerald-600 dark:text-emerald-300">
+                                {selectedBatch.words[learnIndex]?.cefrLevel}
+                              </span>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              speak(selectedBatch.words[learnIndex]?.word ?? '');
+                            }}
+                            className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-tertiary)] hover:bg-[var(--accent)]/15 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all shadow-sm"
+                            title="Pronounce"
+                          >
+                            <Volume2 size={20} />
+                          </button>
+                        </div>
+
+                        {/* Center Meaning */}
+                        <div className="my-auto py-4 flex flex-col items-center">
+                          <p className="text-sm font-bold text-[var(--text-tertiary)]">
+                            {selectedBatch.words[learnIndex]?.word}
+                          </p>
+
+                          <motion.h3
+                            className="mt-1 text-3xl sm:text-4xl font-black text-[var(--accent)] tracking-tight"
+                            initial={{ scale: 0.95 }}
+                            animate={{ scale: 1 }}
+                          >
+                            {selectedBatch.words[learnIndex]?.meaning}
+                          </motion.h3>
+
+                          {/* Verb Conjugation Table */}
+                          {selectedBatch.words[learnIndex]?.partOfSpeech === 'verb' &&
+                            (selectedBatch.words[learnIndex]?.presentForm ||
+                              selectedBatch.words[learnIndex]?.simplePast ||
+                              selectedBatch.words[learnIndex]?.perfectForm) && (
+                              <div className="mt-3 w-full max-w-sm overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] text-xs">
+                                <table className="w-full text-left">
+                                  <tbody>
+                                    {selectedBatch.words[learnIndex]?.presentForm && (
+                                      <tr>
+                                        <td className="border-b border-[var(--border)] px-3 py-1.5 font-bold text-[var(--text-tertiary)]">Präsens</td>
+                                        <td className="border-b border-[var(--border)] px-3 py-1.5 font-semibold text-[var(--text-primary)]">{selectedBatch.words[learnIndex]?.presentForm}</td>
+                                      </tr>
+                                    )}
+                                    {selectedBatch.words[learnIndex]?.simplePast && (
+                                      <tr>
+                                        <td className="border-b border-[var(--border)] px-3 py-1.5 font-bold text-[var(--text-tertiary)]">Präteritum</td>
+                                        <td className="border-b border-[var(--border)] px-3 py-1.5 font-semibold text-[var(--text-primary)]">{selectedBatch.words[learnIndex]?.simplePast}</td>
+                                      </tr>
+                                    )}
+                                    {selectedBatch.words[learnIndex]?.perfectForm && (
+                                      <tr>
+                                        <td className="px-3 py-1.5 font-bold text-[var(--text-tertiary)]">Perfekt</td>
+                                        <td className="px-3 py-1.5 font-semibold text-[var(--text-primary)]">{selectedBatch.words[learnIndex]?.perfectForm}</td>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+
+                          {/* Example Sentence Box */}
+                          {selectedBatch.words[learnIndex]?.exampleSentence && (
+                            <div className="mt-3 w-full rounded-2xl border border-sky-200 dark:border-sky-800/60 bg-sky-50/80 dark:bg-sky-950/30 p-3.5 text-left relative overflow-hidden max-w-md">
+                              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-sky-500 rounded-l" />
+                              <span className="text-[10px] font-black uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                                EXAMPLE
+                              </span>
+                              <p className="mt-0.5 text-xs sm:text-sm font-semibold italic text-[var(--text-primary)]">
+                                „{selectedBatch.words[learnIndex]?.exampleSentence}"
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* FSRS Rating Buttons */}
+                        <div className="w-full" onClick={(e) => e.stopPropagation()}>
+                          <p className="mb-2 text-xs font-bold text-[var(--text-tertiary)]">How well did you know this word?</p>
+                          <div className="grid grid-cols-4 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleLearnRating(1)}
+                              className="btn-3d rounded-2xl py-2.5 text-xs font-black text-red-500 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20"
+                            >
+                              Again (1)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleLearnRating(2)}
+                              className="btn-3d rounded-2xl py-2.5 text-xs font-black text-amber-500 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20"
+                            >
+                              Hard (2)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleLearnRating(3)}
+                              className="btn-3d btn-duo-primary rounded-2xl py-2.5 text-xs font-black"
+                            >
+                              Good (3)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleLearnRating(4)}
+                              className="btn-3d rounded-2xl py-2.5 text-xs font-black text-blue-500 bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20"
+                            >
+                              Easy (4)
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                {/* Helper hint below card */}
+                <p className="mt-6 text-center text-xs font-bold text-[var(--text-tertiary)]">
+                  Tap the card to flip
+                </p>
               </div>
             ) : (
               <motion.div
