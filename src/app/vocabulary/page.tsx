@@ -25,6 +25,7 @@ import {
   ChevronUp,
   FolderPlus,
   BookMarked,
+  RotateCcw,
 } from 'lucide-react';
 import { sfx } from '@/lib/sounds';
 import { cn } from '@/lib/utils';
@@ -329,34 +330,36 @@ export default function VocabularyPage() {
         action={
           <Link
             href="/vocabulary/book"
-            className="btn-3d btn-duo-secondary flex items-center gap-2 text-xs sm:text-sm font-bold"
+            className="btn-duo-secondary px-4 py-2 text-xs sm:text-sm font-black flex items-center gap-2"
           >
-            <BookMarked size={16} />
+            <BookMarked size={16} className="text-[var(--accent)]" />
             <span>Vocab Book</span>
           </Link>
         }
       />
 
-      {/* ─── Navigation Switcher Tabs ─── */}
-      <div className="mt-6 flex gap-2 rounded-2xl bg-[var(--bg-secondary)] p-1.5 border border-[var(--border)]">
+      {/* ─── Duolingo Segmented Navigation Switcher ─── */}
+      <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl bg-[var(--bg-secondary)] p-1.5 border-2 border-[var(--border)] shadow-sm">
         <button
           onClick={() => setActiveTab('sets')}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={cn(
+            'py-2.5 px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all',
             activeTab === 'sets'
-              ? 'bg-[var(--accent)] text-white shadow-md'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-          }`}
+              ? 'btn-duo-primary shadow-none'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+          )}
         >
           <Layers size={16} />
           <span>Word Sets ({sets.length})</span>
         </button>
         <button
           onClick={() => setActiveTab('library')}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={cn(
+            'py-2.5 px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all',
             activeTab === 'library'
-              ? 'bg-[var(--accent)] text-white shadow-md'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-          }`}
+              ? 'btn-duo-primary shadow-none'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+          )}
         >
           <BookOpen size={16} />
           <span>All Words Library ({words.length})</span>
@@ -394,7 +397,7 @@ export default function VocabularyPage() {
 
                 <form onSubmit={handleCreateSet} className="mt-5 space-y-4">
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)]">
+                    <label className="text-xs font-black text-[var(--text-secondary)] uppercase tracking-wider">
                       Set Name / Title
                     </label>
                     <input
@@ -402,14 +405,14 @@ export default function VocabularyPage() {
                       value={newSetName}
                       onChange={(e) => setNewSetName(e.target.value)}
                       placeholder="e.g. Travel & Airport, Office Vocab, Daily Verbs..."
-                      className="input-field mt-1.5 bg-[var(--bg-secondary)]"
+                      className="input-field mt-1.5 bg-[var(--bg-secondary)] font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)] flex items-center justify-between">
+                    <label className="text-xs font-black text-[var(--text-secondary)] uppercase tracking-wider flex items-center justify-between">
                       <span>Comma-Separated German Words</span>
-                      <span className="text-[11px] font-medium text-[var(--text-tertiary)]">
+                      <span className="text-[11px] font-medium text-[var(--text-tertiary)] normal-case">
                         Auto-enrich: gender, plural, conjugations, examples
                       </span>
                     </label>
@@ -424,7 +427,7 @@ export default function VocabularyPage() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between pt-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
                     <p className="text-xs font-medium text-[var(--text-tertiary)]">
                       💡 Duplicates in your input or existing vocabulary are automatically filtered out.
                     </p>
@@ -432,7 +435,7 @@ export default function VocabularyPage() {
                     <button
                       type="submit"
                       disabled={creatingSet || !newSetWords.trim()}
-                      className="btn-3d btn-duo-primary flex items-center gap-2 text-xs sm:text-sm font-bold px-5 py-2.5 disabled:opacity-50"
+                      className="btn-duo-primary px-6 py-3 text-xs sm:text-sm font-black flex items-center justify-center gap-2"
                     >
                       {creatingSet ? (
                         <>
@@ -483,10 +486,9 @@ export default function VocabularyPage() {
                     const isExpanded = expandedSetId === set.id;
 
                     return (
-                      <GlassCard
+                      <div
                         key={set.id}
-                        hover={false}
-                        className="btn-3d flex flex-col justify-between p-5 border border-[var(--border)] bg-[var(--bg-secondary)] relative overflow-hidden"
+                        className="flex flex-col justify-between p-5 rounded-3xl border-2 border-[var(--border)] bg-[var(--bg-secondary)] shadow-md hover:shadow-lg transition-shadow relative overflow-hidden"
                       >
                         <div>
                           {/* Set Header */}
@@ -503,14 +505,14 @@ export default function VocabularyPage() {
                                   />
                                   <button
                                     onClick={() => handleRenameSet(set.id)}
-                                    className="btn-3d btn-duo-primary p-1.5 rounded-lg"
+                                    className="btn-duo-primary p-2 rounded-xl text-xs"
                                     title="Save name"
                                   >
                                     <Check size={14} />
                                   </button>
                                   <button
                                     onClick={() => setEditingSetId(null)}
-                                    className="btn-3d btn-duo-secondary p-1.5 rounded-lg"
+                                    className="btn-duo-secondary p-2 rounded-xl text-xs"
                                     title="Cancel"
                                   >
                                     <X size={14} />
@@ -526,10 +528,10 @@ export default function VocabularyPage() {
                                       setEditingSetId(set.id);
                                       setEditSetName(set.name);
                                     }}
-                                    className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors p-1"
+                                    className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
                                     title="Rename set"
                                   >
-                                    <Pencil size={14} />
+                                    <Pencil size={13} />
                                   </button>
                                 </div>
                               )}
@@ -542,7 +544,7 @@ export default function VocabularyPage() {
                             {/* Delete Set Button */}
                             <button
                               onClick={() => handleDeleteSet(set.id, set.name)}
-                              className="rounded-lg p-1.5 text-[var(--text-tertiary)] hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                              className="flex h-8 w-8 items-center justify-center rounded-xl text-[var(--text-tertiary)] hover:bg-red-500/10 hover:text-red-500 transition-colors"
                               title="Delete set"
                             >
                               <Trash2 size={16} />
@@ -602,14 +604,14 @@ export default function VocabularyPage() {
                                       setAddingWordsSetId(null);
                                       setMoreWordsInput('');
                                     }}
-                                    className="btn-3d btn-duo-secondary text-xs py-1.5 px-3"
+                                    className="btn-duo-secondary text-xs py-1.5 px-3"
                                   >
                                     Cancel
                                   </button>
                                   <button
                                     onClick={() => handleAddMoreWords(set.id)}
                                     disabled={addingWordsLoading || !moreWordsInput.trim()}
-                                    className="btn-3d btn-duo-primary text-xs py-1.5 px-3"
+                                    className="btn-duo-primary text-xs py-1.5 px-3"
                                   >
                                     {addingWordsLoading ? 'Enriching...' : 'Add Words'}
                                   </button>
@@ -633,25 +635,25 @@ export default function VocabularyPage() {
                                 {set.words.map((w) => (
                                   <div
                                     key={w.id}
-                                    className="flex items-center justify-between rounded-xl bg-[var(--bg-primary)] p-2 border border-[var(--border)]"
+                                    className="flex items-center justify-between rounded-xl bg-[var(--bg-primary)] p-2.5 border border-[var(--border)]"
                                   >
                                     <div className="flex items-center gap-2 min-w-0 flex-1">
                                       <button
                                         onClick={() => speak(w.word)}
-                                        className="text-[var(--accent)] hover:opacity-80 p-1"
+                                        className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors"
                                         title="Speak"
                                       >
                                         <Volume2 size={14} />
                                       </button>
                                       <div className="min-w-0 flex-1 truncate">
                                         <span className="font-bold text-xs text-[var(--text-primary)]">{w.word}</span>
-                                        <span className="mx-1 text-[var(--text-tertiary)]">·</span>
+                                        <span className="mx-1.5 text-[var(--text-tertiary)]">·</span>
                                         <span className="text-xs text-[var(--text-secondary)]">{w.meaning}</span>
                                       </div>
                                     </div>
                                     <button
                                       onClick={() => handleDeleteWordFromSet(set.id, w.id, w.word)}
-                                      className="text-[var(--text-tertiary)] hover:text-red-500 p-1 transition-colors"
+                                      className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:bg-red-500/10 hover:text-red-500 transition-colors"
                                       title="Remove from set"
                                     >
                                       <Trash2 size={13} />
@@ -671,7 +673,7 @@ export default function VocabularyPage() {
                                 setAddingWordsSetId(isAddingWords ? null : set.id);
                                 setMoreWordsInput('');
                               }}
-                              className="btn-3d btn-duo-secondary text-xs font-bold py-1.5 px-2.5 flex items-center gap-1"
+                              className="btn-duo-secondary text-xs font-black py-2 px-3 flex items-center gap-1.5"
                             >
                               <Plus size={13} />
                               <span>Add Words</span>
@@ -679,7 +681,7 @@ export default function VocabularyPage() {
 
                             <button
                               onClick={() => setExpandedSetId(isExpanded ? null : set.id)}
-                              className="btn-3d btn-duo-secondary text-xs font-bold py-1.5 px-2.5 flex items-center gap-1"
+                              className="btn-duo-secondary text-xs font-black py-2 px-3 flex items-center gap-1.5"
                             >
                               {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                               <span>{isExpanded ? 'Hide' : 'Inspect'}</span>
@@ -688,13 +690,13 @@ export default function VocabularyPage() {
 
                           <Link
                             href="/practice/words"
-                            className="btn-3d btn-duo-primary text-xs font-bold py-1.5 px-3.5 flex items-center gap-1.5"
+                            className="btn-duo-primary text-xs font-black py-2 px-4 flex items-center gap-1.5"
                           >
                             <Brain size={14} />
                             <span>Practice Set</span>
                           </Link>
                         </div>
-                      </GlassCard>
+                      </div>
                     );
                   })}
                 </div>
@@ -739,10 +741,10 @@ export default function VocabularyPage() {
                           key={opt.value}
                           onClick={() => setPosFilter(opt.value)}
                           className={cn(
-                            'btn-3d rounded-xl px-3 py-1.5 text-xs font-bold transition-all border',
+                            'px-3.5 py-1.5 text-xs font-black transition-all',
                             posFilter === opt.value
-                              ? 'bg-[var(--accent)] text-white border-2 border-[var(--accent-hover)]'
-                              : 'bg-[var(--bg-secondary)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                              ? 'btn-duo-primary shadow-none'
+                              : 'btn-duo-secondary'
                           )}
                         >
                           {opt.label}
@@ -777,48 +779,46 @@ export default function VocabularyPage() {
                           exit={{ opacity: 0, x: -20 }}
                           transition={{ delay: Math.min(idx * 0.015, 0.3) }}
                         >
-                          <GlassCard className="btn-3d group relative p-4 sm:p-5 border border-[var(--border)]">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <button
-                                    onClick={() => speak(word.word)}
-                                    className="text-[var(--accent)] hover:opacity-80 p-0.5"
-                                    title="Pronounce"
-                                  >
-                                    <Volume2 size={18} />
-                                  </button>
-                                  <span className="text-lg font-black text-[var(--text-primary)]">
-                                    {word.word}
-                                  </span>
-                                  <Badge>{word.partOfSpeech}</Badge>
-                                  {word.gender && (
-                                    <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 font-bold">
-                                      {word.gender}
-                                    </Badge>
-                                  )}
-                                  <Badge variant="level" level={word.cefrLevel}>
-                                    {word.cefrLevel}
+                          <div className="flex items-start justify-between gap-4 p-4 sm:p-5 rounded-2xl border-2 border-[var(--border)] bg-[var(--bg-secondary)] shadow-sm hover:shadow-md transition-shadow">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                  onClick={() => speak(word.word)}
+                                  className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors"
+                                  title="Pronounce"
+                                >
+                                  <Volume2 size={16} />
+                                </button>
+                                <span className="text-lg font-black text-[var(--text-primary)]">
+                                  {word.word}
+                                </span>
+                                <Badge className="font-bold">{word.partOfSpeech}</Badge>
+                                {word.gender && (
+                                  <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 font-black">
+                                    {word.gender}
                                   </Badge>
-                                </div>
-                                <p className="mt-1.5 text-sm font-bold text-[var(--text-secondary)]">
-                                  {word.meaning}
-                                </p>
-                                {word.exampleSentence && (
-                                  <p className="mt-1 text-xs italic text-[var(--text-tertiary)]">
-                                    „{word.exampleSentence}"
-                                  </p>
                                 )}
+                                <Badge variant="level" level={word.cefrLevel} className="font-black">
+                                  {word.cefrLevel}
+                                </Badge>
                               </div>
-                              <button
-                                onClick={() => handleDeleteGeneralWord(word.id)}
-                                className="flex-shrink-0 rounded-lg p-2 text-[var(--text-tertiary)] transition-colors hover:bg-red-500/10 hover:text-red-500"
-                                aria-label="Delete word"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              <p className="mt-1.5 text-sm font-bold text-[var(--text-secondary)]">
+                                {word.meaning}
+                              </p>
+                              {word.exampleSentence && (
+                                <p className="mt-1 text-xs italic text-[var(--text-tertiary)]">
+                                  „{word.exampleSentence}"
+                                </p>
+                              )}
                             </div>
-                          </GlassCard>
+                            <button
+                              onClick={() => handleDeleteGeneralWord(word.id)}
+                              className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-tertiary)] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                              aria-label="Delete word"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </motion.div>
                       ))
                     )}
