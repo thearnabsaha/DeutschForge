@@ -4,32 +4,81 @@ import { z } from 'zod';
 export const enrichedWordSchema = z.object({
   word: z.string(),
   part_of_speech: z.preprocess(
-    (v) => (typeof v === 'string' ? v.toLowerCase() : v),
-    z.enum(['noun', 'verb', 'adjective', 'adverb', 'preposition', 'conjunction', 'pronoun', 'article', 'other'])
-  ).catch('other'),
+    (v) => (typeof v === 'string' ? v.toLowerCase().trim() : 'other'),
+    z.enum(['noun', 'verb', 'adjective', 'adverb', 'preposition', 'conjunction', 'pronoun', 'article', 'other']).catch('other')
+  ),
   gender: z.preprocess(
-    (v) => (typeof v === 'string' ? v.toLowerCase() : v),
-    z.enum(['masculine', 'feminine', 'neuter']).nullable()
-  ).optional().default(null),
-  plural_form: z.string().nullable().optional().default(null),
-  conjugation: z.record(z.string(), z.string()).nullable().optional().default(null),
-  meaning: z.string().catch(''),
+    (v) => {
+      if (typeof v !== 'string') return null;
+      const lower = v.toLowerCase().trim();
+      if (lower.startsWith('m') || lower === 'der') return 'masculine';
+      if (lower.startsWith('f') || lower === 'die') return 'feminine';
+      if (lower.startsWith('n') || lower === 'das') return 'neuter';
+      return null;
+    },
+    z.enum(['masculine', 'feminine', 'neuter']).nullable().catch(null)
+  ),
+  plural_form: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() ? v.trim() : null),
+    z.string().nullable().catch(null)
+  ),
+  conjugation: z.preprocess(
+    (v) => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, string>) : null),
+    z.record(z.string(), z.string()).nullable().catch(null)
+  ),
+  meaning: z.preprocess(
+    (v) => (typeof v === 'string' ? v.trim() : String(v || '')),
+    z.string().catch('')
+  ),
   cefr_level: z.preprocess(
-    (v) => (typeof v === 'string' ? v.toUpperCase() : v),
-    z.enum(['A1', 'A2', 'B1', 'B2'])
-  ).catch('A1'),
-  example_sentence: z.string().nullable().optional().default(null),
+    (v) => {
+      if (typeof v !== 'string') return 'A1';
+      const u = v.toUpperCase().trim();
+      if (['A1', 'A2', 'B1', 'B2'].includes(u)) return u;
+      if (u.startsWith('B2') || u.startsWith('C')) return 'B2';
+      if (u.startsWith('B')) return 'B1';
+      if (u.startsWith('A2')) return 'A2';
+      return 'A1';
+    },
+    z.enum(['A1', 'A2', 'B1', 'B2']).catch('A1')
+  ),
+  example_sentence: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() ? v.trim() : null),
+    z.string().nullable().catch(null)
+  ),
   verb_type: z.preprocess(
-    (v) => (typeof v === 'string' ? v.toLowerCase() : v),
-    z.enum(['regular', 'irregular', 'mixed']).nullable()
-  ).optional().default(null),
+    (v) => {
+      if (typeof v !== 'string') return null;
+      const l = v.toLowerCase().trim();
+      if (l.includes('irregular') || l.includes('unregelmäßig') || l.includes('strong')) return 'irregular';
+      if (l.includes('mixed') || l.includes('gemischt')) return 'mixed';
+      if (l.includes('regular') || l.includes('regelmäßig') || l.includes('weak')) return 'regular';
+      return null;
+    },
+    z.enum(['regular', 'irregular', 'mixed']).nullable().catch(null)
+  ),
   auxiliary_type: z.preprocess(
-    (v) => (typeof v === 'string' ? v.toLowerCase() : v),
-    z.enum(['haben', 'sein']).nullable()
-  ).optional().default(null),
-  present_form: z.string().nullable().optional().default(null),
-  simple_past: z.string().nullable().optional().default(null),
-  perfect_form: z.string().nullable().optional().default(null),
+    (v) => {
+      if (typeof v !== 'string') return null;
+      const l = v.toLowerCase().trim();
+      if (l.includes('sein')) return 'sein';
+      if (l.includes('haben')) return 'haben';
+      return null;
+    },
+    z.enum(['haben', 'sein']).nullable().catch(null)
+  ),
+  present_form: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() ? v.trim() : null),
+    z.string().nullable().catch(null)
+  ),
+  simple_past: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() ? v.trim() : null),
+    z.string().nullable().catch(null)
+  ),
+  perfect_form: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() ? v.trim() : null),
+    z.string().nullable().catch(null)
+  ),
 });
 
 export const enrichedWordsResponseSchema = z.object({
@@ -41,22 +90,39 @@ export type EnrichedWord = z.infer<typeof enrichedWordSchema>;
 // Expression enrichment from Groq AI
 export const enrichedExpressionSchema = z.object({
   expression: z.string(),
-  meaning: z.string().catch(''),
-  literal_translation: z.string().nullable().optional().default(null),
+  meaning: z.preprocess(
+    (v) => (typeof v === 'string' ? v.trim() : String(v || '')),
+    z.string().catch('')
+  ),
+  literal_translation: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() ? v.trim() : null),
+    z.string().nullable().catch(null)
+  ),
   register: z.preprocess(
-    (v) => (typeof v === 'string' ? v.toLowerCase() : v),
-    z.enum(['formal', 'informal', 'neutral', 'colloquial', 'slang']).nullable()
-  ).optional().default(null),
+    (v) => (typeof v === 'string' ? v.toLowerCase().trim() : null),
+    z.enum(['formal', 'informal', 'neutral', 'colloquial', 'slang']).nullable().catch(null)
+  ),
   cefr_level: z.preprocess(
-    (v) => (typeof v === 'string' ? v.toUpperCase() : v),
-    z.enum(['A1', 'A2', 'B1', 'B2'])
-  ).catch('A1'),
-  example_sentence: z.string().nullable().optional().default(null),
-  usage_note: z.string().nullable().optional().default(null),
+    (v) => {
+      if (typeof v !== 'string') return 'A1';
+      const u = v.toUpperCase().trim();
+      if (['A1', 'A2', 'B1', 'B2'].includes(u)) return u;
+      return 'A1';
+    },
+    z.enum(['A1', 'A2', 'B1', 'B2']).catch('A1')
+  ),
+  example_sentence: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() ? v.trim() : null),
+    z.string().nullable().catch(null)
+  ),
+  usage_note: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() ? v.trim() : null),
+    z.string().nullable().catch(null)
+  ),
   category: z.preprocess(
-    (v) => (typeof v === 'string' ? v.toLowerCase() : v),
-    z.enum(['greeting', 'farewell', 'polite', 'idiom', 'collocation', 'proverb', 'filler', 'connector', 'other']).nullable()
-  ).optional().default(null),
+    (v) => (typeof v === 'string' ? v.toLowerCase().trim() : null),
+    z.enum(['greeting', 'farewell', 'polite', 'idiom', 'collocation', 'proverb', 'filler', 'connector', 'other']).nullable().catch(null)
+  ),
 });
 
 export const enrichedExpressionsResponseSchema = z.object({

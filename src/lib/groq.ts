@@ -23,12 +23,14 @@ function getGroq(): Groq {
 }
 
 // ── MODEL CASCADE ────────────────────────────────────────────
-// Ordered by capability. On 429 / 503 / rate-limit the next model is tried.
+// Ordered by capability and live availability on Groq.
 const MODEL_CASCADE = [
   'openai/gpt-oss-120b',
   'openai/gpt-oss-20b',
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
+  'qwen/qwen3.8-27b',
+  'qwen/qwen3.6-27b',
+  'groq/compound',
+  'groq/compound-mini',
   'openai/gpt-oss-safeguard-20b',
 ] as const;
 
@@ -39,13 +41,16 @@ interface CallGroqParams {
   response_format?: { type: 'json_object' };
 }
 
-function isRateLimitError(err: unknown): boolean {
+function isRetryableError(err: unknown): boolean {
   if (err && typeof err === 'object') {
     const e = err as { status?: number; statusCode?: number; error?: { type?: string }; message?: string };
     if (e.status === 429 || e.statusCode === 429) return true;
     if (e.status === 503 || e.statusCode === 503) return true;
+    if (e.status === 500 || e.statusCode === 500) return true;
+    if (e.status === 404 || e.statusCode === 404) return true;
+    if (e.status === 400 || e.statusCode === 400) return true;
     if (e.error?.type === 'rate_limit_exceeded') return true;
-    if (typeof e.message === 'string' && /rate.?limit|429|too many|quota|capacity/i.test(e.message)) return true;
+    if (typeof e.message === 'string' && /rate.?limit|429|too many|quota|capacity|not found|decommissioned|not exist/i.test(e.message)) return true;
   }
   return false;
 }
@@ -56,8 +61,7 @@ async function sleep(ms: number) {
 
 /**
  * Calls Groq chat completions with automatic model fallback.
- * On 429/503/rate-limit errors the next model in the cascade is tried.
- * Each model gets up to 2 attempts (with a brief backoff) before moving on.
+ * Automatically tries all available models in the cascade on 429/503/404/400 errors.
  */
 export async function callGroq(
   params: CallGroqParams,
@@ -83,13 +87,10 @@ export async function callGroq(
         return completion;
       } catch (err: unknown) {
         lastError = err;
-        if (isRateLimitError(err)) {
-          const backoff = (attempt + 1) * 800;
-          console.warn(`[Groq] 429 on ${model} (attempt ${attempt + 1}/${maxRetries}), backing off ${backoff}ms`);
+        if (isRetryableError(err)) {
+          const backoff = (attempt + 1) * 600;
+          console.warn(`[Groq] Error on ${model} (attempt ${attempt + 1}/${maxRetries}), trying fallback in ${backoff}ms...`);
           await sleep(backoff);
-          if (attempt === maxRetries - 1) {
-            console.warn(`[Groq] Exhausted retries for ${model}, falling back to next model`);
-          }
           continue;
         }
         throw err;
@@ -97,7 +98,7 @@ export async function callGroq(
     }
   }
 
-  throw lastError ?? new Error('All Groq models exhausted (rate limited)');
+  throw lastError ?? new Error('All Groq models exhausted');
 }
 
 // ── WRITING GRADING ──────────────────────────────────────────
@@ -271,23 +272,113 @@ function parseEnrichResponse(raw: string | null | undefined): EnrichedWord[] {
   }
 }
 
+export function fallbackEnrichWord(rawWord: string): EnrichedWord {
+  const trimmed = rawWord.trim();
+  let word = trimmed;
+  let partOfSpeech: 'noun' | 'verb' | 'adjective' | 'adverb' | 'preposition' | 'conjunction' | 'pronoun' | 'article' | 'other' = 'other';
+  let gender: 'masculine' | 'feminine' | 'neuter' | null = null;
+  const pluralForm: string | null = null;
+  const meaning = trimmed;
+  const cefrLevel: 'A1' | 'A2' | 'B1' | 'B2' = 'A1';
+  let exampleSentence: string | null = null;
+  let verbType: 'regular' | 'irregular' | 'mixed' | null = null;
+  let auxiliaryType: 'haben' | 'sein' | null = null;
+  let presentForm: string | null = null;
+  let simplePast: string | null = null;
+  let perfectForm: string | null = null;
+  let conjugation: Record<string, string> | null = null;
+
+  const matchArticle = trimmed.match(/^(der|die|das)\s+(.+)$/i);
+  if (matchArticle) {
+    const art = matchArticle[1].toLowerCase();
+    const noun = matchArticle[2].trim();
+    const capitalizedNoun = noun.charAt(0).toUpperCase() + noun.slice(1);
+    word = `${art} ${capitalizedNoun}`;
+    partOfSpeech = 'noun';
+    gender = art === 'der' ? 'masculine' : art === 'die' ? 'feminine' : 'neuter';
+    exampleSentence = `Ich lerne das Wort ${word}.`;
+  } else if (/^[A-ZÄÖÜ]/.test(trimmed) && !trimmed.includes(' ')) {
+    if (/ung$|keit$|heit$|schaft$|ion$|ik$|ur$|tät$/i.test(trimmed)) {
+      gender = 'feminine';
+      word = `die ${trimmed}`;
+    } else if (/ling$|or$|ismus$|er$/i.test(trimmed)) {
+      gender = 'masculine';
+      word = `der ${trimmed}`;
+    } else if (/chen$|lein$|ment$|um$|tum$/i.test(trimmed)) {
+      gender = 'neuter';
+      word = `das ${trimmed}`;
+    } else {
+      gender = 'masculine';
+      word = `der ${trimmed}`;
+    }
+    partOfSpeech = 'noun';
+    exampleSentence = `Das ist ${gender === 'masculine' ? 'ein' : gender === 'feminine' ? 'eine' : 'ein'} ${trimmed}.`;
+  } else if (trimmed.endsWith('en') || trimmed.endsWith('eln') || trimmed.endsWith('ern')) {
+    partOfSpeech = 'verb';
+    const stem = trimmed.endsWith('en') ? trimmed.slice(0, -2) : trimmed.slice(0, -1);
+    verbType = 'regular';
+    auxiliaryType = 'haben';
+    presentForm = `${stem}t`;
+    simplePast = `${stem}te`;
+    perfectForm = `hat ge${stem}t`;
+    conjugation = {
+      ich: `${stem}e`,
+      du: `${stem}st`,
+      er: `${stem}t`,
+      wir: `${stem}en`,
+      ihr: `${stem}t`,
+      sie: `${stem}en`,
+    };
+    exampleSentence = `Wir ${trimmed} zusammen.`;
+  } else {
+    partOfSpeech = 'adjective';
+    exampleSentence = `Das ist sehr ${trimmed}.`;
+  }
+
+  return {
+    word,
+    part_of_speech: partOfSpeech,
+    gender,
+    plural_form: pluralForm,
+    conjugation,
+    meaning,
+    cefr_level: cefrLevel,
+    example_sentence: exampleSentence,
+    verb_type: verbType,
+    auxiliary_type: auxiliaryType,
+    present_form: presentForm,
+    simple_past: simplePast,
+    perfect_form: perfectForm,
+  };
+}
+
 async function enrichBatch(words: string[]): Promise<EnrichedWord[]> {
-  const wordsList = words.map((w, i) => `${i + 1}. ${w}`).join('\n');
+  try {
+    const wordsList = words.map((w, i) => `${i + 1}. ${w}`).join('\n');
 
-  const completion = await callGroq({
-    messages: [
-      { role: 'system', content: ENRICH_SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: `Provide linguistic data for each of these German words/phrases (one entry per item):\n${wordsList}`,
-      },
-    ],
-    temperature: 0.2,
-    max_tokens: 8000,
-    response_format: { type: 'json_object' },
-  });
+    const completion = await callGroq({
+      messages: [
+        { role: 'system', content: ENRICH_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: `Provide linguistic data for each of these German words/phrases (one entry per item):\n${wordsList}`,
+        },
+      ],
+      temperature: 0.2,
+      max_tokens: 8000,
+      response_format: { type: 'json_object' },
+    });
 
-  return parseEnrichResponse(completion.choices[0]?.message?.content);
+    const parsed = parseEnrichResponse(completion.choices[0]?.message?.content);
+    if (parsed.length > 0) {
+      return parsed;
+    }
+  } catch (err) {
+    console.warn('[enrichBatch] Groq call failed, using fallback enrichment:', err);
+  }
+
+  // Guaranteed fallback for every word
+  return words.map(fallbackEnrichWord);
 }
 
 export async function enrichWords(words: string[]): Promise<EnrichedWord[]> {
@@ -310,11 +401,15 @@ export async function enrichWords(words: string[]): Promise<EnrichedWord[]> {
       concurrentChunks.map((chunk) => enrichBatch(chunk))
     );
 
-    for (const result of batchResults) {
-      if (result.status === 'fulfilled') {
+    for (let idx = 0; idx < batchResults.length; idx++) {
+      const result = batchResults[idx];
+      if (result && result.status === 'fulfilled' && result.value.length > 0) {
         allResults.push(...result.value);
       } else {
-        console.error('[enrichWords] Batch failed:', result.reason);
+        const failedChunk = concurrentChunks[idx];
+        if (failedChunk) {
+          allResults.push(...failedChunk.map(fallbackEnrichWord));
+        }
       }
     }
   }
