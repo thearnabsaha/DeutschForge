@@ -500,6 +500,7 @@ export default function AnalyticsPage() {
                     ))}
                   </div>
                 </GlassCard>
+                </div>
               </motion.div>
 
               {/* Quick Summary Cards */}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GRAMMAR_TOPIC_MAP } from '@/lib/grammar-data';
+import { getGrammarChapterById } from '@/lib/grammar-data';
+import { getPracticeForChapter } from '@/lib/grammar-practice-data';
 
 export async function GET(
   _request: NextRequest,
@@ -7,13 +8,19 @@ export async function GET(
 ) {
   try {
     const { topicId } = await params;
-    const topic = GRAMMAR_TOPIC_MAP[topicId];
-    
-    if (!topic) {
-      return NextResponse.json({ error: 'Topic not found' }, { status: 404 });
+    const chapter = getGrammarChapterById(topicId);
+
+    if (!chapter) {
+      return NextResponse.json({ error: 'Grammar chapter not found' }, { status: 404 });
     }
 
-    return NextResponse.json(topic);
+    const practice = getPracticeForChapter(chapter.id);
+
+    return NextResponse.json({
+      ...chapter,
+      hasPractice: !!practice,
+      practiceLevelCount: practice ? practice.levels.length : 0,
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });

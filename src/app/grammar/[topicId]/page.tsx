@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -15,206 +15,336 @@ import {
   CheckCircle2,
   XCircle,
   RotateCcw,
+  Sparkles,
+  Volume2,
+  VolumeX,
+  AlertTriangle,
+  Lightbulb,
+  Check,
+  ChevronRight,
+  MessageSquare,
+  Lock,
+  Trophy,
+  Star,
+  Clock,
+  Mic,
+  Copy,
+  CheckCheck,
+  HelpCircle,
+  Award,
 } from 'lucide-react';
 import { sfx } from '@/lib/sounds';
-
-type GrammarExample = { de: string; en: string };
-type GrammarTable = { headers: string[]; rows: string[][] };
-type GrammarSection = {
-  heading: string;
-  explanation: string;
-  table?: GrammarTable;
-  examples: GrammarExample[];
-  notes: string[];
-};
-
-type Exercise = {
-  id: string;
-  type: string;
-  question: string;
-  options?: string[];
-  answer: string;
-  hint?: string;
-};
-
-type Topic = {
-  id: string;
-  cefrLevel: string;
-  title: string;
-  subtitle: string;
-  icon: string;
-  color: string;
-  sections: GrammarSection[];
-  exercises: Exercise[];
-};
-
-type ResultItem = {
-  exerciseId: string;
-  question: string;
-  userAnswer: string;
-  correctAnswer: string;
-  correct: boolean;
-  explanation: string;
-};
+import {
+  getGrammarChapterById,
+  ALL_GRAMMAR_CHAPTERS,
+  type GrammarChapter,
+  type GrammarTable,
+} from '@/lib/grammar-data';
+import {
+  getPracticeForChapter,
+  type ChapterPractice,
+  type MCQQuestion,
+} from '@/lib/grammar-practice-data';
+import {
+  loadGrammarProgress,
+  loadPracticeProgress,
+  recordChapterVisit,
+  toggleChapterComplete,
+  recordExercise,
+  recordLevelAttempt,
+  getLevelState,
+  type GrammarProgress,
+  type PracticeProgress,
+  type LevelResult,
+} from '@/lib/grammar-progress';
 
 const TABS = [
-  { id: 'theory', label: 'Theory', icon: BookOpen },
-  { id: 'practice', label: 'Practice', icon: PenLine },
+  { id: 'theory', label: 'Theory & Rules', icon: BookOpen },
+  { id: 'examples', label: 'Examples & Audio', icon: Volume2 },
+  { id: 'drills', label: 'Quick Drills', icon: PenLine },
+  { id: 'practice', label: '10-Level Practice', icon: Trophy },
+  { id: 'speaking', label: 'Speaking Drills', icon: Mic },
+  { id: 'ai', label: 'AI Tutor', icon: Sparkles },
 ] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
+function speakGerman(text: string) {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'de-DE';
+  utterance.rate = 0.9;
+  window.speechSynthesis.speak(utterance);
+}
 
 export default function GrammarTopicPage() {
   const params = useParams();
   const router = useRouter();
   const topicId = params.topicId as string;
 
-  const [topic, setTopic] = useState<Topic | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]['id']>('theory');
+  const [chapter, setChapter] = useState<GrammarChapter | null>(null);
+  const [practiceData, setPracticeData] = useState<ChapterPractice | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>('theory');
 
-  const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
-  const [results, setResults] = useState<{ score: number; maxScore: number; results: ResultItem[] } | null>(null);
+  const [grammarProgress, setGrammarProgress] = useState<GrammarProgress>({ chapters: {} });
+  const [practiceProgress, setPracticeProgress] = useState<PracticeProgress>({ chapters: {} });
 
-  const fetchTopic = useCallback(async () => {
+  // ─── Quick Drills State ───
+  const [drillAnswers, setDrillAnswers] = useState<Record<number, string>>({});
+  const [drillRevealed, setDrillRevealed] = useState<Record<number, boolean>>({});
+
+  // ─── 10-Level Practice State ───
+  const [selectedLevelIdx, setSelectedLevelIdx] = useState<number>(0);
+  const [currentQIdx, setCurrentQIdx] = useState<number>(0);
+  const [selectedOpt, setSelectedOpt] = useState<number | null>(null);
+  const [isAnswerSubmitted, setIsAnswerSubmitted] = useState<boolean>(false);
+  const [levelScore, setLevelScore] = useState<number>(0);
+  const [levelAnswers, setLevelAnswers] = useState<Array<{ qIdx: number; selected: number; correct: boolean }>>([]);
+  const [levelCompleted, setLevelCompleted] = useState<boolean>(false);
+
+  // ─── AI Prompt Copy State ───
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+
+  useEffect(() => {
     if (!topicId) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/grammar/${topicId}`);
-      const data = await res.json();
-      if (res.ok) setTopic(data);
-      else setTopic(null);
-    } catch {
-      setTopic(null);
-    } finally {
-      setLoading(false);
+    const ch = getGrammarChapterById(topicId);
+    if (ch) {
+      setChapter(ch);
+      setPracticeData(getPracticeForChapter(ch.id) || null);
+      recordChapterVisit(ch.id);
+      setGrammarProgress(loadGrammarProgress());
+      setPracticeProgress(loadPracticeProgress());
     }
   }, [topicId]);
 
-  useEffect(() => {
-    fetchTopic();
-  }, [fetchTopic]);
+  const isCompleted = useMemo(() => {
+    if (!chapter) return false;
+    return grammarProgress.chapters[chapter.id]?.completedAt != null;
+  }, [chapter, grammarProgress]);
 
-  const exercises = topic?.exercises ?? [];
-  const currentExercise = exercises[currentExerciseIdx];
-  const progress = exercises.length > 0 ? ((currentExerciseIdx + 1) / exercises.length) * 100 : 0;
-
-  const handleAnswerChange = (value: string) => {
-    if (currentExercise) {
-      if (currentExercise.type === 'multiple_choice') sfx.click();
-      setAnswers((prev) => ({ ...prev, [currentExercise.id]: value }));
-    }
+  const handleToggleComplete = () => {
+    if (!chapter) return;
+    toggleChapterComplete(chapter.id);
+    setGrammarProgress(loadGrammarProgress());
+    sfx.complete();
   };
 
-  const handleNext = () => {
-    if (currentExerciseIdx < exercises.length - 1) {
-      sfx.swoosh();
-      setCurrentExerciseIdx((i) => i + 1);
-    }
+  const handleCopyAiPrompt = () => {
+    if (!chapter?.aiPrompt) return;
+    navigator.clipboard.writeText(chapter.aiPrompt);
+    setCopiedPrompt(true);
+    sfx.click();
+    setTimeout(() => setCopiedPrompt(false), 2000);
   };
 
-  const handlePrev = () => {
-    if (currentExerciseIdx > 0) setCurrentExerciseIdx((i) => i - 1);
-  };
-
-  const handleSubmit = async () => {
-    if (!topic || exercises.length === 0) return;
-    const answerList = exercises.map((e) => ({
-      exerciseId: e.id,
-      userAnswer: answers[e.id] ?? '',
-    }));
-    setSubmitting(true);
+  const handleLaunchChat = () => {
+    if (!chapter?.aiPrompt) return;
+    // Store in session storage for chat page to pick up if needed
     try {
-      const res = await fetch(`/api/grammar/${topicId}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: answerList }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setResults({ score: data.score, maxScore: data.maxScore, results: data.results });
-        const pct = data.maxScore > 0 ? data.score / data.maxScore : 0;
-        pct >= 0.7 ? sfx.levelUp() : sfx.wrong();
-      }
-    } finally {
-      setSubmitting(false);
+      sessionStorage.setItem('pending_ai_prompt', chapter.aiPrompt);
+    } catch {}
+    router.push('/chat');
+  };
+
+  // ─── 10-Level Practice Handlers ───
+  const currentLevelQuestions: MCQQuestion[] = useMemo(() => {
+    if (!practiceData || !practiceData.levels[selectedLevelIdx]) return [];
+    return practiceData.levels[selectedLevelIdx];
+  }, [practiceData, selectedLevelIdx]);
+
+  const currentQ: MCQQuestion | undefined = currentLevelQuestions[currentQIdx];
+
+  const handleSelectOption = (idx: number) => {
+    if (isAnswerSubmitted) return;
+    setSelectedOpt(idx);
+    sfx.click();
+  };
+
+  const handleCheckAnswer = () => {
+    if (selectedOpt === null || !currentQ || isAnswerSubmitted) return;
+    const isCorrect = selectedOpt === currentQ.answer;
+    setIsAnswerSubmitted(true);
+
+    if (isCorrect) {
+      setLevelScore((prev) => prev + 1);
+      sfx.correct();
+    } else {
+      sfx.wrong();
+    }
+
+    setLevelAnswers((prev) => [
+      ...prev,
+      { qIdx: currentQIdx, selected: selectedOpt, correct: isCorrect },
+    ]);
+  };
+
+  const handleNextQuestion = () => {
+    if (currentQIdx < currentLevelQuestions.length - 1) {
+      setCurrentQIdx((prev) => prev + 1);
+      setSelectedOpt(null);
+      setIsAnswerSubmitted(false);
+      sfx.swoosh();
+    } else {
+      // Level Completed!
+      finishLevel();
     }
   };
 
-  const handleTryAgain = () => {
-    setResults(null);
-    setCurrentExerciseIdx(0);
-    setAnswers({});
+  const finishLevel = () => {
+    if (!chapter) return;
+    const finalScore = levelScore + (selectedOpt === currentQ?.answer ? 1 : 0);
+    setLevelCompleted(true);
+
+    const result = recordLevelAttempt(chapter.id, selectedLevelIdx, finalScore);
+    setPracticeProgress(loadPracticeProgress());
+
+    if (finalScore >= 7) {
+      sfx.levelUp();
+    } else {
+      sfx.wrong();
+    }
+
+    // Also record attempt in backend
+    fetch(`/api/grammar/${chapter.id}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        levelIndex: selectedLevelIdx,
+        score: finalScore,
+        maxScore: currentLevelQuestions.length,
+      }),
+    }).catch(() => {});
   };
 
-  const canSubmit = exercises.every((e) => (answers[e.id] ?? '').trim() !== '');
+  const handleRestartLevel = () => {
+    setCurrentQIdx(0);
+    setSelectedOpt(null);
+    setIsAnswerSubmitted(false);
+    setLevelScore(0);
+    setLevelAnswers([]);
+    setLevelCompleted(false);
+  };
 
-  if (loading || !topic) {
+  const handleSelectLevel = (idx: number) => {
+    if (!chapter) return;
+    const state = getLevelState(chapter.id, idx, practiceProgress);
+    if (state === 'locked') return;
+
+    setSelectedLevelIdx(idx);
+    setCurrentQIdx(0);
+    setSelectedOpt(null);
+    setIsAnswerSubmitted(false);
+    setLevelScore(0);
+    setLevelAnswers([]);
+    setLevelCompleted(false);
+    sfx.click();
+  };
+
+  if (!chapter) {
     return (
-      <div className="mx-auto max-w-4xl px-6 py-10 lg:px-8">
-        <div className="flex flex-col items-center justify-center py-24">
-          <Loader2 size={36} className="animate-spin text-[var(--accent)]" />
-          <p className="mt-4 text-sm text-[var(--text-secondary)]">
-            {loading ? 'Loading...' : 'Topic not found'}
-          </p>
-          {!loading && !topic && (
-            <Link href="/grammar" className="btn-primary mt-6">
-              Back to Grammar
-            </Link>
-          )}
-        </div>
+      <div className="mx-auto max-w-4xl px-6 py-12 text-center">
+        <Loader2 size={36} className="mx-auto animate-spin text-[var(--accent)]" />
+        <p className="mt-4 text-sm text-[var(--text-secondary)]">Loading grammar chapter...</p>
+        <Link href="/grammar" className="btn-secondary mt-6 inline-flex items-center gap-2">
+          <ArrowLeft size={16} /> Back to Grammar
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10 lg:px-8">
-      <div className="mb-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* ─── Top Navigation & Header ─── */}
+      <div className="mb-6">
         <Link
           href="/grammar"
-          className="mb-4 inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--accent)]"
+          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
         >
           <ArrowLeft size={16} />
-          Back to Grammar
+          Back to all Grammar Chapters
         </Link>
-        <div className="flex items-center gap-4">
-          <div 
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl"
-            style={{ backgroundColor: `${topic.color}20`, color: topic.color }}
-          >
-            {topic.icon}
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg bg-[var(--accent)]/10 px-2.5 py-0.5 text-xs font-extrabold text-[var(--accent)]">
+                Ch. {chapter.number}
+              </span>
+              <Badge variant="level" level={chapter.cefrLevel || 'A1'}>
+                {chapter.cefrLevel || 'A1'}
+              </Badge>
+              {chapter.difficulty && (
+                <span className="text-xs font-semibold text-[var(--text-tertiary)] capitalize">
+                  • {chapter.difficulty}
+                </span>
+              )}
+              {chapter.estimatedMinutes && (
+                <span className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]">
+                  • <Clock size={12} /> {chapter.estimatedMinutes} min
+                </span>
+              )}
+            </div>
+
+            <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)]">
+              {chapter.title}
+            </h1>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              {chapter.subtitle}
+            </p>
           </div>
-          <PageHeader
-            title={topic.title}
-            subtitle={topic.subtitle}
-          />
-        </div>
-        <div className="mt-4 flex gap-2">
-          <Badge variant="level" level={topic.cefrLevel || 'A1'}>
-            {topic.cefrLevel || 'A1'}
-          </Badge>
+
+          <div className="flex items-center gap-2">
+            <motion.button
+              onClick={handleToggleComplete}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
+                isCompleted
+                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                  : 'border border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:border-emerald-500 hover:text-emerald-500'
+              }`}
+            >
+              <CheckCircle2 size={18} />
+              <span>{isCompleted ? 'Completed' : 'Mark as Done'}</span>
+            </motion.button>
+          </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="mb-8 flex flex-wrap gap-2">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
-              activeTab === tab.id
-                ? 'bg-[var(--accent)] text-white'
-                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border)]'
-            }`}
-          >
-            <tab.icon size={18} />
-            {tab.label}
-          </button>
-        ))}
+      {/* ─── Navigation Tabs ─── */}
+      <div className="mb-6 flex overflow-x-auto gap-1.5 rounded-2xl bg-[var(--bg-secondary)]/80 p-1.5 border border-[var(--border)] scrollbar-none">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                sfx.click();
+              }}
+              className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all ${
+                isActive
+                  ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/20'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              <Icon size={16} />
+              <span>{tab.label}</span>
+              {tab.id === 'practice' && practiceData && (
+                <span className="rounded-full bg-amber-400 px-1.5 py-0.2 text-[10px] font-black text-black">
+                  10
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
+      {/* ─── Tab Contents ─── */}
       <AnimatePresence mode="wait">
+        {/* ═══ 1. THEORY & RULES ═══ */}
         {activeTab === 'theory' && (
           <motion.div
             key="theory"
@@ -222,71 +352,222 @@ export default function GrammarTopicPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="space-y-8"
+            className="space-y-6"
           >
-            {topic.sections.map((section, idx) => (
-              <GlassCard key={idx} hover={false} className="overflow-hidden">
-                <h3 className="mb-3 text-xl font-bold text-[var(--text-primary)]" style={{ color: topic.color }}>
-                  {section.heading}
-                </h3>
-                <p className="mb-6 text-[var(--text-secondary)] leading-relaxed">
-                  {section.explanation}
+            {/* Rule Callout */}
+            {chapter.rule && (
+              <div className="rounded-2xl border-2 border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-5">
+                <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  <Lightbulb size={16} />
+                  <span>The Core Grammar Rule</span>
+                </div>
+                <p className="mt-2 text-base font-semibold text-[var(--text-primary)] leading-relaxed">
+                  {chapter.rule}
                 </p>
+              </div>
+            )}
 
-                {section.table && (
-                  <div className="mb-6 overflow-x-auto rounded-xl border border-[var(--border)]">
-                    <table className="w-full text-left text-sm">
-                      <thead className="bg-[var(--bg-tertiary)]">
-                        <tr>
-                          {section.table.headers.map((h, i) => (
-                            <th key={i} className="px-4 py-3 font-semibold text-[var(--text-primary)]">
-                              {h}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border)]">
-                        {section.table.rows.map((row, rIdx) => (
-                          <tr key={rIdx} className="hover:bg-[var(--bg-secondary)]">
-                            {row.map((cell, cIdx) => (
-                              <td key={cIdx} className="px-4 py-3 text-[var(--text-secondary)]">
-                                {cell}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+            {/* Explanation */}
+            {chapter.explanation && (
+              <GlassCard hover={false} className="p-6">
+                <h2 className="text-base font-bold text-[var(--text-primary)]">Overview & Context</h2>
+                <p className="mt-2 text-sm text-[var(--text-secondary)] leading-relaxed">
+                  {chapter.explanation}
+                </p>
+              </GlassCard>
+            )}
 
-                {section.examples.length > 0 && (
-                  <div className="mb-6 space-y-3">
-                    <h4 className="font-semibold text-[var(--text-primary)]">Examples:</h4>
-                    {section.examples.map((ex, i) => (
-                      <div key={i} className="rounded-lg bg-[var(--bg-tertiary)] p-3">
-                        <p className="font-medium text-[var(--text-primary)]">{ex.de}</p>
-                        <p className="text-sm text-[var(--text-secondary)]">{ex.en}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {section.notes.length > 0 && (
-                  <div className="space-y-2 rounded-lg border-l-4 p-4 text-sm" style={{ backgroundColor: `${topic.color}10`, borderColor: topic.color }}>
-                    <h4 className="font-semibold" style={{ color: topic.color }}>Important Notes:</h4>
-                    <ul className="list-inside list-disc space-y-1 text-[var(--text-secondary)]">
-                      {section.notes.map((note, i) => (
-                        <li key={i}>{note}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+            {/* Theory Sections */}
+            {chapter.theory?.map((section, idx) => (
+              <GlassCard key={idx} hover={false} className="p-6">
+                <h3 className="text-base font-bold text-[var(--text-primary)]">{section.heading}</h3>
+                <div className="mt-3 text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
+                  {section.body}
+                </div>
               </GlassCard>
             ))}
+
+            {/* Grammar Table */}
+            {chapter.table && (
+              <GlassCard hover={false} className="overflow-hidden p-0">
+                <div className="p-4 border-b border-[var(--border)]">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">Grammar Reference Table</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs sm:text-sm">
+                    <thead className="bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
+                      <tr>
+                        {chapter.table.headers.map((h, i) => (
+                          <th key={i} className="px-4 py-3 font-bold whitespace-nowrap">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border)]">
+                      {chapter.table.rows.map((row, rIdx) => (
+                        <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-transparent' : 'bg-[var(--bg-secondary)]/40'}>
+                          {row.map((cell, cIdx) => (
+                            <td key={cIdx} className="px-4 py-3 font-medium text-[var(--text-secondary)]">
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </GlassCard>
+            )}
+
+            {/* Important Notes */}
+            {chapter.notes && chapter.notes.length > 0 && (
+              <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/5 p-5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  Key Observations & Pro-Tips
+                </h3>
+                <ul className="mt-3 space-y-2 text-sm text-[var(--text-secondary)]">
+                  {chapter.notes.map((note, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500" />
+                      <span>{note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Common Mistakes */}
+            {chapter.mistakes && chapter.mistakes.length > 0 && (
+              <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-5">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">
+                  <AlertTriangle size={16} />
+                  <span>Common Mistakes to Avoid</span>
+                </div>
+                <ul className="mt-3 space-y-2 text-sm text-[var(--text-secondary)]">
+                  {chapter.mistakes.map((m, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-red-500 font-bold">✗</span>
+                      <span>{m}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Summary */}
+            {chapter.summary && (
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  Chapter Summary
+                </h3>
+                <p className="mt-2 text-sm font-medium text-[var(--text-secondary)] leading-relaxed">
+                  {chapter.summary}
+                </p>
+              </div>
+            )}
           </motion.div>
         )}
 
+        {/* ═══ 2. EXAMPLES & AUDIO ═══ */}
+        {activeTab === 'examples' && (
+          <motion.div
+            key="examples"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-4"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+              Listen and repeat to internalize native sentence rhythm ({chapter.examples.length} sentences)
+            </p>
+
+            <div className="grid gap-3">
+              {chapter.examples.map((ex, idx) => (
+                <GlassCard key={idx} hover={false} className="flex items-center justify-between gap-4 p-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base font-bold text-[var(--text-primary)]">{ex.de}</p>
+                    <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{ex.en}</p>
+                  </div>
+
+                  <button
+                    onClick={() => speakGerman(ex.de)}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                    title="Listen to native pronunciation"
+                  >
+                    <Volume2 size={18} />
+                  </button>
+                </GlassCard>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ═══ 3. QUICK DRILLS ═══ */}
+        {activeTab === 'drills' && (
+          <motion.div
+            key="drills"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-4"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+              Test your recall on the core concepts of this chapter
+            </p>
+
+            <div className="space-y-4">
+              {chapter.exercises.map((ex, idx) => {
+                const promptText = (ex as any).prompt || (ex as any).question || `Question ${idx + 1}`;
+                const answerText = ex.answer;
+                const isRevealed = drillRevealed[idx] ?? false;
+
+                return (
+                  <GlassCard key={idx} hover={false} className="p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <span className="rounded bg-[var(--bg-tertiary)] px-2 py-0.5 text-[11px] font-bold text-[var(--text-tertiary)]">
+                          Drill #{idx + 1}
+                        </span>
+                        <p className="mt-2 text-sm sm:text-base font-bold text-[var(--text-primary)]">
+                          {promptText}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setDrillRevealed((prev) => ({ ...prev, [idx]: !prev[idx] }));
+                          sfx.click();
+                        }}
+                        className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-1.5 text-xs font-bold text-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                      >
+                        {isRevealed ? 'Hide Answer' : 'Show Answer'}
+                      </button>
+                    </div>
+
+                    {isRevealed && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3"
+                      >
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                          <CheckCircle2 size={14} />
+                          <span>Correct Answer:</span>
+                        </div>
+                        <p className="mt-1 text-sm font-extrabold text-[var(--text-primary)]">{answerText}</p>
+                      </motion.div>
+                    )}
+                  </GlassCard>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ═══ 4. 10-LEVEL PRACTICE ═══ */}
         {activeTab === 'practice' && (
           <motion.div
             key="practice"
@@ -294,162 +575,290 @@ export default function GrammarTopicPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
+            className="space-y-6"
           >
-            {results ? (
-              <div className="space-y-6">
-                <GlassCard hover={false} className="text-center">
-                  <h3 className="text-lg font-semibold">Your Score</h3>
-                  <p className="mt-2 text-4xl font-bold text-[var(--accent)]">
-                    {results.score} / {results.maxScore}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                    {Math.round((results.score / results.maxScore) * 100)}%
-                  </p>
-                  <motion.button
-                    className="btn-primary mt-6 flex items-center justify-center gap-2"
-                    onClick={handleTryAgain}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <RotateCcw size={18} />
-                    Try Again
-                  </motion.button>
-                </GlassCard>
-
-                <div className="space-y-4">
-                  <h4 className="text-base font-semibold">Review Answers</h4>
-                  {results.results.map((r, i) => (
-                    <GlassCard key={i} hover={false}>
-                      <p className="font-medium text-[var(--text-primary)]">{r.question}</p>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        {r.correct ? (
-                          <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                            <CheckCircle2 size={14} className="mr-1 inline" />
-                            Correct
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                            <XCircle size={14} className="mr-1 inline" />
-                            Incorrect
-                          </Badge>
-                        )}
-                      </div>
-                      {!r.correct && (
-                        <>
-                          <p className="mt-2 text-sm">
-                            <span className="text-[var(--text-tertiary)]">Your answer:</span>{' '}
-                            <span className="text-red-500">{r.userAnswer || '(empty)'}</span>
-                          </p>
-                          <p className="mt-1 text-sm">
-                            <span className="text-[var(--text-tertiary)]">Correct answer:</span>{' '}
-                            <span className="text-emerald-600 dark:text-emerald-400">{r.correctAnswer}</span>
-                          </p>
-                        </>
-                      )}
-                      {r.explanation && (
-                         <p className="mt-2 text-sm text-[var(--text-secondary)]">Hint: {r.explanation}</p>
-                      )}
-                    </GlassCard>
-                  ))}
-                </div>
-              </div>
+            {!practiceData ? (
+              <GlassCard hover={false} className="py-12 text-center">
+                <Trophy size={36} className="mx-auto text-[var(--text-tertiary)]" />
+                <p className="mt-3 text-base font-bold">10-Level Practice Not Available</p>
+                <p className="mt-1 text-xs text-[var(--text-tertiary)]">This chapter focuses primarily on phonetics & basic foundation drills.</p>
+              </GlassCard>
             ) : (
               <>
-                <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-[var(--border)]">
-                  <motion.div
-                    className="h-full bg-[var(--accent)]"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 0.3 }}
-                  />
+                {/* Level Ladder Selector */}
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)]/80 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
+                      Select Mastery Level (10 Questions Each · Score ≥ 70% to Unlock Next)
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                    {Array.from({ length: 10 }).map((_, idx) => {
+                      const state = getLevelState(chapter.id, idx, practiceProgress);
+                      const isSelected = selectedLevelIdx === idx;
+                      const res = practiceProgress.chapters[chapter.id]?.[idx];
+
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => handleSelectLevel(idx)}
+                          disabled={state === 'locked'}
+                          className={`relative flex flex-col items-center justify-center rounded-xl p-2.5 transition-all text-xs font-extrabold ${
+                            isSelected
+                              ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/30 ring-2 ring-[var(--accent)]/40'
+                              : state === 'passed'
+                              ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+                              : state === 'unlocked'
+                              ? 'border border-[var(--border)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:border-[var(--accent)]'
+                              : 'opacity-40 bg-[var(--bg-tertiary)]/40 text-[var(--text-tertiary)] cursor-not-allowed'
+                          }`}
+                        >
+                          {state === 'locked' ? (
+                            <Lock size={14} className="mb-0.5" />
+                          ) : state === 'passed' ? (
+                            <Check size={14} className="mb-0.5" />
+                          ) : (
+                            <Star size={14} className="mb-0.5" />
+                          )}
+                          <span>L{idx + 1}</span>
+                          {res && res.bestScore > 0 && (
+                            <span className="text-[9px] opacity-80">{res.bestScore}/10</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                {currentExercise ? (
-                  <GlassCard hover={false}>
-                    <div className="mb-4">
-                      <Badge className="mb-2 bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-                        {currentExercise.type.replace('_', ' ').toUpperCase()}
-                      </Badge>
-                      <p className="text-lg font-medium text-[var(--text-primary)]">
-                        {currentExercise.question}
-                      </p>
-                      {currentExercise.hint && (
-                        <p className="mt-1 text-sm italic text-[var(--text-tertiary)]">{currentExercise.hint}</p>
+                {/* Level Practice Quiz View */}
+                {levelCompleted ? (
+                  <GlassCard hover={false} className="p-8 text-center">
+                    <div className="flex justify-center">
+                      {levelScore >= 7 ? (
+                        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                          <Trophy size={40} />
+                        </div>
+                      ) : (
+                        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
+                          <RotateCcw size={40} />
+                        </div>
                       )}
                     </div>
 
-                    {currentExercise.type === 'multiple_choice' ? (
-                      <div className="space-y-2">
-                        {(currentExercise.options ?? []).map((opt) => (
-                          <button
-                            key={opt}
-                            onClick={() => handleAnswerChange(opt)}
-                            className={`block w-full rounded-xl border px-4 py-3 text-left text-sm transition-colors ${
-                              (answers[currentExercise.id] ?? '') === opt
-                                ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
-                                : 'border-[var(--border)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
-                            }`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={answers[currentExercise.id] ?? ''}
-                        onChange={(e) => handleAnswerChange(e.target.value)}
-                        placeholder="Type your answer..."
-                        autoComplete="off"
-                        spellCheck={false}
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                      />
-                    )}
-                    <div className="mt-6 flex items-center justify-between">
+                    <h3 className="mt-4 text-2xl font-black text-[var(--text-primary)]">
+                      {levelScore >= 7 ? 'Level Passed! 🎉' : 'Keep Practicing!'}
+                    </h3>
+                    <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                      You scored <span className="font-bold text-[var(--text-primary)]">{levelScore}</span> out of{' '}
+                      {currentLevelQuestions.length} ({Math.round((levelScore / currentLevelQuestions.length) * 100)}%)
+                    </p>
+
+                    <div className="mt-6 flex flex-wrap justify-center gap-3">
                       <button
-                        onClick={handlePrev}
-                        disabled={currentExerciseIdx === 0}
-                        className=" rounded-lg px-4 py-2 text-sm font-medium text-[var(--text-secondary)] disabled:opacity-50 hover:bg-[var(--bg-tertiary)]"
+                        onClick={handleRestartLevel}
+                        className="btn-secondary flex items-center gap-2"
                       >
-                        Previous
+                        <RotateCcw size={16} />
+                        <span>Retry Level {selectedLevelIdx + 1}</span>
                       </button>
-                      <span className="text-sm text-[var(--text-tertiary)]">
-                        {currentExerciseIdx + 1} / {exercises.length}
-                      </span>
-                      {currentExerciseIdx < exercises.length - 1 ? (
+
+                      {levelScore >= 7 && selectedLevelIdx < 9 && (
                         <button
-                          onClick={handleNext}
-                          className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                          onClick={() => handleSelectLevel(selectedLevelIdx + 1)}
+                          className="btn-primary flex items-center gap-2"
                         >
-                          Next
+                          <span>Next Level ({selectedLevelIdx + 2})</span>
+                          <ChevronRight size={16} />
                         </button>
-                      ) : (
-                        <motion.button
-                          className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                          disabled={!canSubmit || submitting}
-                          onClick={handleSubmit}
-                          whileHover={!submitting && canSubmit ? { scale: 1.02 } : undefined}
-                          whileTap={!submitting && canSubmit ? { scale: 0.98 } : undefined}
-                        >
-                          {submitting ? (
-                            <>
-                              <Loader2 size={16} className="mr-2 inline animate-spin" />
-                              Submitting...
-                            </>
-                          ) : (
-                            'Submit'
-                          )}
-                        </motion.button>
                       )}
                     </div>
                   </GlassCard>
-                ) : (
-                  <GlassCard hover={false}>
-                    <p className="text-[var(--text-tertiary)]">No exercises for this topic.</p>
+                ) : currentQ ? (
+                  <GlassCard hover={false} className="p-6">
+                    {/* Progress indicator */}
+                    <div className="mb-4 flex items-center justify-between text-xs font-semibold text-[var(--text-tertiary)]">
+                      <span>
+                        Level {selectedLevelIdx + 1} · Question {currentQIdx + 1} of {currentLevelQuestions.length}
+                      </span>
+                      <span>Score: {levelScore}</span>
+                    </div>
+
+                    <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                      <motion.div
+                        className="h-full bg-[var(--accent)]"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${((currentQIdx + 1) / currentLevelQuestions.length) * 100}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </div>
+
+                    {/* Question Text */}
+                    <div className="mb-6">
+                      <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] leading-snug">
+                        {currentQ.q}
+                      </h3>
+                    </div>
+
+                    {/* Options Grid */}
+                    <div className="grid gap-3">
+                      {currentQ.options.map((opt, optIdx) => {
+                        const isSelected = selectedOpt === optIdx;
+                        const isCorrectOpt = currentQ.answer === optIdx;
+
+                        let btnClass = 'border-[var(--border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]';
+
+                        if (isAnswerSubmitted) {
+                          if (isCorrectOpt) {
+                            btnClass = 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold';
+                          } else if (isSelected && !isCorrectOpt) {
+                            btnClass = 'border-red-500 bg-red-500/15 text-red-700 dark:text-red-400 font-bold';
+                          } else {
+                            btnClass = 'opacity-40 border-[var(--border)] bg-[var(--bg-secondary)]';
+                          }
+                        } else if (isSelected) {
+                          btnClass = 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)] font-bold';
+                        }
+
+                        return (
+                          <button
+                            key={optIdx}
+                            onClick={() => handleSelectOption(optIdx)}
+                            disabled={isAnswerSubmitted}
+                            className={`flex items-center justify-between rounded-xl border p-4 text-left text-sm transition-all ${btnClass}`}
+                          >
+                            <span>{opt}</span>
+                            {isAnswerSubmitted && isCorrectOpt && <CheckCircle2 size={18} className="text-emerald-500" />}
+                            {isAnswerSubmitted && isSelected && !isCorrectOpt && <XCircle size={18} className="text-red-500" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Explanation Box */}
+                    {isAnswerSubmitted && currentQ.explanation && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-4"
+                      >
+                        <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                          Explanation
+                        </p>
+                        <p className="mt-1 text-sm text-[var(--text-secondary)]">{currentQ.explanation}</p>
+                      </motion.div>
+                    )}
+
+                    {/* Action Bar */}
+                    <div className="mt-6 flex items-center justify-end gap-3">
+                      {!isAnswerSubmitted ? (
+                        <button
+                          onClick={handleCheckAnswer}
+                          disabled={selectedOpt === null}
+                          className="btn-primary disabled:opacity-50"
+                        >
+                          Check Answer
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleNextQuestion}
+                          className="btn-primary flex items-center gap-2"
+                        >
+                          <span>{currentQIdx < currentLevelQuestions.length - 1 ? 'Next Question' : 'Finish Level'}</span>
+                          <ChevronRight size={16} />
+                        </button>
+                      )}
+                    </div>
                   </GlassCard>
-                )}
+                ) : null}
               </>
             )}
+          </motion.div>
+        )}
+
+        {/* ═══ 5. SPEAKING DRILLS ═══ */}
+        {activeTab === 'speaking' && (
+          <motion.div
+            key="speaking"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-4"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+              Oral Fluency Prompts & Speaking Challenges
+            </p>
+
+            <div className="grid gap-3">
+              {chapter.speakingPrompts.map((prompt, idx) => (
+                <GlassCard key={idx} hover={false} className="flex items-start gap-4 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                    <Mic size={18} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-bold text-[var(--text-tertiary)]">Prompt #{idx + 1}</span>
+                    <p className="mt-1 text-sm font-semibold text-[var(--text-primary)] leading-relaxed">
+                      {prompt}
+                    </p>
+                  </div>
+                </GlassCard>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ═══ 6. AI TUTOR ═══ */}
+        {activeTab === 'ai' && (
+          <motion.div
+            key="ai"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
+            <div className="rounded-2xl border-2 border-purple-500/30 bg-purple-500/5 p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500 text-white shadow-lg shadow-purple-500/25">
+                  <Sparkles size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-[var(--text-primary)]">Interactive AI Tutor Drill</h3>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Practice this exact chapter interactively with conversational corrections and custom pedagogical drills.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
+                    Pedagogical Drill Prompt
+                  </span>
+                  <button
+                    onClick={handleCopyAiPrompt}
+                    className="flex items-center gap-1 text-xs font-bold text-[var(--accent)] hover:underline"
+                  >
+                    {copiedPrompt ? <CheckCheck size={14} /> : <Copy size={14} />}
+                    <span>{copiedPrompt ? 'Copied!' : 'Copy Prompt'}</span>
+                  </button>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)] whitespace-pre-line leading-relaxed font-mono">
+                  {chapter.aiPrompt}
+                </p>
+              </div>
+
+              <div className="mt-5 flex justify-end">
+                <button
+                  onClick={handleLaunchChat}
+                  className="btn-primary flex items-center gap-2 text-sm font-bold"
+                >
+                  <MessageSquare size={16} />
+                  <span>Start AI Chat Session</span>
+                </button>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
