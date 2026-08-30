@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
-import { PageHeader } from '@/components/ui/page-header';
 import {
   Plus,
   Loader2,
@@ -25,7 +24,6 @@ import {
   ChevronUp,
   FolderPlus,
   BookMarked,
-  RotateCcw,
 } from 'lucide-react';
 import { sfx } from '@/lib/sounds';
 import { cn } from '@/lib/utils';
@@ -81,6 +79,7 @@ export default function VocabularyPage() {
   // Word Sets State
   const [sets, setSets] = useState<WordSet[]>([]);
   const [setsLoading, setSetsLoading] = useState(true);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newSetName, setNewSetName] = useState('');
   const [newSetWords, setNewSetWords] = useState('');
   const [creatingSet, setCreatingSet] = useState(false);
@@ -191,6 +190,7 @@ export default function VocabularyPage() {
 
       setNewSetName('');
       setNewSetWords('');
+      setIsCreateOpen(false);
       await fetchSets();
       await fetchWords();
     } catch {
@@ -323,20 +323,50 @@ export default function VocabularyPage() {
     );
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader
-        title="Vocabulary & Word Sets"
-        subtitle="Create custom word sets, manage vocabulary, skip duplicates automatically, and practice with flashcards."
-        action={
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-8 sm:px-6 lg:px-8">
+      {/* ─── Page Header ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
+            Vocabulary & Sets
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm font-medium text-[var(--text-secondary)]">
+            Create custom sets, enrich words with AI, and practice with flashcards.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5">
           <Link
             href="/vocabulary/book"
-            className="btn-duo-secondary px-4 py-2 text-xs sm:text-sm font-black flex items-center gap-2"
+            className="btn-duo-secondary py-2 px-3.5 text-xs sm:text-sm font-black flex items-center gap-2"
           >
             <BookMarked size={16} className="text-[var(--accent)]" />
             <span>Vocab Book</span>
           </Link>
-        }
-      />
+
+          {activeTab === 'sets' && (
+            <button
+              onClick={() => setIsCreateOpen((prev) => !prev)}
+              className={cn(
+                'py-2 px-3.5 text-xs sm:text-sm font-black flex items-center gap-2 transition-all',
+                isCreateOpen ? 'btn-duo-secondary' : 'btn-duo-primary'
+              )}
+            >
+              {isCreateOpen ? (
+                <>
+                  <X size={16} />
+                  <span>Close</span>
+                </>
+              ) : (
+                <>
+                  <Plus size={16} />
+                  <span>New Set</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* ─── Duolingo Segmented Navigation Switcher ─── */}
       <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl bg-[var(--bg-secondary)] p-1.5 border-2 border-[var(--border)] shadow-sm">
@@ -362,97 +392,138 @@ export default function VocabularyPage() {
           )}
         >
           <BookOpen size={16} />
-          <span>All Words Library ({words.length})</span>
+          <span>All Words ({words.length})</span>
         </button>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-6 sm:mt-8">
         {/* ════════════════════════════════════════════════════════════════════
             TAB 1: WORD SETS & CUSTOM LISTS
         ════════════════════════════════════════════════════════════════════ */}
         {activeTab === 'sets' && (
-          <div className="space-y-8">
-            {/* Create Word Set Form */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <GlassCard hover={false} className="p-6 border-2 border-[var(--accent)]/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent)]/15 text-[var(--accent)]">
-                      <FolderPlus size={22} />
+          <div className="space-y-6">
+            {/* Create Word Set Expandable Drawer */}
+            <AnimatePresence>
+              {isCreateOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, y: -8 }}
+                  animate={{ opacity: 1, height: 'auto', y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -8 }}
+                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="rounded-3xl border-2 border-[var(--accent)]/40 bg-[var(--bg-secondary)] p-5 sm:p-6 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--accent)]/15 text-[var(--accent)]">
+                          <FolderPlus size={20} />
+                        </div>
+                        <div>
+                          <h2 className="text-base font-extrabold text-[var(--text-primary)]">
+                            Create New Word Set
+                          </h2>
+                          <p className="text-xs text-[var(--text-tertiary)]">
+                            Comma-separated words are enriched with articles, plural forms & examples
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsCreateOpen(false)}
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                      >
+                        <X size={16} />
+                      </button>
                     </div>
-                    <div>
-                      <h2 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
-                        Create New Word Set
-                      </h2>
-                      <p className="text-xs text-[var(--text-tertiary)]">
-                        Enter comma-separated words. Repeated words will be skipped automatically.
-                      </p>
-                    </div>
+
+                    <form onSubmit={handleCreateSet} className="mt-5 space-y-4">
+                      <div>
+                        <label className="block text-xs font-black text-[var(--text-secondary)]">
+                          Set Name (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={newSetName}
+                          onChange={(e) => setNewSetName(e.target.value)}
+                          placeholder="e.g. Travel & Airport, Daily Verbs, Office Vocab..."
+                          className="input-field mt-1.5 bg-[var(--bg-primary)] font-medium"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-black text-[var(--text-secondary)]">
+                          German Words (Comma or newline separated)
+                        </label>
+                        <textarea
+                          value={newSetWords}
+                          onChange={(e) => setNewSetWords(e.target.value)}
+                          placeholder="e.g. der Apfel, das Buch, laufen, schön, trinken, der Tisch, reisen, pünktlich"
+                          rows={3}
+                          className="input-field mt-1.5 min-h-[90px] w-full resize-y bg-[var(--bg-primary)] text-sm font-medium leading-relaxed"
+                          required
+                          disabled={creatingSet}
+                        />
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                        <span className="text-[11px] font-semibold text-[var(--text-tertiary)]">
+                          ✨ Duplicates in your input or library are automatically skipped.
+                        </span>
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          <button
+                            type="button"
+                            onClick={() => setIsCreateOpen(false)}
+                            className="btn-duo-secondary px-4 py-2.5 text-xs font-black"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={creatingSet || !newSetWords.trim()}
+                            className="btn-duo-primary px-5 py-2.5 text-xs sm:text-sm font-black flex items-center gap-2"
+                          >
+                            {creatingSet ? (
+                              <>
+                                <Loader2 size={15} className="animate-spin" />
+                                <span>Enriching & Creating...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles size={15} />
+                                <span>Create Set</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Compact Trigger Button when drawer is closed and sets exist */}
+            {!isCreateOpen && sets.length > 0 && (
+              <button
+                onClick={() => setIsCreateOpen(true)}
+                className="w-full flex items-center justify-between p-4 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--bg-secondary)]/40 hover:border-[var(--accent)]/60 hover:bg-[var(--bg-secondary)] transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] group-hover:scale-105 transition-transform">
+                    <Plus size={18} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-extrabold text-[var(--text-primary)]">Create Another Word Set</p>
+                    <p className="text-[11px] text-[var(--text-tertiary)]">Add comma-separated words with AI auto-enrichment</p>
                   </div>
                 </div>
-
-                <form onSubmit={handleCreateSet} className="mt-5 space-y-4">
-                  <div>
-                    <label className="text-xs font-black text-[var(--text-secondary)] uppercase tracking-wider">
-                      Set Name / Title
-                    </label>
-                    <input
-                      type="text"
-                      value={newSetName}
-                      onChange={(e) => setNewSetName(e.target.value)}
-                      placeholder="e.g. Travel & Airport, Office Vocab, Daily Verbs..."
-                      className="input-field mt-1.5 bg-[var(--bg-secondary)] font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-black text-[var(--text-secondary)] uppercase tracking-wider flex items-center justify-between">
-                      <span>Comma-Separated German Words</span>
-                      <span className="text-[11px] font-medium text-[var(--text-tertiary)] normal-case">
-                        Auto-enrich: gender, plural, conjugations, examples
-                      </span>
-                    </label>
-                    <textarea
-                      value={newSetWords}
-                      onChange={(e) => setNewSetWords(e.target.value)}
-                      placeholder="e.g. der Apfel, das Buch, laufen, schön, trinken, der Tisch, reisen, pünktlich"
-                      rows={3}
-                      className="input-field mt-1.5 min-h-[90px] w-full resize-y bg-[var(--bg-secondary)] font-mono text-xs sm:text-sm"
-                      required
-                      disabled={creatingSet}
-                    />
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
-                    <p className="text-xs font-medium text-[var(--text-tertiary)]">
-                      💡 Duplicates in your input or existing vocabulary are automatically filtered out.
-                    </p>
-
-                    <button
-                      type="submit"
-                      disabled={creatingSet || !newSetWords.trim()}
-                      className="btn-duo-primary px-6 py-3 text-xs sm:text-sm font-black flex items-center justify-center gap-2"
-                    >
-                      {creatingSet ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" />
-                          <span>Enriching & Creating...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles size={16} />
-                          <span>Create Set</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </GlassCard>
-            </motion.div>
+                <span className="btn-duo-primary text-xs py-1.5 px-3 font-black">
+                  + New Set
+                </span>
+              </button>
+            )}
 
             {/* Word Sets List */}
             <div className="space-y-4">
@@ -471,12 +542,21 @@ export default function VocabularyPage() {
                   <p className="mt-3 text-xs font-bold text-[var(--text-secondary)]">Loading word sets...</p>
                 </div>
               ) : sets.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-[var(--border)] py-16 text-center">
-                  <Layers size={36} className="mx-auto text-[var(--text-tertiary)] opacity-60" />
-                  <h4 className="mt-3 text-base font-bold text-[var(--text-primary)]">No word sets created yet</h4>
-                  <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-                    Enter comma-separated words above to create your first custom set!
+                <div className="rounded-3xl border-2 border-dashed border-[var(--border)] bg-[var(--bg-secondary)]/40 p-8 sm:p-12 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                    <Layers size={28} />
+                  </div>
+                  <h4 className="mt-4 text-lg font-black text-[var(--text-primary)]">No word sets yet</h4>
+                  <p className="mt-1 max-w-sm mx-auto text-xs sm:text-sm font-medium text-[var(--text-secondary)]">
+                    Create custom word sets from any list of German words and practice with interactive 3D flashcards.
                   </p>
+                  <button
+                    onClick={() => setIsCreateOpen(true)}
+                    className="btn-duo-primary mt-6 px-6 py-3 text-sm font-black inline-flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    <span>Create First Word Set</span>
+                  </button>
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -488,7 +568,7 @@ export default function VocabularyPage() {
                     return (
                       <div
                         key={set.id}
-                        className="flex flex-col justify-between p-5 rounded-3xl border-2 border-[var(--border)] bg-[var(--bg-secondary)] shadow-md hover:shadow-lg transition-shadow relative overflow-hidden"
+                        className="flex flex-col justify-between p-5 rounded-3xl border-2 border-[var(--border)] bg-[var(--bg-secondary)] shadow-sm hover:shadow-md transition-shadow relative overflow-hidden"
                       >
                         <div>
                           {/* Set Header */}
@@ -595,7 +675,7 @@ export default function VocabularyPage() {
                                   onChange={(e) => setMoreWordsInput(e.target.value)}
                                   placeholder="e.g. der Strand, die Sonne, schwimmen"
                                   rows={2}
-                                  className="input-field mt-1 w-full bg-[var(--bg-primary)] text-xs font-mono"
+                                  className="input-field mt-1 w-full bg-[var(--bg-primary)] text-xs font-medium"
                                   disabled={addingWordsLoading}
                                 />
                                 <div className="mt-2 flex justify-end gap-2">
@@ -693,7 +773,7 @@ export default function VocabularyPage() {
                             className="btn-duo-primary text-xs font-black py-2 px-4 flex items-center gap-1.5"
                           >
                             <Brain size={14} />
-                            <span>Practice Set</span>
+                            <span>Practice</span>
                           </Link>
                         </div>
                       </div>
@@ -709,7 +789,7 @@ export default function VocabularyPage() {
             TAB 2: ALL WORDS LIBRARY & DICTIONARY
         ════════════════════════════════════════════════════════════════════ */}
         {activeTab === 'library' && (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {libraryLoading ? (
               <div className="flex flex-col items-center justify-center py-20">
                 <Loader2 size={32} className="animate-spin text-[var(--accent)]" />
@@ -741,7 +821,7 @@ export default function VocabularyPage() {
                           key={opt.value}
                           onClick={() => setPosFilter(opt.value)}
                           className={cn(
-                            'px-3.5 py-1.5 text-xs font-black transition-all',
+                            'px-3.5 py-1.5 text-xs font-black transition-all rounded-xl',
                             posFilter === opt.value
                               ? 'btn-duo-primary shadow-none'
                               : 'btn-duo-secondary'
@@ -763,7 +843,7 @@ export default function VocabularyPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="rounded-3xl border border-dashed border-[var(--border)] py-16 text-center text-sm text-[var(--text-tertiary)] font-bold"
+                        className="rounded-3xl border-2 border-dashed border-[var(--border)] py-16 text-center text-sm text-[var(--text-tertiary)] font-bold"
                       >
                         {words.length === 0
                           ? 'No words yet. Create a Word Set to get started!'
