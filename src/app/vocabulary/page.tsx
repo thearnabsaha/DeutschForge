@@ -2,12 +2,32 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
-import { Plus, Loader2, Trash2, BookOpen, Search, Filter } from 'lucide-react';
+import {
+  Plus,
+  Loader2,
+  Trash2,
+  BookOpen,
+  Search,
+  Filter,
+  Layers,
+  Sparkles,
+  Pencil,
+  Volume2,
+  Check,
+  X,
+  Brain,
+  ChevronDown,
+  ChevronUp,
+  FolderPlus,
+  BookMarked,
+} from 'lucide-react';
 import { sfx } from '@/lib/sounds';
+import { cn } from '@/lib/utils';
 
 interface UserWord {
   id: string;
@@ -19,8 +39,21 @@ interface UserWord {
   meaning: string;
   cefrLevel: string;
   exampleSentence: string | null;
-  state: number;
-  stability: number;
+  learned?: boolean;
+  state?: number;
+  stability?: number;
+  batchId?: string | null;
+}
+
+interface WordSet {
+  id: string;
+  name: string;
+  wordCount: number;
+  learnedCount: number;
+  practiceUnlocked: boolean;
+  examUnlocked: boolean;
+  createdAt: string;
+  words: UserWord[];
 }
 
 interface Analytics {
@@ -42,16 +75,60 @@ const POS_OPTIONS = [
 ];
 
 export default function VocabularyPage() {
+  const [activeTab, setActiveTab] = useState<'sets' | 'library'>('sets');
+
+  // Word Sets State
+  const [sets, setSets] = useState<WordSet[]>([]);
+  const [setsLoading, setSetsLoading] = useState(true);
+  const [newSetName, setNewSetName] = useState('');
+  const [newSetWords, setNewSetWords] = useState('');
+  const [creatingSet, setCreatingSet] = useState(false);
+
+  // Set Actions State
+  const [editingSetId, setEditingSetId] = useState<string | null>(null);
+  const [editSetName, setEditSetName] = useState('');
+  const [addingWordsSetId, setAddingWordsSetId] = useState<string | null>(null);
+  const [moreWordsInput, setMoreWordsInput] = useState('');
+  const [addingWordsLoading, setAddingWordsLoading] = useState(false);
+  const [expandedSetId, setExpandedSetId] = useState<string | null>(null);
+
+  // All Words Library State
   const [words, setWords] = useState<UserWord[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [wordsInput, setWordsInput] = useState('');
+  const [libraryLoading, setLibraryLoading] = useState(true);
   const [posFilter, setPosFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Pronounce TTS
+  const speak = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'de-DE';
+      u.rate = 0.85;
+      window.speechSynthesis.speak(u);
+    } catch {}
+  }, []);
+
+  // Fetch Word Sets
+  const fetchSets = useCallback(async () => {
+    setSetsLoading(true);
+    try {
+      const res = await fetch('/api/vocabulary/sets');
+      const data = await res.json();
+      setSets(data.sets || []);
+    } catch {
+      setSets([]);
+      toast.error('Failed to load word sets');
+    } finally {
+      setSetsLoading(false);
+    }
+  }, []);
+
+  // Fetch All Words
   const fetchWords = useCallback(async () => {
-    setLoading(true);
+    setLibraryLoading(true);
     try {
       const res = await fetch('/api/vocabulary');
       const data = await res.json();
@@ -62,65 +139,171 @@ export default function VocabularyPage() {
       setAnalytics(null);
       toast.error('Failed to load vocabulary');
     } finally {
-      setLoading(false);
+      setLibraryLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    fetchSets();
     fetchWords();
-  }, [fetchWords]);
+  }, [fetchSets, fetchWords]);
 
-  const handleUpload = async () => {
-    const trimmed = wordsInput.trim();
-    if (!trimmed) {
+  // Create New Word Set
+  const handleCreateSet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedWords = newSetWords.trim();
+    if (!trimmedWords) {
       toast.error('Please enter at least one word');
       return;
     }
-    setUploading(true);
 
-    const wordCount = trimmed.split(/[\n,]+/).filter((w) => w.trim()).length;
-    const toastId = wordCount > 15
-      ? toast.loading(`Enriching ${wordCount} words... This may take a moment.`)
-      : undefined;
+    setCreatingSet(true);
+    const wordCount = trimmedWords.split(/[\n,;]+/).filter((w) => w.trim()).length;
+    const toastId = toast.loading(`Enriching ${wordCount} word(s) with German grammar & meanings...`);
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 150_000);
+      const timeout = setTimeout(() => controller.abort(), 120_000);
 
-      const res = await fetch('/api/vocabulary/upload', {
+      const res = await fetch('/api/vocabulary/sets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ words: trimmed }),
+        body: JSON.stringify({
+          name: newSetName.trim() || undefined,
+          words: trimmedWords,
+        }),
         signal: controller.signal,
       });
       clearTimeout(timeout);
 
       const data = await res.json();
-      if (toastId) toast.dismiss(toastId);
+      toast.dismiss(toastId);
 
       if (!res.ok) {
-        toast.error(data.error || 'Upload failed');
+        toast.error(data.error || 'Failed to create word set');
         return;
       }
+
       sfx.streak();
-      const skippedMsg = data.skipped ? ` (${data.skipped} duplicate${data.skipped !== 1 ? 's' : ''} skipped)` : '';
-      toast.success(`Added ${data.count} word${data.count !== 1 ? 's' : ''}${skippedMsg}`);
-      setWordsInput('');
+      const skippedMsg = data.skippedCount > 0 ? ` (${data.skippedCount} duplicate word${data.skippedCount !== 1 ? 's' : ''} skipped)` : '';
+      toast.success(`Created set with ${data.addedCount} new word${data.addedCount !== 1 ? 's' : ''}${skippedMsg}!`);
+
+      setNewSetName('');
+      setNewSetWords('');
+      await fetchSets();
       await fetchWords();
     } catch {
-      if (toastId) toast.dismiss(toastId);
-      toast.error('Upload failed -- try fewer words at once if it times out');
+      toast.dismiss(toastId);
+      toast.error('Failed to create set (request timed out or failed)');
     } finally {
-      setUploading(false);
+      setCreatingSet(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  // Rename Word Set
+  const handleRenameSet = async (setId: string) => {
+    if (!editSetName.trim()) return;
+    try {
+      const res = await fetch(`/api/vocabulary/sets/${setId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editSetName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to rename set');
+        return;
+      }
+      toast.success('Word set renamed!');
+      setEditingSetId(null);
+      setEditSetName('');
+      await fetchSets();
+    } catch {
+      toast.error('Failed to rename set');
+    }
+  };
+
+  // Delete Word Set
+  const handleDeleteSet = async (setId: string, setName: string) => {
+    if (!confirm(`Are you sure you want to delete the set "${setName}" and its words?`)) return;
+    try {
+      const res = await fetch(`/api/vocabulary/sets/${setId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        toast.error('Failed to delete set');
+        return;
+      }
+      toast.success(`Deleted set "${setName}"`);
+      await fetchSets();
+      await fetchWords();
+    } catch {
+      toast.error('Failed to delete set');
+    }
+  };
+
+  // Add More Words to Existing Set
+  const handleAddMoreWords = async (setId: string) => {
+    const trimmed = moreWordsInput.trim();
+    if (!trimmed) {
+      toast.error('Please enter words to add');
+      return;
+    }
+    setAddingWordsLoading(true);
+    const toastId = toast.loading('Enriching and adding words to set...');
+
+    try {
+      const res = await fetch(`/api/vocabulary/sets/${setId}/words`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ words: trimmed }),
+      });
+      const data = await res.json();
+      toast.dismiss(toastId);
+
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to add words');
+        return;
+      }
+
+      sfx.correct();
+      const skippedMsg = data.skippedCount > 0 ? ` (${data.skippedCount} duplicate word${data.skippedCount !== 1 ? 's' : ''} skipped)` : '';
+      toast.success(`Added ${data.addedCount} new word${data.addedCount !== 1 ? 's' : ''}${skippedMsg}!`);
+
+      setMoreWordsInput('');
+      setAddingWordsSetId(null);
+      await fetchSets();
+      await fetchWords();
+    } catch {
+      toast.dismiss(toastId);
+      toast.error('Failed to add words to set');
+    } finally {
+      setAddingWordsLoading(false);
+    }
+  };
+
+  // Delete Individual Word from Set
+  const handleDeleteWordFromSet = async (setId: string, wordId: string, wordText: string) => {
+    try {
+      const res = await fetch(`/api/vocabulary/sets/${setId}/words/${wordId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        toast.error('Failed to remove word');
+        return;
+      }
+      toast.success(`Removed "${wordText}" from set`);
+      await fetchSets();
+      await fetchWords();
+    } catch {
+      toast.error('Failed to remove word');
+    }
+  };
+
+  // Delete Word from General Library
+  const handleDeleteGeneralWord = async (id: string) => {
     try {
       const res = await fetch(`/api/vocabulary?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('Word removed');
         await fetchWords();
+        await fetchSets();
       } else {
         toast.error('Failed to delete word');
       }
@@ -138,218 +321,514 @@ export default function VocabularyPage() {
         w.meaning.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-  const analyticsRows = analytics
-    ? [
-        { label: 'Total Words Learned', count: analytics.totalWords },
-        { label: 'Nouns', count: analytics.byPartOfSpeech.noun },
-        { label: 'Verbs', count: analytics.byPartOfSpeech.verb },
-        { label: 'Adjectives', count: analytics.byPartOfSpeech.adjective },
-        { label: 'Prepositions', count: analytics.byPartOfSpeech.preposition },
-        { label: 'Conjunctions', count: analytics.byPartOfSpeech.conjunction },
-        { label: 'Masculine Nouns', count: analytics.byGender.masculine },
-        { label: 'Feminine Nouns', count: analytics.byGender.feminine },
-        { label: 'Neuter Nouns', count: analytics.byGender.neuter },
-      ]
-    : [];
-
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
-        title="Vocabulary"
-        subtitle="Build and manage your personal word library"
+        title="Vocabulary & Word Sets"
+        subtitle="Create custom word sets, manage vocabulary, skip duplicates automatically, and practice with flashcards."
+        action={
+          <Link
+            href="/vocabulary/book"
+            className="btn-3d btn-duo-secondary flex items-center gap-2 text-xs sm:text-sm font-bold"
+          >
+            <BookMarked size={16} />
+            <span>Vocab Book</span>
+          </Link>
+        }
       />
 
-      {/* A. Upload Section */}
-      <motion.section
-        className="mt-8"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <GlassCard hover={false}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Plus size={18} className="text-[var(--accent)]" />
-              <h2 className="text-base font-semibold">Add Words</h2>
-            </div>
-            <a 
-              href="/vocabulary/book" 
-              className="text-sm flex items-center gap-1 font-medium text-[var(--accent)] hover:underline"
+      {/* ─── Navigation Switcher Tabs ─── */}
+      <div className="mt-6 flex gap-2 rounded-2xl bg-[var(--bg-secondary)] p-1.5 border border-[var(--border)]">
+        <button
+          onClick={() => setActiveTab('sets')}
+          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            activeTab === 'sets'
+              ? 'bg-[var(--accent)] text-white shadow-md'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+          }`}
+        >
+          <Layers size={16} />
+          <span>Word Sets ({sets.length})</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('library')}
+          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            activeTab === 'library'
+              ? 'bg-[var(--accent)] text-white shadow-md'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+          }`}
+        >
+          <BookOpen size={16} />
+          <span>All Words Library ({words.length})</span>
+        </button>
+      </div>
+
+      <div className="mt-8">
+        {/* ════════════════════════════════════════════════════════════════════
+            TAB 1: WORD SETS & CUSTOM LISTS
+        ════════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'sets' && (
+          <div className="space-y-8">
+            {/* Create Word Set Form */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
             >
-              <BookOpen size={16} />
-              Browse Vocab Book
-            </a>
-          </div>
-          <textarea
-            value={wordsInput}
-            onChange={(e) => setWordsInput(e.target.value)}
-            placeholder="Enter German words, one per line or comma-separated. You can add 100+ words at once!&#10;&#10;Example:&#10;Hund, Katze, Frau&#10;laufen&#10;schön"
-            className="mt-4 min-h-[180px] w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-            disabled={uploading}
-          />
-          <motion.button
-            className="btn-primary mt-4 flex items-center gap-2"
-            onClick={handleUpload}
-            disabled={uploading}
-            whileHover={!uploading ? { scale: 1.02 } : undefined}
-            whileTap={!uploading ? { scale: 0.98 } : undefined}
-          >
-            {uploading ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                Enriching...
-              </>
-            ) : (
-              <>
-                <Plus size={18} />
-                Enrich & Add
-              </>
-            )}
-          </motion.button>
-        </GlassCard>
-      </motion.section>
-
-      {/* B. Word Library */}
-      <motion.section
-        className="mt-10"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <div className="flex items-center gap-2">
-          <BookOpen size={18} className="text-[var(--accent)]" />
-          <h2 className="text-base font-semibold">Word Library</h2>
-        </div>
-
-        {loading ? (
-          <div className="mt-6 flex flex-col items-center justify-center py-20">
-            <Loader2 size={32} className="animate-spin text-[var(--accent)]" />
-            <p className="mt-4 text-sm text-[var(--text-secondary)]">Loading vocabulary...</p>
-          </div>
-        ) : (
-          <>
-            {/* Analytics Cards */}
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {analyticsRows.map((row, i) => (
-                <motion.div
-                  key={row.label}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <GlassCard className="flex items-center justify-between" hover={false}>
-                    <span className="text-sm text-[var(--text-secondary)]">{row.label}</span>
-                    <span className="text-xl font-semibold text-[var(--text-primary)]">
-                      {row.count}
-                    </span>
-                  </GlassCard>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Filter + Word List */}
-            <div className="mt-8">
-              <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="relative flex-1 sm:max-w-xs">
-                  <Search
-                    size={16}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search words or meanings..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] py-2 pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                  />
+              <GlassCard hover={false} className="p-6 border-2 border-[var(--accent)]/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent)]/15 text-[var(--accent)]">
+                      <FolderPlus size={22} />
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
+                        Create New Word Set
+                      </h2>
+                      <p className="text-xs text-[var(--text-tertiary)]">
+                        Enter comma-separated words. Repeated words will be skipped automatically.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Filter size={16} className="text-[var(--text-tertiary)]" />
-                  <span className="text-sm text-[var(--text-secondary)]">Part of speech:</span>
-                  {POS_OPTIONS.map((opt) => (
+
+                <form onSubmit={handleCreateSet} className="mt-5 space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-[var(--text-secondary)]">
+                      Set Name / Title
+                    </label>
+                    <input
+                      type="text"
+                      value={newSetName}
+                      onChange={(e) => setNewSetName(e.target.value)}
+                      placeholder="e.g. Travel & Airport, Office Vocab, Daily Verbs..."
+                      className="input-field mt-1.5 bg-[var(--bg-secondary)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] flex items-center justify-between">
+                      <span>Comma-Separated German Words</span>
+                      <span className="text-[11px] font-medium text-[var(--text-tertiary)]">
+                        Auto-enrich: gender, plural, conjugations, examples
+                      </span>
+                    </label>
+                    <textarea
+                      value={newSetWords}
+                      onChange={(e) => setNewSetWords(e.target.value)}
+                      placeholder="e.g. der Apfel, das Buch, laufen, schön, trinken, der Tisch, reisen, pünktlich"
+                      rows={3}
+                      className="input-field mt-1.5 min-h-[90px] w-full resize-y bg-[var(--bg-secondary)] font-mono text-xs sm:text-sm"
+                      required
+                      disabled={creatingSet}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <p className="text-xs font-medium text-[var(--text-tertiary)]">
+                      💡 Duplicates in your input or existing vocabulary are automatically filtered out.
+                    </p>
+
                     <button
-                      key={opt.value}
-                      onClick={() => setPosFilter(opt.value)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                        posFilter === opt.value
-                          ? 'bg-[var(--accent)] text-white'
-                          : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border)]'
-                      }`}
+                      type="submit"
+                      disabled={creatingSet || !newSetWords.trim()}
+                      className="btn-3d btn-duo-primary flex items-center gap-2 text-xs sm:text-sm font-bold px-5 py-2.5 disabled:opacity-50"
                     >
-                      {opt.label}
+                      {creatingSet ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          <span>Enriching & Creating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={16} />
+                          <span>Create Set</span>
+                        </>
+                      )}
                     </button>
-                  ))}
+                  </div>
+                </form>
+              </GlassCard>
+            </motion.div>
+
+            {/* Word Sets List */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-black text-[var(--text-primary)]">Your Word Sets</h3>
+                  <p className="text-xs text-[var(--text-tertiary)]">
+                    Rename, add words, delete sets, or start 3D flashcard practice
+                  </p>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <AnimatePresence mode="popLayout">
-                  {filteredWords.length === 0 ? (
-                    <motion.div
-                      key="empty"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="rounded-2xl border border-dashed border-[var(--border)] py-12 text-center text-sm text-[var(--text-tertiary)]"
-                    >
-                      {words.length === 0
-                        ? 'No words yet. Add some German words above to get started!'
-                        : `No ${posFilter === 'all' ? '' : posFilter + ' '}words match the filter.`}
-                    </motion.div>
-                  ) : (
-                    filteredWords.map((word, idx) => (
-                      <motion.div
-                        key={word.id}
-                        layout
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ delay: idx * 0.02 }}
+              {setsLoading ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <Loader2 size={32} className="animate-spin text-[var(--accent)]" />
+                  <p className="mt-3 text-xs font-bold text-[var(--text-secondary)]">Loading word sets...</p>
+                </div>
+              ) : sets.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-[var(--border)] py-16 text-center">
+                  <Layers size={36} className="mx-auto text-[var(--text-tertiary)] opacity-60" />
+                  <h4 className="mt-3 text-base font-bold text-[var(--text-primary)]">No word sets created yet</h4>
+                  <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                    Enter comma-separated words above to create your first custom set!
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {sets.map((set) => {
+                    const isEditing = editingSetId === set.id;
+                    const isAddingWords = addingWordsSetId === set.id;
+                    const isExpanded = expandedSetId === set.id;
+
+                    return (
+                      <GlassCard
+                        key={set.id}
+                        hover={false}
+                        className="btn-3d flex flex-col justify-between p-5 border border-[var(--border)] bg-[var(--bg-secondary)] relative overflow-hidden"
                       >
-                        <GlassCard className="group relative">
-                          <div className="flex items-start justify-between gap-4">
+                        <div>
+                          {/* Set Header */}
+                          <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-lg font-semibold text-[var(--text-primary)]">
-                                  {word.word}
-                                </span>
-                                <Badge>{word.partOfSpeech}</Badge>
-                                {word.gender && (
-                                  <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                    {word.gender}
-                                  </Badge>
-                                )}
-                                <Badge variant="level" level={word.cefrLevel}>
-                                  {word.cefrLevel}
-                                </Badge>
-                              </div>
-                              <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                                {word.meaning}
-                              </p>
-                              {word.exampleSentence && (
-                                <p className="mt-2 text-sm italic text-[var(--text-tertiary)]">
-                                  „{word.exampleSentence}"
-                                </p>
+                              {isEditing ? (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={editSetName}
+                                    onChange={(e) => setEditSetName(e.target.value)}
+                                    className="input-field py-1 px-2 text-sm font-bold bg-[var(--bg-primary)]"
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={() => handleRenameSet(set.id)}
+                                    className="btn-3d btn-duo-primary p-1.5 rounded-lg"
+                                    title="Save name"
+                                  >
+                                    <Check size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingSetId(null)}
+                                    className="btn-3d btn-duo-secondary p-1.5 rounded-lg"
+                                    title="Cancel"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-base font-extrabold text-[var(--text-primary)] truncate">
+                                    {set.name}
+                                  </h4>
+                                  <button
+                                    onClick={() => {
+                                      setEditingSetId(set.id);
+                                      setEditSetName(set.name);
+                                    }}
+                                    className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors p-1"
+                                    title="Rename set"
+                                  >
+                                    <Pencil size={14} />
+                                  </button>
+                                </div>
                               )}
+
+                              <p className="mt-0.5 text-xs font-medium text-[var(--text-tertiary)]">
+                                {set.wordCount} words · {set.learnedCount} learned
+                              </p>
                             </div>
+
+                            {/* Delete Set Button */}
                             <button
-                              onClick={() => handleDelete(word.id)}
-                              className="flex-shrink-0 rounded-lg p-2 text-[var(--text-tertiary)] opacity-60 transition-opacity hover:bg-red-500/10 hover:text-red-500 hover:opacity-100"
-                              aria-label="Delete word"
+                              onClick={() => handleDeleteSet(set.id, set.name)}
+                              className="rounded-lg p-1.5 text-[var(--text-tertiary)] hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                              title="Delete set"
                             >
-                              <Trash2 size={18} />
+                              <Trash2 size={16} />
                             </button>
                           </div>
-                        </GlassCard>
-                      </motion.div>
-                    ))
-                  )}
-                </AnimatePresence>
-              </div>
+
+                          {/* Progress Bar */}
+                          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)] border border-[var(--border)]">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[#5856D6] transition-all"
+                              style={{
+                                width: `${set.wordCount > 0 ? (set.learnedCount / set.wordCount) * 100 : 0}%`,
+                              }}
+                            />
+                          </div>
+
+                          {/* Words Preview Chips */}
+                          <div className="mt-3 flex flex-wrap gap-1.5 max-h-16 overflow-hidden">
+                            {set.words.slice(0, 6).map((w) => (
+                              <span
+                                key={w.id}
+                                className="rounded-lg bg-[var(--bg-primary)] px-2 py-0.5 text-[11px] font-bold text-[var(--text-secondary)] border border-[var(--border)]"
+                              >
+                                {w.word}
+                              </span>
+                            ))}
+                            {set.words.length > 6 && (
+                              <span className="rounded-lg bg-[var(--bg-tertiary)] px-2 py-0.5 text-[11px] font-bold text-[var(--text-tertiary)]">
+                                +{set.words.length - 6} more
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Add More Words Form (Expandable) */}
+                          <AnimatePresence>
+                            {isAddingWords && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mt-4 border-t border-[var(--border)] pt-3"
+                              >
+                                <label className="text-[11px] font-bold text-[var(--text-secondary)]">
+                                  Add comma-separated words to this set:
+                                </label>
+                                <textarea
+                                  value={moreWordsInput}
+                                  onChange={(e) => setMoreWordsInput(e.target.value)}
+                                  placeholder="e.g. der Strand, die Sonne, schwimmen"
+                                  rows={2}
+                                  className="input-field mt-1 w-full bg-[var(--bg-primary)] text-xs font-mono"
+                                  disabled={addingWordsLoading}
+                                />
+                                <div className="mt-2 flex justify-end gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setAddingWordsSetId(null);
+                                      setMoreWordsInput('');
+                                    }}
+                                    className="btn-3d btn-duo-secondary text-xs py-1.5 px-3"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => handleAddMoreWords(set.id)}
+                                    disabled={addingWordsLoading || !moreWordsInput.trim()}
+                                    className="btn-3d btn-duo-primary text-xs py-1.5 px-3"
+                                  >
+                                    {addingWordsLoading ? 'Enriching...' : 'Add Words'}
+                                  </button>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
+                          {/* Word Inspector Table (Expandable) */}
+                          <AnimatePresence>
+                            {isExpanded && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mt-4 border-t border-[var(--border)] pt-3 space-y-2 max-h-64 overflow-y-auto"
+                              >
+                                <p className="text-[11px] font-black uppercase tracking-wider text-[var(--text-tertiary)]">
+                                  Words in this set ({set.words.length}):
+                                </p>
+                                {set.words.map((w) => (
+                                  <div
+                                    key={w.id}
+                                    className="flex items-center justify-between rounded-xl bg-[var(--bg-primary)] p-2 border border-[var(--border)]"
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                      <button
+                                        onClick={() => speak(w.word)}
+                                        className="text-[var(--accent)] hover:opacity-80 p-1"
+                                        title="Speak"
+                                      >
+                                        <Volume2 size={14} />
+                                      </button>
+                                      <div className="min-w-0 flex-1 truncate">
+                                        <span className="font-bold text-xs text-[var(--text-primary)]">{w.word}</span>
+                                        <span className="mx-1 text-[var(--text-tertiary)]">·</span>
+                                        <span className="text-xs text-[var(--text-secondary)]">{w.meaning}</span>
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => handleDeleteWordFromSet(set.id, w.id, w.word)}
+                                      className="text-[var(--text-tertiary)] hover:text-red-500 p-1 transition-colors"
+                                      title="Remove from set"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Set Footer Actions */}
+                        <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-3">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setAddingWordsSetId(isAddingWords ? null : set.id);
+                                setMoreWordsInput('');
+                              }}
+                              className="btn-3d btn-duo-secondary text-xs font-bold py-1.5 px-2.5 flex items-center gap-1"
+                            >
+                              <Plus size={13} />
+                              <span>Add Words</span>
+                            </button>
+
+                            <button
+                              onClick={() => setExpandedSetId(isExpanded ? null : set.id)}
+                              className="btn-3d btn-duo-secondary text-xs font-bold py-1.5 px-2.5 flex items-center gap-1"
+                            >
+                              {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                              <span>{isExpanded ? 'Hide' : 'Inspect'}</span>
+                            </button>
+                          </div>
+
+                          <Link
+                            href="/practice/words"
+                            className="btn-3d btn-duo-primary text-xs font-bold py-1.5 px-3.5 flex items-center gap-1.5"
+                          >
+                            <Brain size={14} />
+                            <span>Practice Set</span>
+                          </Link>
+                        </div>
+                      </GlassCard>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </>
+          </div>
         )}
-      </motion.section>
+
+        {/* ════════════════════════════════════════════════════════════════════
+            TAB 2: ALL WORDS LIBRARY & DICTIONARY
+        ════════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'library' && (
+          <div className="space-y-8">
+            {libraryLoading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 size={32} className="animate-spin text-[var(--accent)]" />
+                <p className="mt-4 text-sm text-[var(--text-secondary)]">Loading vocabulary library...</p>
+              </div>
+            ) : (
+              <>
+                {/* Search & Filter Bar */}
+                <GlassCard hover={false} className="p-4 sm:p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="relative flex-1 sm:max-w-md">
+                      <Search
+                        size={16}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Search German words or English meanings..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="input-field pl-10 bg-[var(--bg-secondary)]"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Filter size={15} className="text-[var(--text-tertiary)] mr-1" />
+                      {POS_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => setPosFilter(opt.value)}
+                          className={cn(
+                            'btn-3d rounded-xl px-3 py-1.5 text-xs font-bold transition-all border',
+                            posFilter === opt.value
+                              ? 'bg-[var(--accent)] text-white border-2 border-[var(--accent-hover)]'
+                              : 'bg-[var(--bg-secondary)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Word List */}
+                <div className="space-y-3">
+                  <AnimatePresence mode="popLayout">
+                    {filteredWords.length === 0 ? (
+                      <motion.div
+                        key="empty"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="rounded-3xl border border-dashed border-[var(--border)] py-16 text-center text-sm text-[var(--text-tertiary)] font-bold"
+                      >
+                        {words.length === 0
+                          ? 'No words yet. Create a Word Set to get started!'
+                          : `No words match your search or filter.`}
+                      </motion.div>
+                    ) : (
+                      filteredWords.map((word, idx) => (
+                        <motion.div
+                          key={word.id}
+                          layout
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          transition={{ delay: Math.min(idx * 0.015, 0.3) }}
+                        >
+                          <GlassCard className="btn-3d group relative p-4 sm:p-5 border border-[var(--border)]">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <button
+                                    onClick={() => speak(word.word)}
+                                    className="text-[var(--accent)] hover:opacity-80 p-0.5"
+                                    title="Pronounce"
+                                  >
+                                    <Volume2 size={18} />
+                                  </button>
+                                  <span className="text-lg font-black text-[var(--text-primary)]">
+                                    {word.word}
+                                  </span>
+                                  <Badge>{word.partOfSpeech}</Badge>
+                                  {word.gender && (
+                                    <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 font-bold">
+                                      {word.gender}
+                                    </Badge>
+                                  )}
+                                  <Badge variant="level" level={word.cefrLevel}>
+                                    {word.cefrLevel}
+                                  </Badge>
+                                </div>
+                                <p className="mt-1.5 text-sm font-bold text-[var(--text-secondary)]">
+                                  {word.meaning}
+                                </p>
+                                {word.exampleSentence && (
+                                  <p className="mt-1 text-xs italic text-[var(--text-tertiary)]">
+                                    „{word.exampleSentence}"
+                                  </p>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => handleDeleteGeneralWord(word.id)}
+                                className="flex-shrink-0 rounded-lg p-2 text-[var(--text-tertiary)] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                                aria-label="Delete word"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </GlassCard>
+                        </motion.div>
+                      ))
+                    )}
+                  </AnimatePresence>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
