@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { userWords, wordReviewLogs, grammarTopics, grammarAttempts, examAttempts, examSectionScores, aiInsights, conversationSessions, users } from '@/lib/schema';
-import { eq, and, gte, desc } from 'drizzle-orm';
+import { eq, and, gte, desc, inArray } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/get-user';
 
 export async function GET() {
@@ -38,17 +38,24 @@ export async function GET() {
     const todayReviews = await db.select().from(wordReviewLogs)
       .where(and(eq(wordReviewLogs.userId, userId), gte(wordReviewLogs.reviewedAt, today)));
 
-    // Calculate streak: count consecutive days with reviews
-    const allReviews = await db.select({ reviewedAt: wordReviewLogs.reviewedAt })
+    // Calculate streak: only look back 90 days max instead of loading all reviews
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    ninetyDaysAgo.setHours(0, 0, 0, 0);
+
+    const recentReviews = await db.select({ reviewedAt: wordReviewLogs.reviewedAt })
       .from(wordReviewLogs)
-      .where(eq(wordReviewLogs.userId, userId))
+      .where(and(
+        eq(wordReviewLogs.userId, userId),
+        gte(wordReviewLogs.reviewedAt, ninetyDaysAgo)
+      ))
       .orderBy(desc(wordReviewLogs.reviewedAt));
 
     let streak = 0;
-    if (allReviews.length > 0) {
+    if (recentReviews.length > 0) {
       const checkDate = new Date();
       checkDate.setHours(0, 0, 0, 0);
-      const reviewDates = new Set(allReviews.map(r => {
+      const reviewDates = new Set(recentReviews.map(r => {
         const d = new Date(r.reviewedAt);
         d.setHours(0, 0, 0, 0);
         return d.getTime();
@@ -72,17 +79,30 @@ export async function GET() {
     const completedTopicIds = new Set(allGrammarAttempts.filter(a => a.score / a.maxScore >= 0.6).map(a => a.topicId));
     const grammarCompletion = allTopics.length > 0 ? Math.round((completedTopicIds.size / allTopics.length) * 100) : 0;
 
-    // 4. Exam history
+    // 4. Exam history — batch-fetch sections to avoid N+1 queries
     const exams = await db.select().from(examAttempts)
       .where(eq(examAttempts.userId, userId))
       .orderBy(desc(examAttempts.startedAt))
       .limit(10);
 
-    const examHistory = [];
-    for (const exam of exams) {
-      const sections = await db.select().from(examSectionScores)
-        .where(eq(examSectionScores.attemptId, exam.id));
-      examHistory.push({ ...exam, sections });
+    let examHistory: Array<typeof exams[number] & { sections: any[] }> = [];
+    if (exams.length > 0) {
+      const examIds = exams.map(e => e.id);
+      const allSections = await db.select().from(examSectionScores)
+        .where(inArray(examSectionScores.attemptId, examIds));
+
+      // Group sections by attemptId
+      const sectionsByAttempt = new Map<string, typeof allSections>();
+      for (const section of allSections) {
+        const existing = sectionsByAttempt.get(section.attemptId) || [];
+        existing.push(section);
+        sectionsByAttempt.set(section.attemptId, existing);
+      }
+
+      examHistory = exams.map(exam => ({
+        ...exam,
+        sections: sectionsByAttempt.get(exam.id) || [],
+      }));
     }
 
     // 5. Latest insights

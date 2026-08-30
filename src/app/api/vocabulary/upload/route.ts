@@ -5,7 +5,9 @@ import { userWords, wordBatches } from '@/lib/schema';
 import { enrichWords } from '@/lib/groq';
 import { getCurrentUserId } from '@/lib/get-user';
 
-export const maxDuration = 120;
+// Vercel Hobby plan caps at 60s; Pro allows up to 300s.
+// Adjust if on a paid plan and large uploads need more time.
+export const maxDuration = 60;
 
 function parseWords(wordsString: string): string[] {
   const lines = wordsString.split(/\n+/).map((l) => l.trim()).filter(Boolean);

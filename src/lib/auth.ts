@@ -5,7 +5,10 @@ import { users } from './schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'deutschforge-secret-key-change-in-production');
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required. Generate one with: openssl rand -base64 32');
+}
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 export const COOKIE_NAME = 'df-session';
 
 export const COOKIE_OPTIONS = {
@@ -40,7 +43,7 @@ export async function createToken(user: SessionUser): Promise<string> {
 
 export async function getSession(): Promise<SessionUser | null> {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get(COOKIE_NAME)?.value;
     if (!token) return null;
 

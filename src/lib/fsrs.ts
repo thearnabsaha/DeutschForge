@@ -96,8 +96,9 @@ function nextForgetStability(
 }
 
 function nextInterval(stability: number): number {
-  const interval = (stability / FACTOR) * (Math.pow(0.9, 1 / DECAY) - 1);
-  return Math.max(Math.round(interval), 1);
+  // In FSRS, stability directly represents the expected interval in days
+  // (the original formula (stability / FACTOR) * FACTOR simplifies to stability)
+  return Math.max(Math.round(stability), 1);
 }
 
 export function scheduleReview(

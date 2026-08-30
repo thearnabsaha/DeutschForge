@@ -2,8 +2,11 @@ import Groq from 'groq-sdk';
 import {
   enrichedWordSchema,
   enrichedWordsResponseSchema,
+  enrichedExpressionSchema,
+  enrichedExpressionsResponseSchema,
   chatResponseSchema,
   type EnrichedWord,
+  type EnrichedExpression,
   type ChatResponse,
 } from './validations';
 
@@ -332,8 +335,7 @@ CRITICAL RULES:
 
 Return ONLY valid JSON matching this structure: { expressions: [{ expression, meaning (English translation/explanation), literal_translation (word-for-word English translation or null if same as meaning), register (formal/informal/neutral/colloquial/slang or null), cefr_level (A1/A2/B1/B2), example_sentence (simple German sentence using the expression), usage_note (when/how to use it, or null), category (greeting/farewell/polite/idiom/collocation/proverb/filler/connector/other) }] }`;
 
-function parseEnrichExpressionResponse(raw: string | null | undefined): import('./validations').EnrichedExpression[] {
-  const { enrichedExpressionsResponseSchema, enrichedExpressionSchema } = require('./validations');
+function parseEnrichExpressionResponse(raw: string | null | undefined): EnrichedExpression[] {
 
   if (!raw) {
     console.error('[enrichExpressions] Empty response from Groq');
@@ -355,7 +357,7 @@ function parseEnrichExpressionResponse(raw: string | null | undefined): import('
     if (result.success) return result.data.expressions;
 
     console.error('[enrichExpressions] Batch validation failed, trying individual...');
-    const salvaged: import('./validations').EnrichedExpression[] = [];
+    const salvaged: EnrichedExpression[] = [];
     for (const item of expressionsArray) {
       const single = enrichedExpressionSchema.safeParse(item);
       if (single.success) {
@@ -371,7 +373,7 @@ function parseEnrichExpressionResponse(raw: string | null | undefined): import('
   }
 }
 
-async function enrichExpressionBatch(expressions: string[]): Promise<import('./validations').EnrichedExpression[]> {
+async function enrichExpressionBatch(expressions: string[]): Promise<EnrichedExpression[]> {
   const list = expressions.map((e, i) => `${i + 1}. ${e}`).join('\n');
 
   const completion = await callGroq({
@@ -390,7 +392,7 @@ async function enrichExpressionBatch(expressions: string[]): Promise<import('./v
   return parseEnrichExpressionResponse(completion.choices[0]?.message?.content);
 }
 
-export async function enrichExpressions(expressions: string[]): Promise<import('./validations').EnrichedExpression[]> {
+export async function enrichExpressions(expressions: string[]): Promise<EnrichedExpression[]> {
   if (expressions.length <= ENRICH_BATCH_SIZE) {
     return enrichExpressionBatch(expressions);
   }
@@ -402,7 +404,7 @@ export async function enrichExpressions(expressions: string[]): Promise<import('
 
   console.log(`[enrichExpressions] Processing ${expressions.length} expressions in ${chunks.length} batches`);
 
-  const allResults: import('./validations').EnrichedExpression[] = [];
+  const allResults: EnrichedExpression[] = [];
 
   for (let i = 0; i < chunks.length; i += MAX_CONCURRENT_BATCHES) {
     const concurrentChunks = chunks.slice(i, i + MAX_CONCURRENT_BATCHES);
