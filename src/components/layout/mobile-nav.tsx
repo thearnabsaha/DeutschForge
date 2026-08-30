@@ -7,8 +7,7 @@ import {
   LayoutDashboard,
   Brain,
   BookOpen,
-  GraduationCap,
-  Settings,
+  LayoutGrid,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -16,8 +15,7 @@ const tabs = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { href: '/practice', label: 'Practice', icon: Brain },
   { href: '/vocabulary', label: 'Words', icon: BookOpen },
-  { href: '/exam', label: 'Exam', icon: GraduationCap },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/settings', label: 'More', icon: LayoutGrid },
 ];
 
 export function MobileNav() {
@@ -72,22 +70,42 @@ export function MobileNav() {
     >
       <div className="mx-auto flex h-14 max-w-lg items-stretch justify-around">
         {tabs.map((tab) => {
-          const isActive = pathname === tab.href || pathname.startsWith(tab.href + '/');
+          const isMore = tab.label === 'More';
+          const isMoreActive =
+            isMore &&
+            (pathname === '/settings' ||
+              pathname === '/vocabulary/book' ||
+              pathname.startsWith('/vocabulary/book/') ||
+              pathname === '/expressions' ||
+              pathname === '/grammar' ||
+              pathname.startsWith('/grammar/') ||
+              pathname === '/exam' ||
+              pathname.startsWith('/exam/') ||
+              pathname === '/progress' ||
+              pathname === '/chat' ||
+              pathname.startsWith('/chat/'));
+
+          const isActive =
+            pathname === tab.href ||
+            (tab.href === '/practice' && pathname.startsWith('/practice')) ||
+            (tab.href === '/vocabulary' && pathname === '/vocabulary') ||
+            isMoreActive;
+
           return (
             <Link
               key={tab.href}
               href={tab.href}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors',
+                'flex flex-1 flex-col items-center justify-center gap-1 transition-colors',
                 isActive
                   ? 'text-[var(--accent)]'
-                  : 'text-[var(--text-tertiary)]'
+                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
               )}
             >
-              <tab.icon size={22} strokeWidth={isActive ? 2.2 : 1.8} />
+              <tab.icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
               <span className={cn(
-                'text-[10px] font-medium leading-tight',
-                isActive && 'font-semibold'
+                'text-[11px] font-medium leading-tight',
+                isActive && 'font-black'
               )}>
                 {tab.label}
               </span>

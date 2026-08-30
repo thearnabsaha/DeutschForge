@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
+import Link from 'next/link';
 import {
   Save,
   Loader2,
@@ -26,8 +27,20 @@ import {
   Smartphone,
   Sparkles,
   TreePine,
+  BookOpen,
+  BookMarked,
+  MessageSquareQuote,
+  GraduationCap,
+  BarChart3,
+  MessageCircle,
+  Mic,
+  Headphones,
+  Brain,
+  ChevronRight,
+  Compass,
+  Sliders,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
 import { GlassCard } from '@/components/ui/glass-card';
 import { cn } from '@/lib/utils';
@@ -36,7 +49,18 @@ import { setMuted, isMuted } from '@/lib/sounds';
 import { useAuth } from '@/components/auth/auth-guard';
 
 const levels = ['A1', 'A2', 'B1', 'B2'] as const;
-type ThemeId = 'light' | 'dark' | 'system' | 'high-contrast' | 'minimal' | 'colorful' | 'dark-nord' | 'dark-warm' | 'amoled' | 'dark-duo' | 'dark-purple';
+type ThemeId =
+  | 'light'
+  | 'dark'
+  | 'system'
+  | 'high-contrast'
+  | 'minimal'
+  | 'colorful'
+  | 'dark-nord'
+  | 'dark-warm'
+  | 'amoled'
+  | 'dark-duo'
+  | 'dark-purple';
 
 const themes: Array<{
   id: ThemeId;
@@ -81,8 +105,90 @@ const resetConfig: Record<ResetType, { title: string; description: string; color
   },
 };
 
+const featureHubItems = [
+  {
+    title: 'Vocabulary Book',
+    desc: 'Browse CEFR A1-B2 chapters with words in full detail',
+    href: '/vocabulary/book',
+    icon: BookMarked,
+    color: 'text-indigo-500',
+    bg: 'bg-indigo-500/10',
+    border: 'border-indigo-500/25',
+    badge: 'Popular',
+  },
+  {
+    title: 'Grammar Masterclass',
+    desc: '64 structured chapters with 10-level practice drills',
+    href: '/grammar',
+    icon: Brain,
+    color: 'text-purple-500',
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/25',
+    badge: '64 Chapters',
+  },
+  {
+    title: 'Idioms & Expressions',
+    desc: 'Native German expressions, colloquial phrases & drills',
+    href: '/expressions',
+    icon: MessageSquareQuote,
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/25',
+  },
+  {
+    title: 'AI Conversation & Voice',
+    desc: 'Interactive chat & real-time spoken German practice',
+    href: '/chat',
+    icon: MessageCircle,
+    color: 'text-amber-500',
+    bg: 'bg-amber-500/10',
+    border: 'border-amber-500/25',
+  },
+  {
+    title: 'Goethe Exam Simulator',
+    desc: 'Full A1-B2 mock exams with Lesen, Hören, Schreiben, Sprechen',
+    href: '/exam',
+    icon: GraduationCap,
+    color: 'text-rose-500',
+    bg: 'bg-rose-500/10',
+    border: 'border-rose-500/25',
+  },
+  {
+    title: 'Analytics & Insights',
+    desc: 'Memory stability index, review streak & weakness analysis',
+    href: '/progress',
+    icon: BarChart3,
+    color: 'text-cyan-500',
+    bg: 'bg-cyan-500/10',
+    border: 'border-cyan-500/25',
+  },
+  {
+    title: 'Listening Practice Lab',
+    desc: 'Audio dialogues with native speed & comprehension quizzes',
+    href: '/practice/listening',
+    icon: Headphones,
+    color: 'text-teal-500',
+    bg: 'bg-teal-500/10',
+    border: 'border-teal-500/25',
+  },
+  {
+    title: 'Vocabulary Manager',
+    desc: 'Search, filter, manage, and upload custom word lists',
+    href: '/vocabulary',
+    icon: BookOpen,
+    color: 'text-blue-500',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/25',
+  },
+];
+
 export default function SettingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'preferences' ? 'preferences' : 'all';
+
+  const [activeSectionTab, setActiveSectionTab] = useState<'all' | 'explore' | 'preferences'>('all');
+
   const { setTheme } = useTheme();
   const { refresh } = useAuth();
   const [name, setName] = useState('Learner');
@@ -142,6 +248,7 @@ export default function SettingsPage() {
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+      toast.success('Settings saved!');
     } catch {
       toast.error('Failed to save');
     } finally {
@@ -202,15 +309,15 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 lg:px-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
-        title="Settings"
-        subtitle="Configure your learning experience"
+        title="More & Settings"
+        subtitle="Explore all features, vocabulary books, grammar masterclass, exams, and app preferences."
         action={
           <motion.button
             onClick={handleSave}
             disabled={saving}
-            className="btn-primary flex items-center gap-2"
+            className="btn-3d btn-duo-primary flex items-center gap-2"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -226,274 +333,358 @@ export default function SettingsPage() {
         }
       />
 
+      {/* ─── Navigation Switcher Tabs ─── */}
+      <div className="mt-6 flex gap-2 rounded-2xl bg-[var(--bg-secondary)] p-1.5 border border-[var(--border)]">
+        <button
+          onClick={() => setActiveSectionTab('all')}
+          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            activeSectionTab === 'all'
+              ? 'bg-[var(--accent)] text-white shadow-md'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+          }`}
+        >
+          <Compass size={16} />
+          <span>All Modules & Settings</span>
+        </button>
+        <button
+          onClick={() => setActiveSectionTab('explore')}
+          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            activeSectionTab === 'explore'
+              ? 'bg-[var(--accent)] text-white shadow-md'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+          }`}
+        >
+          <BookMarked size={16} />
+          <span>Explore Features</span>
+        </button>
+        <button
+          onClick={() => setActiveSectionTab('preferences')}
+          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            activeSectionTab === 'preferences'
+              ? 'bg-[var(--accent)] text-white shadow-md'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+          }`}
+        >
+          <Sliders size={16} />
+          <span>Preferences</span>
+        </button>
+      </div>
+
       <div className="mt-8 space-y-8">
-        {/* Profile */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <GlassCard hover={false}>
-            <h2 className="flex items-center gap-2 text-base font-semibold">
-              <User size={18} className="text-[var(--accent)]" />
-              Profile
-            </h2>
-
-            <div className="mt-6 space-y-5">
+        {/* ═══ 1. EXPLORE & FEATURE DIRECTORY HUB ═══ */}
+        {(activeSectionTab === 'all' || activeSectionTab === 'explore') && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="mb-4 flex items-center justify-between">
               <div>
-                <label className="text-xs font-medium text-[var(--text-secondary)]">
-                  Display Name
-                </label>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="input-field mt-2"
-                  placeholder="Your name"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-[var(--text-secondary)]">
-                  Target CEFR Level
-                </label>
-                <div className="mt-2 flex gap-2">
-                  {levels.map((l) => (
-                    <motion.button
-                      key={l}
-                      onClick={() => setTargetLevel(l)}
-                      className={cn(
-                        'rounded-xl px-5 py-2.5 text-sm font-medium transition-all',
-                        targetLevel === l
-                          ? 'bg-[var(--accent)] text-white shadow-md'
-                          : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-black/[0.04] dark:hover:bg-white/[0.04]'
-                      )}
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                    >
-                      {l}
-                    </motion.button>
-                  ))}
-                </div>
+                <h2 className="text-lg font-black text-[var(--text-primary)]">Explore & Learn Modules</h2>
+                <p className="text-xs text-[var(--text-tertiary)]">Quick navigation to all learning tracks and tools</p>
               </div>
             </div>
-          </GlassCard>
-        </motion.div>
 
-        {/* Theme */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.05 }}
-        >
-          <GlassCard hover={false}>
-            <h2 className="flex items-center gap-2 text-base font-semibold">
-              <Sun size={18} className="text-[var(--accent)]" />
-              Theme
-            </h2>
-
-            <div className="mt-6 space-y-6">
-              <div>
-                <p className="mb-3 text-xs font-medium uppercase tracking-wider text-[var(--text-tertiary)]">Light</p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {themes.filter((t) => t.group === 'light').map((t) => {
-                    const Icon = t.icon;
-                    const isActive = themeChoice === t.id;
-                    return (
-                      <motion.button
-                        key={t.id}
-                        onClick={() => handleThemeSelect(t.id)}
-                        className={cn(
-                          'flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-all',
-                          isActive
-                            ? 'border-[var(--accent)] bg-[var(--accent)]/5'
-                            : 'border-[var(--border)] hover:border-[var(--accent)]/50'
-                        )}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <div className={cn('h-10 w-full rounded-xl', t.preview)} aria-hidden />
-                        <div className="flex items-center gap-2">
-                          <Icon size={16} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'} />
-                          <span className="text-xs font-medium">{t.label}</span>
-                        </div>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div>
-                <p className="mb-3 text-xs font-medium uppercase tracking-wider text-[var(--text-tertiary)]">Dark</p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {themes.filter((t) => t.group === 'dark').map((t) => {
-                    const Icon = t.icon;
-                    const isActive = themeChoice === t.id;
-                    return (
-                      <motion.button
-                        key={t.id}
-                        onClick={() => handleThemeSelect(t.id)}
-                        className={cn(
-                          'flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-all',
-                          isActive
-                            ? 'border-[var(--accent)] bg-[var(--accent)]/5'
-                            : 'border-[var(--border)] hover:border-[var(--accent)]/50'
-                        )}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <div className={cn('h-10 w-full rounded-xl', t.preview)} aria-hidden />
-                        <div className="flex items-center gap-2">
-                          <Icon size={16} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'} />
-                          <span className="text-xs font-medium">{t.label}</span>
-                        </div>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </GlassCard>
-        </motion.div>
-
-        {/* Sound Effects */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.06 }}
-        >
-          <GlassCard hover={false}>
-            <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] p-4">
-              <div className="flex items-center gap-3">
-                {soundEnabled ? (
-                  <Volume2 size={20} className="text-[var(--text-tertiary)]" />
-                ) : (
-                  <VolumeX size={20} className="text-[var(--text-tertiary)]" />
-                )}
-                <div>
-                  <p className="text-sm font-medium">Sound Effects</p>
-                  <p className="text-xs text-[var(--text-tertiary)]">
-                    Correct, incorrect, and completion sounds
-                  </p>
-                </div>
-              </div>
-              <motion.button
-                onClick={() => handleSoundToggle(!soundEnabled)}
-                className={cn(
-                  'relative h-8 w-14 rounded-full transition-colors',
-                  soundEnabled ? 'bg-[var(--accent)]' : 'bg-[var(--bg-tertiary)]'
-                )}
-                whileTap={{ scale: 0.95 }}
-              >
-                <motion.span
-                  className="absolute top-1 h-6 w-6 rounded-full bg-white shadow"
-                  animate={{ x: soundEnabled ? 24 : 2 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  style={{ left: 0 }}
-                />
-              </motion.button>
-            </div>
-          </GlassCard>
-        </motion.div>
-
-        {/* Daily Goal */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <GlassCard hover={false}>
-            <h2 className="flex items-center gap-2 text-base font-semibold">
-              <Target size={18} className="text-[var(--accent)]" />
-              Daily Goal
-            </h2>
-            <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-              Target number of reviews per day
-            </p>
-            <div className="mt-4 flex items-center gap-4">
-              <input
-                type="range"
-                min={5}
-                max={100}
-                step={5}
-                value={dailyGoal}
-                onChange={(e) => setDailyGoal(Number(e.target.value))}
-                className="h-2 flex-1 appearance-none rounded-full bg-[var(--bg-tertiary)] [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--accent)]"
-              />
-              <input
-                type="number"
-                min={5}
-                max={200}
-                value={dailyGoal}
-                onChange={(e) => setDailyGoal(Math.min(200, Math.max(5, Number(e.target.value) || 20)))}
-                className="input-field w-20 text-center"
-              />
-            </div>
-            <p className="mt-2 text-xs text-[var(--text-tertiary)]">{dailyGoal} reviews/day</p>
-          </GlassCard>
-        </motion.div>
-
-        {/* Reset System */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.15 }}
-        >
-          <GlassCard hover={false}>
-            <h2 className="flex items-center gap-2 text-base font-semibold">
-              <AlertTriangle size={18} className="text-[var(--danger)]" />
-              Reset System
-            </h2>
-            <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-              Irreversible actions. Confirm carefully.
-            </p>
-            <div className="mt-4 space-y-3">
-              {(Object.keys(resetConfig) as ResetType[]).map((type) => {
-                const config = resetConfig[type];
-                const Icon = config.icon;
+            <div className="grid gap-3 sm:grid-cols-2 auto-rows-fr">
+              {featureHubItems.map((item, idx) => {
+                const Icon = item.icon;
                 return (
-                  <motion.button
-                    key={type}
-                    onClick={() => setResetModal(type)}
-                    className={cn(
-                      'flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors',
-                      config.color
-                    )}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                  >
-                    <Icon size={20} />
-                    <div>
-                      <p className="font-medium">{config.title}</p>
-                      <p className="text-xs opacity-90">{config.description}</p>
-                    </div>
-                  </motion.button>
+                  <Link key={idx} href={item.href} className="group block h-full">
+                    <GlassCard
+                      className={`btn-3d relative flex h-full items-center justify-between gap-4 p-4 sm:p-5 transition-all border ${item.border} group-hover:border-[var(--accent)]`}
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${item.bg} ${item.color} shadow-sm`}>
+                          <Icon size={22} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm sm:text-base font-extrabold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors truncate">
+                              {item.title}
+                            </h3>
+                            {item.badge && (
+                              <span className="rounded-md bg-[var(--accent)]/15 px-1.5 py-0.5 text-[10px] font-black text-[var(--accent)]">
+                                {item.badge}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 text-xs font-medium text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
+                            {item.desc}
+                          </p>
+                        </div>
+                      </div>
+
+                      <ChevronRight size={18} className="shrink-0 text-[var(--text-tertiary)] group-hover:text-[var(--accent)] group-hover:translate-x-1 transition-all" />
+                    </GlassCard>
+                  </Link>
                 );
               })}
             </div>
-          </GlassCard>
-        </motion.div>
+          </motion.div>
+        )}
 
-        {/* Account */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-        >
-          <GlassCard hover={false}>
-            <h2 className="text-base font-semibold">Account</h2>
-            <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-              Sign out of your account
-            </p>
-            <motion.button
-              onClick={handleLogout}
-              className="mt-4 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--danger)] transition-colors hover:bg-[var(--danger)]/10"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+        {/* ═══ 2. PREFERENCES & CONFIGURATION ═══ */}
+        {(activeSectionTab === 'all' || activeSectionTab === 'preferences') && (
+          <>
+            {/* Profile */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
             >
-              <LogOut size={16} />
-              Log Out
-            </motion.button>
-          </GlassCard>
-        </motion.div>
+              <GlassCard hover={false} className="p-6">
+                <h2 className="flex items-center gap-2 text-base font-extrabold text-[var(--text-primary)]">
+                  <User size={18} className="text-[var(--accent)]" />
+                  Profile Settings
+                </h2>
+
+                <div className="mt-6 space-y-5">
+                  <div>
+                    <label className="text-xs font-bold text-[var(--text-secondary)]">
+                      Display Name
+                    </label>
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="input-field mt-2 bg-[var(--bg-secondary)]"
+                      placeholder="Your name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-[var(--text-secondary)]">
+                      Target CEFR Level
+                    </label>
+                    <div className="mt-2 flex gap-2">
+                      {levels.map((l) => (
+                        <button
+                          key={l}
+                          onClick={() => setTargetLevel(l)}
+                          className={cn(
+                            'btn-3d flex-1 rounded-xl py-2.5 text-sm font-black transition-all border',
+                            targetLevel === l
+                              ? 'bg-[var(--accent)] text-white border-2 border-[var(--accent-hover)]'
+                              : 'bg-[var(--bg-tertiary)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                          )}
+                        >
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </GlassCard>
+            </motion.div>
+
+            {/* Theme */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.05 }}
+            >
+              <GlassCard hover={false} className="p-6">
+                <h2 className="flex items-center gap-2 text-base font-extrabold text-[var(--text-primary)]">
+                  <Sun size={18} className="text-[var(--accent)]" />
+                  Theme & Visuals (11 Presets)
+                </h2>
+
+                <div className="mt-6 space-y-6">
+                  <div>
+                    <p className="mb-3 text-xs font-black uppercase tracking-wider text-[var(--text-tertiary)]">Light Presets</p>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {themes.filter((t) => t.group === 'light').map((t) => {
+                        const Icon = t.icon;
+                        const isActive = themeChoice === t.id;
+                        return (
+                          <button
+                            key={t.id}
+                            onClick={() => handleThemeSelect(t.id)}
+                            className={cn(
+                              'btn-3d flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-all',
+                              isActive
+                                ? 'border-[var(--accent)] bg-[var(--accent)]/10 ring-2 ring-[var(--accent)]/30'
+                                : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/50'
+                            )}
+                          >
+                            <div className={cn('h-10 w-full rounded-xl', t.preview)} aria-hidden />
+                            <div className="flex items-center gap-2">
+                              <Icon size={16} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'} />
+                              <span className="text-xs font-bold">{t.label}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-3 text-xs font-black uppercase tracking-wider text-[var(--text-tertiary)]">Dark & OLED Presets</p>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {themes.filter((t) => t.group === 'dark').map((t) => {
+                        const Icon = t.icon;
+                        const isActive = themeChoice === t.id;
+                        return (
+                          <button
+                            key={t.id}
+                            onClick={() => handleThemeSelect(t.id)}
+                            className={cn(
+                              'btn-3d flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-all',
+                              isActive
+                                ? 'border-[var(--accent)] bg-[var(--accent)]/10 ring-2 ring-[var(--accent)]/30'
+                                : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/50'
+                            )}
+                          >
+                            <div className={cn('h-10 w-full rounded-xl', t.preview)} aria-hidden />
+                            <div className="flex items-center gap-2">
+                              <Icon size={16} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'} />
+                              <span className="text-xs font-bold">{t.label}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </GlassCard>
+            </motion.div>
+
+            {/* Sound Effects */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.06 }}
+            >
+              <GlassCard hover={false} className="p-6">
+                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                  <div className="flex items-center gap-3">
+                    {soundEnabled ? (
+                      <Volume2 size={20} className="text-[var(--accent)]" />
+                    ) : (
+                      <VolumeX size={20} className="text-[var(--text-tertiary)]" />
+                    )}
+                    <div>
+                      <p className="text-sm font-bold">Sound Effects & Audio FX</p>
+                      <p className="text-xs text-[var(--text-tertiary)]">
+                        Correct, level up, mistake, and completion audio
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleSoundToggle(!soundEnabled)}
+                    className={cn(
+                      'relative h-8 w-14 rounded-full transition-colors',
+                      soundEnabled ? 'bg-[var(--accent)]' : 'bg-[var(--bg-tertiary)]'
+                    )}
+                  >
+                    <motion.span
+                      className="absolute top-1 h-6 w-6 rounded-full bg-white shadow-md"
+                      animate={{ x: soundEnabled ? 24 : 2 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      style={{ left: 0 }}
+                    />
+                  </button>
+                </div>
+              </GlassCard>
+            </motion.div>
+
+            {/* Daily Goal */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <GlassCard hover={false} className="p-6">
+                <h2 className="flex items-center gap-2 text-base font-extrabold text-[var(--text-primary)]">
+                  <Target size={18} className="text-[var(--accent)]" />
+                  Daily Review Goal
+                </h2>
+                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                  Target number of spaced-repetition card reviews per day
+                </p>
+                <div className="mt-4 flex items-center gap-4">
+                  <input
+                    type="range"
+                    min={5}
+                    max={100}
+                    step={5}
+                    value={dailyGoal}
+                    onChange={(e) => setDailyGoal(Number(e.target.value))}
+                    className="h-2 flex-1 appearance-none rounded-full bg-[var(--bg-tertiary)] [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--accent)]"
+                  />
+                  <input
+                    type="number"
+                    min={5}
+                    max={200}
+                    value={dailyGoal}
+                    onChange={(e) => setDailyGoal(Math.min(200, Math.max(5, Number(e.target.value) || 20)))}
+                    className="input-field w-20 text-center font-bold"
+                  />
+                </div>
+                <p className="mt-2 text-xs font-bold text-[var(--text-tertiary)]">{dailyGoal} reviews/day</p>
+              </GlassCard>
+            </motion.div>
+
+            {/* Reset System */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.15 }}
+            >
+              <GlassCard hover={false} className="p-6">
+                <h2 className="flex items-center gap-2 text-base font-extrabold text-[var(--danger)]">
+                  <AlertTriangle size={18} />
+                  Reset System
+                </h2>
+                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                  Irreversible actions. Confirm carefully.
+                </p>
+                <div className="mt-4 space-y-3">
+                  {(Object.keys(resetConfig) as ResetType[]).map((type) => {
+                    const config = resetConfig[type];
+                    const Icon = config.icon;
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => setResetModal(type)}
+                        className={cn(
+                          'btn-3d flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors bg-[var(--bg-secondary)]',
+                          config.color
+                        )}
+                      >
+                        <Icon size={20} />
+                        <div>
+                          <p className="font-bold">{config.title}</p>
+                          <p className="text-xs opacity-90">{config.description}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </GlassCard>
+            </motion.div>
+
+            {/* Account */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <GlassCard hover={false} className="p-6">
+                <h2 className="text-base font-extrabold text-[var(--text-primary)]">Account</h2>
+                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                  Sign out of your active session
+                </p>
+                <button
+                  onClick={handleLogout}
+                  className="btn-3d mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-bold text-[var(--danger)] transition-colors hover:bg-red-500/20"
+                >
+                  <LogOut size={16} />
+                  Log Out
+                </button>
+              </GlassCard>
+            </motion.div>
+          </>
+        )}
       </div>
 
       {/* Reset Confirmation Modal */}
@@ -503,7 +694,7 @@ export default function SettingsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
             onClick={() => !resetLoading && setResetModal(null)}
           >
             <motion.div
@@ -511,51 +702,47 @@ export default function SettingsPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-2xl bg-[var(--bg-primary)] p-6 shadow-xl"
+              className="w-full max-w-md rounded-2xl bg-[var(--bg-primary)] p-6 shadow-2xl border border-[var(--border)]"
             >
               <div className="flex items-center gap-3">
                 <div className="rounded-full bg-[var(--danger)]/20 p-3">
                   <AlertTriangle size={24} className="text-[var(--danger)]" />
                 </div>
-                <h3 className="text-lg font-semibold">Confirm {resetConfig[resetModal].title}</h3>
+                <h3 className="text-lg font-black text-[var(--text-primary)]">Confirm {resetConfig[resetModal].title}</h3>
               </div>
               <p className="mt-4 text-sm text-[var(--text-secondary)]">
                 {resetConfig[resetModal].description}
               </p>
-              <p className="mt-4 text-sm font-medium text-[var(--text-secondary)]">
-                Type <span className="font-mono font-bold text-[var(--danger)]">RESET</span> to confirm:
+              <p className="mt-4 text-sm font-bold text-[var(--text-primary)]">
+                Type <span className="font-mono font-black text-[var(--danger)]">RESET</span> to confirm:
               </p>
               <input
                 type="text"
                 value={resetInput}
                 onChange={(e) => setResetInput(e.target.value)}
                 placeholder="RESET"
-                className="input-field mt-2 w-full"
+                className="input-field mt-2 w-full bg-[var(--bg-secondary)]"
                 disabled={resetLoading}
               />
               <div className="mt-6 flex gap-3">
-                <motion.button
+                <button
                   onClick={() => setResetModal(null)}
                   disabled={resetLoading}
-                  className="btn-secondary flex-1"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  className="btn-3d btn-duo-secondary flex-1"
                 >
                   Cancel
-                </motion.button>
-                <motion.button
+                </button>
+                <button
                   onClick={() => handleResetConfirm(resetModal)}
                   disabled={resetInput !== 'RESET' || resetLoading}
-                  className="btn-primary flex-1 bg-[var(--danger)] hover:bg-[var(--danger)]/90 disabled:opacity-50"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  className="btn-3d btn-duo-primary flex-1 bg-[var(--danger)] hover:bg-[var(--danger)]/90 border-red-700 disabled:opacity-50"
                 >
                   {resetLoading ? (
                     <Loader2 size={18} className="animate-spin" />
                   ) : (
-                    'Confirm'
+                    'Confirm Reset'
                   )}
-                </motion.button>
+                </button>
               </div>
             </motion.div>
           </motion.div>
