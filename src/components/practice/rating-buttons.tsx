@@ -9,36 +9,53 @@ interface RatingButtonsProps {
 }
 
 const ratings = [
-  { value: 1 as const, label: 'Again', sublabel: '<1 min', color: 'bg-red-500 hover:bg-red-600', ring: 'focus:ring-red-300' },
-  { value: 2 as const, label: 'Hard', sublabel: '~10 min', color: 'bg-amber-500 hover:bg-amber-600', ring: 'focus:ring-amber-300' },
-  { value: 3 as const, label: 'Good', sublabel: 'Optimal', color: 'bg-emerald-500 hover:bg-emerald-600', ring: 'focus:ring-emerald-300' },
-  { value: 4 as const, label: 'Easy', sublabel: 'Extended', color: 'bg-blue-500 hover:bg-blue-600', ring: 'focus:ring-blue-300' },
+  {
+    value: 1 as const,
+    label: 'Again',
+    sublabel: '<1 min',
+    className: 'bg-[#FF4B4B] hover:bg-[#FF5C5C] border-b-4 border-[#D63333] active:border-b-0 active:translate-y-[4px]',
+  },
+  {
+    value: 2 as const,
+    label: 'Hard',
+    sublabel: '~10 min',
+    className: 'bg-[#FF9600] hover:bg-[#FFA51A] border-b-4 border-[#D97706] active:border-b-0 active:translate-y-[4px]',
+  },
+  {
+    value: 3 as const,
+    label: 'Good',
+    sublabel: 'Optimal',
+    className: 'bg-[#58CC02] hover:bg-[#61E002] border-b-4 border-[#46A302] active:border-b-0 active:translate-y-[4px]',
+  },
+  {
+    value: 4 as const,
+    label: 'Easy',
+    sublabel: 'Extended',
+    className: 'bg-[#1CB0F6] hover:bg-[#28BFFF] border-b-4 border-[#1899D6] active:border-b-0 active:translate-y-[4px]',
+  },
 ];
 
 export function RatingButtons({ onRate, disabled }: RatingButtonsProps) {
   return (
     <motion.div
-      className="flex justify-center gap-3"
-      initial={{ opacity: 0, y: 20 }}
+      className="grid grid-cols-4 gap-2.5 sm:gap-3.5 max-w-lg mx-auto w-full"
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.15 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 25, delay: 0.1 }}
     >
       {ratings.map((r) => (
-        <motion.button
+        <button
           key={r.value}
           onClick={() => onRate(r.value)}
           disabled={disabled}
           className={cn(
-            'flex flex-col items-center rounded-2xl px-5 py-3 text-white shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50',
-            r.color,
-            r.ring
+            'flex flex-col items-center justify-center rounded-2xl py-3 px-2 text-white font-black transition-all cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:brightness-105',
+            r.className
           )}
-          whileHover={{ scale: 1.05, y: -2 }}
-          whileTap={{ scale: 0.95 }}
         >
-          <span className="text-sm font-semibold">{r.label}</span>
-          <span className="mt-0.5 text-[10px] opacity-80">{r.sublabel}</span>
-        </motion.button>
+          <span className="text-xs sm:text-sm tracking-wide">{r.label}</span>
+          <span className="mt-0.5 text-[10px] font-bold opacity-85">{r.sublabel}</span>
+        </button>
       ))}
     </motion.div>
   );

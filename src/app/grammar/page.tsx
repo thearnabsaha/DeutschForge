@@ -189,9 +189,9 @@ export default function GrammarPage() {
             <button
               key={lvl.id}
               onClick={() => setActiveLevel(lvl.id)}
-              className={`btn-3d group relative flex flex-col justify-between rounded-2xl p-3.5 sm:p-4 text-left transition-all border ${
+              className={`group relative flex flex-col justify-between rounded-2xl p-3.5 sm:p-4 text-left transition-all border shadow-sm hover:shadow-md active:translate-y-[1px] ${
                 isActive
-                  ? 'bg-[var(--bg-secondary)] border-2 shadow-lg'
+                  ? 'bg-[var(--bg-secondary)] border-2 shadow-md'
                   : 'bg-[var(--bg-secondary)]/70 border-[var(--border)] hover:bg-[var(--bg-secondary)] hover:border-[var(--text-tertiary)]/40'
               }`}
               style={{

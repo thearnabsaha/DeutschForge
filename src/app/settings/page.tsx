@@ -409,47 +409,51 @@ export default function SettingsPage() {
       />
 
       {/* ─── Navigation Switcher Tabs ─── */}
-      <div className="mt-6 flex flex-wrap gap-2 rounded-2xl bg-[var(--bg-secondary)] p-1.5 border border-[var(--border)]">
+      <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-2xl bg-[var(--bg-secondary)] p-1.5 border-2 border-[var(--border)] shadow-sm">
         <button
           onClick={() => setActiveSectionTab('all')}
-          className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={cn(
+            'flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs sm:text-sm font-black transition-all',
             activeSectionTab === 'all'
-              ? 'bg-[var(--accent)] text-white shadow-md'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-          }`}
+              ? 'btn-duo-primary shadow-none'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+          )}
         >
           <Compass size={16} />
           <span>All Modules</span>
         </button>
         <button
           onClick={() => setActiveSectionTab('explore')}
-          className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={cn(
+            'flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs sm:text-sm font-black transition-all',
             activeSectionTab === 'explore'
-              ? 'bg-[var(--accent)] text-white shadow-md'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-          }`}
+              ? 'btn-duo-primary shadow-none'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+          )}
         >
           <BookMarked size={16} />
           <span>Features Hub</span>
         </button>
         <button
           onClick={() => setActiveSectionTab('account')}
-          className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={cn(
+            'flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs sm:text-sm font-black transition-all',
             activeSectionTab === 'account'
-              ? 'bg-[var(--accent)] text-white shadow-md'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-          }`}
+              ? 'btn-duo-primary shadow-none'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+          )}
         >
           <ShieldCheck size={16} />
           <span>Account & Security</span>
         </button>
         <button
           onClick={() => setActiveSectionTab('preferences')}
-          className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={cn(
+            'flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs sm:text-sm font-black transition-all',
             activeSectionTab === 'preferences'
-              ? 'bg-[var(--accent)] text-white shadow-md'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-          }`}
+              ? 'btn-duo-primary shadow-none'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+          )}
         >
           <Sliders size={16} />
           <span>Preferences</span>
@@ -477,7 +481,7 @@ export default function SettingsPage() {
                 return (
                   <Link key={idx} href={item.href} className="group block h-full">
                     <GlassCard
-                      className={`btn-3d relative flex h-full items-center justify-between gap-4 p-4 sm:p-5 transition-all border ${item.border} group-hover:border-[var(--accent)]`}
+                      className={`relative flex h-full items-center justify-between gap-4 p-4 sm:p-5 transition-all border ${item.border} group-hover:border-[var(--accent)] group-hover:shadow-md`}
                     >
                       <div className="flex items-center gap-3.5 min-w-0 flex-1">
                         <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${item.bg} ${item.color} shadow-sm`}>

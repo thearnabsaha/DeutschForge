@@ -842,88 +842,72 @@ export default function PracticeWordsPage() {
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <motion.button
-                            className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all"
+                          <button
+                            className="btn-duo-primary px-4 py-2 text-xs sm:text-sm font-black flex items-center gap-1.5"
                             onClick={() => startLearn(batch)}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            style={{
-                              background: 'var(--accent)',
-                              color: 'white',
-                            }}
                           >
                             {batch.learnedCount >= batch.wordCount ? (
-                              <CheckCircle2 size={18} />
+                              <CheckCircle2 size={16} />
                             ) : (
-                              <BookOpen size={18} />
+                              <BookOpen size={16} />
                             )}
-                            Learn
-                          </motion.button>
-                          <motion.button
-                            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+                            <span>Learn</span>
+                          </button>
+                          <button
+                            className={`px-4 py-2 text-xs sm:text-sm font-black flex items-center gap-1.5 ${
                               batch.practiceUnlocked
-                                ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:bg-[var(--border)]'
-                                : 'cursor-not-allowed bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] opacity-60'
+                                ? 'btn-duo-secondary'
+                                : 'cursor-not-allowed bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] opacity-60 rounded-2xl'
                             }`}
                             onClick={() => batch.practiceUnlocked && startPractice(batch)}
                             disabled={!batch.practiceUnlocked}
-                            whileHover={batch.practiceUnlocked ? { scale: 1.02 } : undefined}
-                            whileTap={batch.practiceUnlocked ? { scale: 0.98 } : undefined}
                           >
                             {batch.practiceUnlocked ? (
-                              <PenLine size={18} />
+                              <PenLine size={16} />
                             ) : (
-                              <Lock size={18} />
+                              <Lock size={16} />
                             )}
-                            Practice
-                          </motion.button>
-                          <motion.button
-                            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+                            <span>Practice</span>
+                          </button>
+                          <button
+                            className={`px-4 py-2 text-xs sm:text-sm font-black flex items-center gap-1.5 ${
                               batch.examUnlocked
-                                ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:bg-[var(--border)]'
-                                : 'cursor-not-allowed bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] opacity-60'
+                                ? 'btn-duo-blue'
+                                : 'cursor-not-allowed bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] opacity-60 rounded-2xl'
                             }`}
                             onClick={() => batch.examUnlocked && startExam(batch)}
                             disabled={!batch.examUnlocked}
-                            whileHover={batch.examUnlocked ? { scale: 1.02 } : undefined}
-                            whileTap={batch.examUnlocked ? { scale: 0.98 } : undefined}
                           >
                             {batch.examUnlocked ? (
-                              <CheckCircle2 size={18} />
+                              <CheckCircle2 size={16} />
                             ) : (
-                              <Lock size={18} />
+                              <Lock size={16} />
                             )}
-                            Exam
-                          </motion.button>
+                            <span>Exam</span>
+                          </button>
                           {batch.words.some((w) => w.partOfSpeech === 'noun' && w.gender) && (
-                            <motion.button
-                              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:bg-[var(--border)]"
+                            <button
+                              className="btn-duo-secondary px-3.5 py-2 text-xs font-black"
                               onClick={() => startGenderDrill(batch)}
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
                             >
                               Gender Drill
-                            </motion.button>
+                            </button>
                           )}
                           {batch.words.some((w) => w.partOfSpeech === 'noun' && w.pluralForm) && (
-                            <motion.button
-                              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:bg-[var(--border)]"
+                            <button
+                              className="btn-duo-secondary px-3.5 py-2 text-xs font-black"
                               onClick={() => startPluralDrill(batch)}
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
                             >
                               Plural Drill
-                            </motion.button>
+                            </button>
                           )}
-                          <motion.button
-                            className="inline-flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400"
+                          <button
+                            className="btn-duo-secondary px-3.5 py-2 text-xs font-black flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400"
                             onClick={() => startWordOnly(batch, 'both')}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
                           >
-                            <Sparkles size={18} />
-                            Word Only
-                          </motion.button>
+                            <Sparkles size={14} />
+                            <span>Word Only</span>
+                          </button>
                         </div>
                       </div>
                     </GlassCard>
@@ -1384,28 +1368,28 @@ export default function PracticeWordsPage() {
                             <button
                               type="button"
                               onClick={() => handleLearnRating(1)}
-                              className="btn-3d rounded-2xl py-2.5 text-xs font-black text-red-500 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20"
+                              className="btn-duo-danger rounded-2xl py-2.5 text-xs font-black"
                             >
                               Again (1)
                             </button>
                             <button
                               type="button"
                               onClick={() => handleLearnRating(2)}
-                              className="btn-3d rounded-2xl py-2.5 text-xs font-black text-amber-500 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20"
+                              className="bg-[#FF9600] hover:bg-[#FFA51A] text-white border-b-4 border-[#D97706] active:border-b-0 active:translate-y-[4px] rounded-2xl py-2.5 text-xs font-black transition-all select-none"
                             >
                               Hard (2)
                             </button>
                             <button
                               type="button"
                               onClick={() => handleLearnRating(3)}
-                              className="btn-3d btn-duo-primary rounded-2xl py-2.5 text-xs font-black"
+                              className="btn-duo-primary rounded-2xl py-2.5 text-xs font-black"
                             >
                               Good (3)
                             </button>
                             <button
                               type="button"
                               onClick={() => handleLearnRating(4)}
-                              className="btn-3d rounded-2xl py-2.5 text-xs font-black text-blue-500 bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20"
+                              className="btn-duo-blue rounded-2xl py-2.5 text-xs font-black"
                             >
                               Easy (4)
                             </button>

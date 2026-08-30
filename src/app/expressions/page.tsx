@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { Plus, Loader2, Trash2, BookOpen, Search, Filter } from 'lucide-react';
 import { sfx } from '@/lib/sounds';
+import { cn } from '@/lib/utils';
 
 interface UserExpression {
   id: string;
@@ -252,16 +253,16 @@ export default function ExpressionsPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Filter size={16} className="text-[var(--text-tertiary)]" />
-                  <span className="text-sm text-[var(--text-secondary)]">Category:</span>
                   {CATEGORY_OPTIONS.slice(0, 6).map((opt) => (
                     <button
                       key={opt.value}
                       onClick={() => setCategoryFilter(opt.value)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                      className={cn(
+                        'px-3 py-1.5 text-xs font-black transition-all rounded-xl',
                         categoryFilter === opt.value
-                          ? 'bg-[var(--accent)] text-white'
-                          : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border)]'
-                      }`}
+                          ? 'btn-duo-primary shadow-none'
+                          : 'btn-duo-secondary'
+                      )}
                     >
                       {opt.label}
                     </button>

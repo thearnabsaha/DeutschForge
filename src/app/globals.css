@@ -275,29 +275,69 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white transition-all duration-200;
-    background: var(--accent);
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-extrabold text-white transition-all select-none;
+    background-color: #58CC02;
+    border: none;
+    border-bottom: 4px solid #46A302;
+    cursor: pointer;
   }
-  .btn-primary:hover {
-    background: var(--accent-hover);
-    transform: scale(1.02);
+  .btn-primary:hover:not(:disabled) {
+    background-color: #61E002;
+    transform: translateY(-1px);
+    border-bottom-width: 5px;
   }
-  .btn-primary:active {
-    transform: scale(0.98);
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(3px);
+    border-bottom-width: 1px;
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all duration-200;
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-extrabold transition-all select-none;
+    background-color: #FFFFFF;
+    color: #3C3C3C;
+    border: 2px solid #E5E5E5;
+    border-bottom: 4px solid #CECECE;
+    cursor: pointer;
   }
-  .btn-secondary:hover {
-    background: var(--border);
-    transform: scale(1.02);
+  .dark .btn-secondary,
+  .dark-nord .btn-secondary,
+  .dark-warm .btn-secondary,
+  .amoled .btn-secondary,
+  .dark-duo .btn-secondary,
+  .dark-purple .btn-secondary {
+    background-color: #1A262C;
+    color: #E5E5E5;
+    border: 2px solid #2B3D45;
+    border-bottom: 4px solid #131D21;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: #F7F7F7;
+    transform: translateY(-1px);
+    border-bottom-width: 5px;
+  }
+  .dark .btn-secondary:hover:not(:disabled),
+  .dark-nord .btn-secondary:hover:not(:disabled),
+  .dark-warm .btn-secondary:hover:not(:disabled),
+  .amoled .btn-secondary:hover:not(:disabled),
+  .dark-duo .btn-secondary:hover:not(:disabled),
+  .dark-purple .btn-secondary:hover:not(:disabled) {
+    background-color: #23333B;
+  }
+  .btn-secondary:active:not(:disabled) {
+    transform: translateY(3px);
+    border-bottom-width: 1px;
+  }
+  .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .input-field {
-    @apply w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200;
+    @apply w-full rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-all duration-200;
     background: var(--bg-tertiary);
     border: 1.5px solid transparent;
     color: var(--text-primary);
