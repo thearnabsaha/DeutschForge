@@ -1,5 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#007AFF"/>
-  <path d="M16 6c-1.5 0-2.7.8-3.2 2L8 16l4.8 8c.5 1.2 1.7 2 3.2 2s2.7-.8 3.2-2L24 16l-4.8-8C18.7 6.8 17.5 6 16 6z" fill="#fff" opacity="0.9"/>
-  <path d="M14 13h4v2h-4v-2zm0 4h4v2h-4v-2z" fill="#007AFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#58CC02"/>
+      <stop offset="100%" stop-color="#46A302"/>
+    </linearGradient>
+    <linearGradient id="flag" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1A1A1A"/>
+      <stop offset="33%" stop-color="#1A1A1A"/>
+      <stop offset="33.1%" stop-color="#E11D48"/>
+      <stop offset="66%" stop-color="#E11D48"/>
+      <stop offset="66.1%" stop-color="#FACC15"/>
+      <stop offset="100%" stop-color="#FACC15"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  
+  <!-- Rounded Duolingo Squircle Base -->
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  
+  <!-- 3D Bottom Edge Shadow -->
+  <path d="M0 384 Q0 512 128 512 L384 512 Q512 512 512 384 L512 400 Q512 512 384 512 L128 512 Q0 512 0 400 Z" fill="#3D8B02" opacity="0.6"/>
+  
+  <!-- Inner Highlight Border -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="none" stroke="#FFFFFF" stroke-opacity="0.25" stroke-width="8"/>
+
+  <!-- Stylized German Mastery Crest -->
+  <g transform="translate(106, 90)">
+    <!-- White Shield Base -->
+    <path d="M150 20 L270 70 L270 200 Q270 285 150 335 Q30 285 30 200 L30 70 Z" fill="#FFFFFF" filter="url(#shadow)"/>
+    
+    <!-- German Flag Inner Shield -->
+    <path d="M150 34 L254 78 L254 194 Q254 265 150 312 Q46 265 46 194 L46 78 Z" fill="url(#flag)"/>
+    
+    <!-- Central Golden Spark / Eagle of German Fluency -->
+    <path d="M150 92 L172 144 L228 148 L184 184 L198 238 L150 208 L102 238 L116 184 L72 148 L128 144 Z" fill="#FFFFFF"/>
+    <path d="M150 106 L168 148 L214 152 L178 182 L190 226 L150 202 L110 226 L122 182 L86 152 L132 148 Z" fill="#58CC02"/>
+  </g>
 </svg>

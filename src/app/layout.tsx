@@ -12,9 +12,22 @@ export const metadata: Metadata = {
   description: 'Personal CEFR A1→B2 German learning system with spaced repetition and Goethe exam preparation.',
   manifest: '/manifest.json',
   icons: {
-    icon: '/favicon.svg',
-    apple: '/favicon.svg',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: ['/favicon.ico'],
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'DeutschForge',
+  },
+  applicationName: 'DeutschForge',
 };
 
 export const viewport: Viewport = {
@@ -22,7 +35,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: 'cover',
-  themeColor: '#007AFF',
+  themeColor: '#58CC02',
 };
 
 export default function RootLayout({
