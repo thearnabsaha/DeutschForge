@@ -693,12 +693,29 @@ export default function PracticeWordsPage() {
     }
   };
 
-  const speak = (text: string) => {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'de-DE';
-    u.rate = 0.85;
-    speechSynthesis.speak(u);
-  };
+  const speak = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'de-DE';
+      u.rate = 0.85;
+      window.speechSynthesis.speak(u);
+    } catch {}
+  }, []);
+
+  // Auto-pronounce word when flashcard is opened or card index changes
+  useEffect(() => {
+    if (flowMode === 'learn' && selectedBatch && selectedBatch.words[learnIndex]) {
+      const word = selectedBatch.words[learnIndex]?.word;
+      if (word) {
+        const timer = setTimeout(() => {
+          speak(word);
+        }, 200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [flowMode, selectedBatch, learnIndex, speak]);
 
   const genderColor = (g: string | null) => {
     if (!g) return '';

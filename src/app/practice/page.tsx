@@ -245,12 +245,26 @@ export default function PracticePage() {
     sfx.tap();
   };
 
-  const speak = (text: string) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'de-DE';
-    utterance.rate = 0.85;
-    speechSynthesis.speak(utterance);
-  };
+  const speak = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'de-DE';
+      utterance.rate = 0.85;
+      window.speechSynthesis.speak(utterance);
+    } catch {}
+  }, []);
+
+  // Auto-pronounce word when flashcard is displayed or word changes
+  useEffect(() => {
+    if (mode === 'flashcard' && currentWord && !sessionComplete) {
+      const timer = setTimeout(() => {
+        speak(currentWord.word);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [mode, currentWord, sessionComplete, speak]);
 
   if (mode === null) {
     return (

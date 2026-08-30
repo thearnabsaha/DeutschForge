@@ -292,7 +292,29 @@ export default function PracticeExpressionsPage() {
     } else { setPracticeIndex((i) => i + 1); setPracticeInput(''); setPracticeAnswered(false); sfx.swoosh(); }
   };
 
-  const speak = (text: string) => { const u = new SpeechSynthesisUtterance(text); u.lang = 'de-DE'; u.rate = 0.85; speechSynthesis.speak(u); };
+  const speak = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'de-DE';
+      u.rate = 0.85;
+      window.speechSynthesis.speak(u);
+    } catch {}
+  }, []);
+
+  // Auto-pronounce expression when learn card opens or index changes
+  useEffect(() => {
+    if (flowMode === 'learn' && selectedBatch && selectedBatch.expressions[learnIndex]) {
+      const expr = selectedBatch.expressions[learnIndex]?.expression;
+      if (expr) {
+        const timer = setTimeout(() => {
+          speak(expr);
+        }, 200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [flowMode, selectedBatch, learnIndex, speak]);
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 lg:px-8">
