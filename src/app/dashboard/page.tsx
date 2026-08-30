@@ -111,7 +111,7 @@ function HardWordsCard() {
   }, []);
 
   return (
-    <GlassCard hover={false}>
+    <GlassCard hover={false} className="h-full flex flex-col">
       <h2 className="flex items-center gap-2 text-base font-semibold">
         <AlertTriangle size={18} className="text-red-500" />
         Top 10 Hardest Words
@@ -218,13 +218,14 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Row 1: Quick Stats */}
+      {/* Bento Grid */}
       <motion.div
-        className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4"
+        className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 auto-rows-max"
         variants={container}
         initial="hidden"
         animate="show"
       >
+        {/* Quick Stats */}
         <motion.div variants={item} className="h-full">
           <GlassCard className="flex items-center gap-4 h-full">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/20">
@@ -272,12 +273,10 @@ export default function DashboardPage() {
             </div>
           </GlassCard>
         </motion.div>
-      </motion.div>
 
-      {/* Row 2: CEFR Progress */}
-      <motion.div className="mt-8" variants={container} initial="hidden" animate="show">
-        <motion.div variants={item}>
-          <GlassCard hover={false}>
+        {/* CEFR Journey */}
+        <motion.div variants={item} className="md:col-span-2 lg:col-span-4">
+          <GlassCard hover={false} className="h-full">
             <h2 className="text-sm font-semibold text-[var(--text-secondary)]">CEFR Journey (A1 → B2)</h2>
             <div className="mt-3 flex h-4 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
               {cefrPcts.map(({ level, pct }) => (
@@ -299,16 +298,9 @@ export default function DashboardPage() {
             </div>
           </GlassCard>
         </motion.div>
-      </motion.div>
 
-      {/* Row 3: Vocabulary Breakdown */}
-      <motion.div
-        className="mt-8 grid gap-6 lg:grid-cols-2"
-        variants={container}
-        initial="hidden"
-        animate="show"
-      >
-        <motion.div variants={item} className="h-full">
+        {/* Vocabulary Breakdown */}
+        <motion.div variants={item} className="md:col-span-1 lg:col-span-2 h-full">
           <GlassCard hover={false} className="h-full flex flex-col">
             <h2 className="text-base font-semibold">Part of Speech</h2>
             <div className="mt-4 space-y-3">
@@ -331,28 +323,28 @@ export default function DashboardPage() {
                 );
               })}
               {(!data?.vocabulary?.byPOS || Object.keys(data.vocabulary.byPOS).length === 0) && !loading && (
-                <p className="text-sm text-[var(--text-tertiary)]">No vocabulary yet. Start by uploading words.</p>
+                <p className="text-sm text-[var(--text-tertiary)]">No vocabulary yet.</p>
               )}
             </div>
           </GlassCard>
         </motion.div>
 
-        <motion.div variants={item} className="h-full">
+        <motion.div variants={item} className="md:col-span-1 lg:col-span-2 h-full">
           <GlassCard hover={false} className="h-full flex flex-col">
             <h2 className="text-base font-semibold">Gender (der/die/das)</h2>
-            <div className="mt-4 flex gap-4">
+            <div className="mt-4 flex gap-4 flex-1">
               {(['masculine', 'feminine', 'neuter'] as const).map((g) => {
                 const count = data?.vocabulary?.byGender?.[g] ?? 0;
                 const total = Object.values(data?.vocabulary?.byGender ?? {}).reduce((a, b) => a + b, 0);
-                const h = total > 0 ? Math.max(24, (count / total) * 120) : 24;
+                const pct = total > 0 ? (count / total) * 100 : 0;
                 return (
-                  <div key={g} className="flex flex-1 flex-col items-center gap-2">
+                  <div key={g} className="flex flex-1 flex-col justify-end items-center gap-2">
                     <motion.div
                       className={`w-full rounded-lg ${GENDER_COLORS[g]}`}
                       initial={{ height: 0 }}
-                      animate={{ height: h }}
+                      animate={{ height: `${Math.max(10, pct)}%` }}
                       transition={{ duration: 0.5 }}
-                      style={{ minHeight: 24 }}
+                      style={{ minHeight: '1.5rem' }}
                     />
                     <span className="text-xs font-medium">{GENDER_LABELS[g]}</span>
                     <span className="text-[11px] text-[var(--text-tertiary)]">{count}</span>
@@ -365,13 +357,11 @@ export default function DashboardPage() {
             )}
           </GlassCard>
         </motion.div>
-      </motion.div>
 
-      {/* Verb Breakdown */}
-      {data?.vocabulary?.verbBreakdown && data.vocabulary.verbBreakdown.total > 0 && (
-        <motion.div className="mt-8" variants={container} initial="hidden" animate="show">
-          <motion.div variants={item}>
-            <GlassCard hover={false}>
+        {/* Verb Breakdown */}
+        {data?.vocabulary?.verbBreakdown && data.vocabulary.verbBreakdown.total > 0 && (
+          <motion.div variants={item} className="md:col-span-2 lg:col-span-4">
+            <GlassCard hover={false} className="h-full">
               <h2 className="text-base font-semibold">Verb Classification</h2>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {([
@@ -393,17 +383,10 @@ export default function DashboardPage() {
               </div>
             </GlassCard>
           </motion.div>
-        </motion.div>
-      )}
+        )}
 
-      {/* Row 4: Recent Activity */}
-      <motion.div
-        className="mt-8 grid gap-6 lg:grid-cols-2"
-        variants={container}
-        initial="hidden"
-        animate="show"
-      >
-        <motion.div variants={item} className="h-full">
+        {/* Recent Activity */}
+        <motion.div variants={item} className="md:col-span-1 lg:col-span-2 h-full">
           <GlassCard hover={false} className="h-full flex flex-col">
             <h2 className="text-base font-semibold">Exam History</h2>
             <div className="mt-4 space-y-2">
@@ -436,7 +419,7 @@ export default function DashboardPage() {
           </GlassCard>
         </motion.div>
 
-        <motion.div variants={item} className="h-full">
+        <motion.div variants={item} className="md:col-span-1 lg:col-span-2 h-full">
           <GlassCard hover={false} className="h-full flex flex-col">
             <h2 className="flex items-center gap-2 text-base font-semibold">
               <Sparkles size={18} className="text-amber-500" />
@@ -468,19 +451,17 @@ export default function DashboardPage() {
             )}
           </GlassCard>
         </motion.div>
-      </motion.div>
 
-      {/* Row: Hard Words */}
-      <motion.div className="mt-8" variants={container} initial="hidden" animate="show">
-        <motion.div variants={item}>
-          <HardWordsCard />
+        {/* Hard Words */}
+        <motion.div variants={item} className="md:col-span-2 lg:col-span-2 h-full">
+          <div className="h-full">
+            <HardWordsCard />
+          </div>
         </motion.div>
-      </motion.div>
 
-      {/* Row 5: Quick Actions */}
-      <motion.div className="mt-8" variants={container} initial="hidden" animate="show">
-        <motion.div variants={item}>
-          <GlassCard hover={false}>
+        {/* Quick Actions */}
+        <motion.div variants={item} className="md:col-span-2 lg:col-span-2 h-full">
+          <GlassCard hover={false} className="h-full flex flex-col">
             <h2 className="text-base font-semibold">Quick Actions</h2>
             <div className="mt-4 flex flex-wrap gap-3">
               {[

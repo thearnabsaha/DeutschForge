@@ -150,8 +150,9 @@ function StatCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
+      className="h-full"
     >
-      <GlassCard hover={false} className="flex items-center gap-4">
+      <GlassCard hover={false} className="flex items-center gap-4 h-full">
         <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${bgColor}`}>
           <Icon size={20} className={color} />
         </div>
@@ -345,10 +346,10 @@ export default function AnalyticsPage() {
 
               {/* Mastery + Daily Activity */}
               <div className="mt-6 grid gap-6 lg:grid-cols-3">
-                <motion.div variants={fadeIn}>
-                  <GlassCard hover={false} className="flex flex-col items-center">
+                <motion.div variants={fadeIn} className="h-full">
+                  <GlassCard hover={false} className="flex flex-col items-center h-full">
                     <ProgressRing progress={masteryPct} label={`${masteryPct}%`} sublabel="Mastery" />
-                    <div className="mt-5 grid w-full grid-cols-2 gap-2">
+                    <div className="mt-5 grid w-full grid-cols-2 gap-2 flex-1">
                       {[
                         { label: 'New', count: data.vocabulary.byState.new, color: 'bg-gray-400' },
                         { label: 'Learning', count: data.vocabulary.byState.learning, color: 'bg-amber-400' },
@@ -378,8 +379,8 @@ export default function AnalyticsPage() {
                   </GlassCard>
                 </motion.div>
 
-                <motion.div variants={fadeIn} className="lg:col-span-2">
-                  <GlassCard hover={false}>
+                <motion.div variants={fadeIn} className="lg:col-span-2 h-full">
+                  <GlassCard hover={false} className="h-full flex flex-col">
                     <div className="flex items-center gap-2">
                       <Calendar size={18} className="text-[var(--accent)]" />
                       <h2 className="text-base font-semibold">Review Activity (30 Days)</h2>
@@ -455,31 +456,34 @@ export default function AnalyticsPage() {
 
               {/* Weekly Trend */}
               <motion.div variants={fadeIn} className="mt-6 grid gap-6 sm:grid-cols-2">
-                <GlassCard hover={false}>
-                  <h2 className="text-base font-semibold">Weekly Trend</h2>
-                  <div className="mt-4 space-y-3">
-                    {data.wordsPractice.weeklyTrend.map(w => (
-                      <div key={w.week} className="flex items-center gap-3">
-                        <span className="w-10 text-xs font-medium text-[var(--text-secondary)]">{w.week}</span>
-                        <div className="h-3 flex-1 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-                          <motion.div
-                            className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-purple-500"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${Math.min(w.accuracy, 100)}%` }}
-                            transition={{ duration: 0.6 }}
-                          />
+                <div className="h-full">
+                  <GlassCard hover={false} className="h-full flex flex-col">
+                    <h2 className="text-base font-semibold">Weekly Trend</h2>
+                    <div className="mt-4 space-y-3 flex-1">
+                      {data.wordsPractice.weeklyTrend.map(w => (
+                        <div key={w.week} className="flex items-center gap-3">
+                          <span className="w-10 text-xs font-medium text-[var(--text-secondary)]">{w.week}</span>
+                          <div className="h-3 flex-1 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                            <motion.div
+                              className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-purple-500"
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.min(w.accuracy, 100)}%` }}
+                              transition={{ duration: 0.6 }}
+                            />
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-semibold tabular-nums">{w.accuracy}%</span>
+                            <span className="ml-2 text-[10px] text-[var(--text-tertiary)]">{w.reviews} reviews</span>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="text-xs font-semibold tabular-nums">{w.accuracy}%</span>
-                          <span className="ml-2 text-[10px] text-[var(--text-tertiary)]">{w.reviews} reviews</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </GlassCard>
+                      ))}
+                    </div>
+                  </GlassCard>
+                </div>
 
-                <GlassCard hover={false}>
-                  <h2 className="text-base font-semibold">Practice Modes</h2>
+                <div className="h-full">
+                  <GlassCard hover={false} className="h-full flex flex-col">
+                    <h2 className="text-base font-semibold">Practice Modes</h2>
                   <div className="mt-4 space-y-3">
                     {Object.entries(data.wordsPractice.modeBreakdown).map(([mode, stats]) => (
                       <div key={mode} className="flex items-center gap-3 rounded-xl bg-[var(--bg-tertiary)]/60 px-3 py-2">
@@ -520,8 +524,8 @@ export default function AnalyticsPage() {
               </div>
 
               <div className="mt-6 grid gap-6 lg:grid-cols-2">
-                <motion.div variants={fadeIn}>
-                  <GlassCard hover={false}>
+                <motion.div variants={fadeIn} className="h-full">
+                  <GlassCard hover={false} className="h-full flex flex-col">
                     <h2 className="text-base font-semibold">Gender Distribution</h2>
                     <p className="text-xs text-[var(--text-tertiary)]">How your nouns split across genders</p>
                     <div className="mt-6 flex items-center justify-center gap-6">
@@ -556,8 +560,8 @@ export default function AnalyticsPage() {
                   </GlassCard>
                 </motion.div>
 
-                <motion.div variants={fadeIn}>
-                  <GlassCard hover={false}>
+                <motion.div variants={fadeIn} className="h-full">
+                  <GlassCard hover={false} className="h-full flex flex-col">
                     <h2 className="text-base font-semibold">Accuracy by Gender</h2>
                     <p className="text-xs text-[var(--text-tertiary)]">How well you recall each gender</p>
                     <div className="mt-6 space-y-4">
@@ -587,8 +591,8 @@ export default function AnalyticsPage() {
               </div>
 
               <div className="mt-6 grid gap-6 lg:grid-cols-2">
-                <motion.div variants={fadeIn}>
-                  <GlassCard hover={false}>
+                <motion.div variants={fadeIn} className="h-full">
+                  <GlassCard hover={false} className="h-full flex flex-col">
                     <h2 className="text-base font-semibold">Verb Analysis</h2>
                     <div className="mt-4 space-y-3">
                       <div className="flex items-center justify-between rounded-xl bg-[var(--bg-tertiary)]/60 px-3 py-2">
@@ -621,8 +625,8 @@ export default function AnalyticsPage() {
                   </GlassCard>
                 </motion.div>
 
-                <motion.div variants={fadeIn}>
-                  <GlassCard hover={false}>
+                <motion.div variants={fadeIn} className="h-full">
+                  <GlassCard hover={false} className="h-full flex flex-col">
                     <h2 className="text-base font-semibold">Conjugation Accuracy</h2>
                     <div className="mt-4 space-y-4">
                       <AccuracyBar label="Meaning / Flashcard" value={data.wordsPractice.meaningAccuracy} color="bg-blue-500" />
@@ -641,8 +645,8 @@ export default function AnalyticsPage() {
 
               {/* Hardest + Best Words */}
               <div className="mt-6 grid gap-6 lg:grid-cols-2">
-                <motion.div variants={fadeIn}>
-                  <GlassCard hover={false}>
+                <motion.div variants={fadeIn} className="h-full">
+                  <GlassCard hover={false} className="h-full flex flex-col">
                     <div className="flex items-center gap-2">
                       <AlertTriangle size={16} className="text-[var(--danger)]" />
                       <h2 className="text-base font-semibold">Hardest Words</h2>
@@ -667,8 +671,8 @@ export default function AnalyticsPage() {
                   </GlassCard>
                 </motion.div>
 
-                <motion.div variants={fadeIn}>
-                  <GlassCard hover={false}>
+                <motion.div variants={fadeIn} className="h-full">
+                  <GlassCard hover={false} className="h-full flex flex-col">
                     <div className="flex items-center gap-2">
                       <Star size={16} className="text-amber-500" />
                       <h2 className="text-base font-semibold">Best Words</h2>
@@ -707,8 +711,8 @@ export default function AnalyticsPage() {
               </div>
 
               <div className="mt-6 grid gap-6 lg:grid-cols-2">
-                <motion.div variants={fadeIn}>
-                  <GlassCard hover={false}>
+                <motion.div variants={fadeIn} className="h-full">
+                  <GlassCard hover={false} className="h-full flex flex-col">
                     <h2 className="text-base font-semibold">Goethe Exam by Level</h2>
                     <div className="mt-4 space-y-3">
                       {Object.keys(data.goetheExams.byLevel).length === 0 && (
@@ -735,8 +739,8 @@ export default function AnalyticsPage() {
                   </GlassCard>
                 </motion.div>
 
-                <motion.div variants={fadeIn}>
-                  <GlassCard hover={false}>
+                <motion.div variants={fadeIn} className="h-full">
+                  <GlassCard hover={false} className="h-full flex flex-col">
                     <h2 className="text-base font-semibold">Batch Exam Breakdown</h2>
                     <div className="mt-4 space-y-4">
                       <AccuracyBar label="Vocabulary Accuracy" value={data.batchExams.avgVocabAccuracy} color="bg-blue-500" />
