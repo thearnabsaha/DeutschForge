@@ -274,8 +274,8 @@ export default function DashboardPage() {
         initial="hidden"
         animate="show"
       >
-        <motion.div variants={item}>
-          <GlassCard className="flex items-center gap-4">
+        <motion.div variants={item} className="h-full">
+          <GlassCard className="flex items-center gap-4 h-full">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/20">
               <Brain size={20} className="text-[var(--accent)]" />
             </div>
@@ -286,8 +286,8 @@ export default function DashboardPage() {
           </GlassCard>
         </motion.div>
 
-        <motion.div variants={item}>
-          <GlassCard className="flex items-center gap-4">
+        <motion.div variants={item} className="h-full">
+          <GlassCard className="flex items-center gap-4 h-full">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-900/20">
               <Flame size={20} className="text-amber-500" />
             </div>
@@ -298,8 +298,8 @@ export default function DashboardPage() {
           </GlassCard>
         </motion.div>
 
-        <motion.div variants={item}>
-          <GlassCard className="flex items-center justify-center">
+        <motion.div variants={item} className="h-full">
+          <GlassCard className="flex items-center justify-center h-full">
             <ProgressRing
               progress={loading ? 0 : (data?.grammar?.completion ?? 0)}
               size={80}
@@ -310,8 +310,8 @@ export default function DashboardPage() {
           </GlassCard>
         </motion.div>
 
-        <motion.div variants={item}>
-          <GlassCard className="flex items-center gap-4">
+        <motion.div variants={item} className="h-full">
+          <GlassCard className="flex items-center gap-4 h-full">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-900/20">
               <BookOpen size={20} className="text-emerald-500" />
             </div>
@@ -357,8 +357,8 @@ export default function DashboardPage() {
         initial="hidden"
         animate="show"
       >
-        <motion.div variants={item}>
-          <GlassCard hover={false}>
+        <motion.div variants={item} className="h-full">
+          <GlassCard hover={false} className="h-full flex flex-col">
             <h2 className="text-base font-semibold">Part of Speech</h2>
             <div className="mt-4 space-y-3">
               {Object.entries(data?.vocabulary?.byPOS ?? {}).map(([pos, count]) => {
@@ -386,8 +386,8 @@ export default function DashboardPage() {
           </GlassCard>
         </motion.div>
 
-        <motion.div variants={item}>
-          <GlassCard hover={false}>
+        <motion.div variants={item} className="h-full">
+          <GlassCard hover={false} className="h-full flex flex-col">
             <h2 className="text-base font-semibold">Gender (der/die/das)</h2>
             <div className="mt-4 flex gap-4">
               {(['masculine', 'feminine', 'neuter'] as const).map((g) => {
@@ -452,8 +452,8 @@ export default function DashboardPage() {
         initial="hidden"
         animate="show"
       >
-        <motion.div variants={item}>
-          <GlassCard hover={false}>
+        <motion.div variants={item} className="h-full">
+          <GlassCard hover={false} className="h-full flex flex-col">
             <h2 className="text-base font-semibold">Exam History</h2>
             <div className="mt-4 space-y-2">
               {(data?.exams?.history ?? []).slice(0, 5).map((exam) => {
@@ -485,8 +485,8 @@ export default function DashboardPage() {
           </GlassCard>
         </motion.div>
 
-        <motion.div variants={item}>
-          <GlassCard hover={false}>
+        <motion.div variants={item} className="h-full">
+          <GlassCard hover={false} className="h-full flex flex-col">
             <h2 className="flex items-center gap-2 text-base font-semibold">
               <Sparkles size={18} className="text-amber-500" />
               AI Insights
