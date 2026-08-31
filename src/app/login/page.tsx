@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Flame, Eye, EyeOff } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -49,12 +50,12 @@ export default function LoginPage() {
         className="w-full max-w-[400px]"
       >
         <div className="mb-8 flex items-center justify-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent)]">
-            <Flame size={24} className="text-white" />
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-[var(--accent)] shadow-md">
+            <Image src="/fox-mascot.png" alt="Moin Moin Fox" width={48} height={48} className="object-cover" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">Moin Moin</h1>
-            <p className="text-xs text-[var(--text-tertiary)]">German Mastery</p>
+            <h1 className="text-xl font-black tracking-tight">Moin Moin</h1>
+            <p className="text-xs text-[var(--text-tertiary)] font-bold">German Mastery</p>
           </div>
         </div>
 

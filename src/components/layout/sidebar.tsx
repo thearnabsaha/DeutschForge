@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -61,12 +62,12 @@ export function Sidebar() {
         )}
       >
         <div className="flex items-center gap-3 px-6 pb-8">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)]">
-            <Flame size={18} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-[var(--accent)] shadow-sm">
+            <Image src="/fox-mascot.png" alt="Moin Moin Fox" width={40} height={40} className="object-cover" />
           </div>
           <div>
-            <h1 className="text-base font-semibold tracking-tight">Moin Moin</h1>
-            <p className="text-[11px] text-[var(--text-tertiary)]">German Learning</p>
+            <h1 className="text-base font-black tracking-tight">Moin Moin</h1>
+            <p className="text-[11px] text-[var(--text-tertiary)] font-bold">German Learning</p>
           </div>
         </div>
 

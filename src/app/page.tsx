@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   Flame,
@@ -76,10 +77,10 @@ export default function LandingPage() {
       <nav className="fixed left-0 right-0 top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)]">
-              <Flame size={18} className="text-white" />
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-[var(--accent)] shadow-sm">
+              <Image src="/fox-mascot.png" alt="Moin Moin Fox" width={40} height={40} className="object-cover" />
             </div>
-            <span className="text-lg font-semibold tracking-tight">Moin Moin</span>
+            <span className="text-lg font-black tracking-tight">Moin Moin</span>
           </Link>
           <div className="flex items-center gap-3">
             <Link
@@ -277,8 +278,8 @@ export default function LandingPage() {
             variants={stagger}
           >
             <motion.div variants={fadeUp}>
-              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--accent)]">
-                <Flame size={32} className="text-white" />
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-[var(--accent)] shadow-lg shadow-[var(--accent)]/25">
+                <Image src="/fox-mascot.png" alt="Moin Moin Fox" width={80} height={80} className="object-cover" />
               </div>
             </motion.div>
             <motion.h2 variants={fadeUp} className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -304,10 +305,10 @@ export default function LandingPage() {
       <footer className="border-t border-[var(--border)] py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 sm:flex-row">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent)]">
-              <Flame size={14} className="text-white" />
+            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-[var(--accent)]">
+              <Image src="/fox-mascot.png" alt="Moin Moin Fox" width={32} height={32} className="object-cover" />
             </div>
-            <span className="text-sm font-semibold">Moin Moin</span>
+            <span className="text-sm font-bold">Moin Moin</span>
           </div>
           <p className="text-xs text-[var(--text-tertiary)]">
             Built for serious German learners. CEFR A1 to B2.
