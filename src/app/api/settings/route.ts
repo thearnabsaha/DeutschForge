@@ -6,17 +6,11 @@ import { getCurrentUserId } from '@/lib/get-user';
 
 const VALID_LEVELS = ['A1', 'A2', 'B1', 'B2'] as const;
 const VALID_THEMES = [
+  'system',
+  'colorful',
+  'neo-brutalist',
   'light',
   'dark',
-  'system',
-  'high-contrast',
-  'minimal',
-  'colorful',
-  'dark-nord',
-  'dark-warm',
-  'amoled',
-  'dark-duo',
-  'dark-purple',
 ] as const;
 type TargetLevel = (typeof VALID_LEVELS)[number];
 type Theme = (typeof VALID_THEMES)[number];

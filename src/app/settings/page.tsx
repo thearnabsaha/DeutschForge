@@ -56,39 +56,36 @@ import { setMuted, isMuted } from '@/lib/sounds';
 import { useAuth } from '@/components/auth/auth-guard';
 
 const levels = ['A1', 'A2', 'B1', 'B2'] as const;
-type ThemeId =
-  | 'light'
-  | 'dark'
-  | 'system'
-  | 'high-contrast'
-  | 'minimal'
-  | 'colorful'
-  | 'dark-nord'
-  | 'dark-warm'
-  | 'amoled'
-  | 'dark-duo'
-  | 'dark-purple'
-  | 'neo-brutalist';
+type ThemeId = 'system' | 'colorful' | 'neo-brutalist';
 
 const themes: Array<{
   id: ThemeId;
   label: string;
+  description: string;
   icon: typeof Sun;
   preview: string;
-  group: 'light' | 'dark';
 }> = [
-  { id: 'system', label: 'System', icon: Monitor, preview: 'bg-gradient-to-r from-white to-[#1c1c1e] border border-[var(--border)]', group: 'light' },
-  { id: 'neo-brutalist', label: 'Neo-Brutalist', icon: Sparkles, preview: 'bg-[#58CC02] border-2 border-black shadow-[2px_2px_0px_#000]', group: 'light' },
-  { id: 'light', label: 'Light', icon: Sun, preview: 'bg-white border border-[var(--border)]', group: 'light' },
-  { id: 'high-contrast', label: 'High Contrast', icon: Contrast, preview: 'bg-white border-2 border-black', group: 'light' },
-  { id: 'minimal', label: 'Minimal', icon: Eye, preview: 'bg-[#fafafa] border border-gray-200', group: 'light' },
-  { id: 'colorful', label: 'Colorful', icon: Palette, preview: 'bg-[#f0faf0] border-2 border-[#58cc02]', group: 'light' },
-  { id: 'dark', label: 'Dark', icon: Moon, preview: 'bg-[#1c1c1e] border border-white/10', group: 'dark' },
-  { id: 'dark-nord', label: 'Nord', icon: Snowflake, preview: 'bg-[#2e3440] border border-[#88c0d0]/30', group: 'dark' },
-  { id: 'dark-warm', label: 'Warm', icon: Flame, preview: 'bg-[#1a1412] border border-[#e8a44a]/20', group: 'dark' },
-  { id: 'amoled', label: 'AMOLED', icon: Smartphone, preview: 'bg-black border border-white/5', group: 'dark' },
-  { id: 'dark-duo', label: 'Duolingo', icon: TreePine, preview: 'bg-[#131f24] border border-[#58cc02]/20', group: 'dark' },
-  { id: 'dark-purple', label: 'Purple', icon: Sparkles, preview: 'bg-[#13111c] border border-[#a78bfa]/20', group: 'dark' },
+  {
+    id: 'system',
+    label: 'System',
+    description: 'Follows your operating system appearance (Light / Dark).',
+    icon: Monitor,
+    preview: 'bg-gradient-to-r from-white via-[#f0faf0] to-[#1c1c1e] border border-[var(--border)]',
+  },
+  {
+    id: 'colorful',
+    label: 'Colorful (Duolingo)',
+    description: 'Vibrant Duolingo emerald green with smooth glassmorphism.',
+    icon: Palette,
+    preview: 'bg-[#58cc02] border-2 border-[#46a302]',
+  },
+  {
+    id: 'neo-brutalist',
+    label: 'Neo-Brutalist',
+    description: 'Bold 3px solid black outlines, hard offset shadows & retro tactile physics.',
+    icon: Sparkles,
+    preview: 'bg-[#58CC02] border-3 border-black shadow-[3px_3px_0px_#000]',
+  },
 ];
 
 type ResetType = 'vocabulary' | 'progress' | 'hard';
@@ -774,67 +771,51 @@ export default function SettingsPage() {
               transition={{ duration: 0.3, delay: 0.05 }}
             >
               <GlassCard hover={false} className="p-6">
-                <h2 className="flex items-center gap-2 text-base font-extrabold text-[var(--text-primary)]">
-                  <Sun size={18} className="text-[var(--accent)]" />
-                  Theme & Visuals (11 Presets)
-                </h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="flex items-center gap-2 text-base font-extrabold text-[var(--text-primary)]">
+                    <Sun size={18} className="text-[var(--accent)]" />
+                    Theme & Visual Style
+                  </h2>
+                  <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-xs font-black text-[var(--accent)] border border-[var(--accent)]/20">
+                    3 Styles Available
+                  </span>
+                </div>
 
-                <div className="mt-6 space-y-6">
-                  <div>
-                    <p className="mb-3 text-xs font-black uppercase tracking-wider text-[var(--text-tertiary)]">Light Presets</p>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {themes.filter((t) => t.group === 'light').map((t) => {
-                        const Icon = t.icon;
-                        const isActive = themeChoice === t.id;
-                        return (
-                          <button
-                            key={t.id}
-                            onClick={() => handleThemeSelect(t.id)}
-                            className={cn(
-                              'btn-3d flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-all',
-                              isActive
-                                ? 'border-[var(--accent)] bg-[var(--accent)]/10 ring-2 ring-[var(--accent)]/30'
-                                : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/50'
-                            )}
-                          >
-                            <div className={cn('h-10 w-full rounded-xl', t.preview)} aria-hidden />
+                <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                  {themes.map((t) => {
+                    const Icon = t.icon;
+                    const isActive = themeChoice === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => handleThemeSelect(t.id)}
+                        className={cn(
+                          'btn-3d flex flex-col justify-between rounded-2xl border-2 p-4 text-left transition-all relative overflow-hidden',
+                          isActive
+                            ? 'border-[var(--accent)] bg-[var(--accent)]/10 ring-2 ring-[var(--accent)]/30'
+                            : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/50'
+                        )}
+                      >
+                        <div>
+                          <div className={cn('h-14 w-full rounded-xl flex items-center justify-center font-black text-sm', t.preview)} aria-hidden />
+                          <div className="mt-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Icon size={16} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'} />
-                              <span className="text-xs font-bold">{t.label}</span>
+                              <Icon size={18} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'} />
+                              <span className="text-sm font-extrabold text-[var(--text-primary)]">{t.label}</span>
                             </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="mb-3 text-xs font-black uppercase tracking-wider text-[var(--text-tertiary)]">Dark & OLED Presets</p>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {themes.filter((t) => t.group === 'dark').map((t) => {
-                        const Icon = t.icon;
-                        const isActive = themeChoice === t.id;
-                        return (
-                          <button
-                            key={t.id}
-                            onClick={() => handleThemeSelect(t.id)}
-                            className={cn(
-                              'btn-3d flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-all',
-                              isActive
-                                ? 'border-[var(--accent)] bg-[var(--accent)]/10 ring-2 ring-[var(--accent)]/30'
-                                : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/50'
+                            {isActive && (
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-white text-[10px] font-black">
+                                ✓
+                              </span>
                             )}
-                          >
-                            <div className={cn('h-10 w-full rounded-xl', t.preview)} aria-hidden />
-                            <div className="flex items-center gap-2">
-                              <Icon size={16} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'} />
-                              <span className="text-xs font-bold">{t.label}</span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                          </div>
+                          <p className="mt-2 text-xs font-medium text-[var(--text-tertiary)] leading-relaxed">
+                            {t.description}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </GlassCard>
             </motion.div>
