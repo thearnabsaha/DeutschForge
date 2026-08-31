@@ -78,7 +78,7 @@ const themes: Array<{
   group: 'light' | 'dark';
 }> = [
   { id: 'system', label: 'System', icon: Monitor, preview: 'bg-gradient-to-r from-white to-[#1c1c1e] border border-[var(--border)]', group: 'light' },
-  { id: 'neo-brutalist', label: 'Neo-Brutalist', icon: Sparkles, preview: 'bg-[#FFE600] border-2 border-black shadow-[2px_2px_0px_#000]', group: 'light' },
+  { id: 'neo-brutalist', label: 'Neo-Brutalist', icon: Sparkles, preview: 'bg-[#58CC02] border-2 border-black shadow-[2px_2px_0px_#000]', group: 'light' },
   { id: 'light', label: 'Light', icon: Sun, preview: 'bg-white border border-[var(--border)]', group: 'light' },
   { id: 'high-contrast', label: 'High Contrast', icon: Contrast, preview: 'bg-white border-2 border-black', group: 'light' },
   { id: 'minimal', label: 'Minimal', icon: Eye, preview: 'bg-[#fafafa] border border-gray-200', group: 'light' },
