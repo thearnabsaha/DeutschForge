@@ -230,110 +230,148 @@ export default function PracticePage() {
     }
   }, [mode, currentWord, sessionComplete, isTransitioning, speak]);
 
+  const PRACTICE_MODULES = [
+    {
+      id: 'words',
+      title: 'Word Batch Practice',
+      description: 'Learn → Practice Test → Word Exam with 3D flashcards and batch progress.',
+      href: '/practice/words',
+      icon: BookOpen,
+      badge: 'Full Flow',
+      badgeColor: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/15',
+      color: 'text-emerald-500',
+      bgColor: 'bg-emerald-500/10',
+      borderHover: 'hover:border-emerald-500/50',
+    },
+    {
+      id: 'listening',
+      title: 'Listening Practice Lab',
+      description: 'AI-generated German audio with native speed controls & Goethe exam audio drills.',
+      href: '/practice/listening',
+      icon: Headphones,
+      badge: 'Audio Lab',
+      badgeColor: 'text-purple-600 dark:text-purple-400 bg-purple-500/15',
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-500/10',
+      borderHover: 'hover:border-purple-500/50',
+    },
+    {
+      id: 'expressions',
+      title: 'Idioms & Expressions',
+      description: 'Learn → Practice Test → Exam. Master fixed expressions, idioms & phrases.',
+      href: '/practice/expressions',
+      icon: MessageSquareQuote,
+      badge: 'Phrases',
+      badgeColor: 'text-teal-600 dark:text-teal-400 bg-teal-500/15',
+      color: 'text-teal-500',
+      bgColor: 'bg-teal-500/10',
+      borderHover: 'hover:border-teal-500/50',
+    },
+    {
+      id: 'flashcard',
+      title: 'Flashcard Review',
+      description: 'Classic FSRS-4.5 spaced repetition memory intervals adapted to retention.',
+      mode: 'flashcard' as const,
+      icon: Brain,
+      badge: 'FSRS Spaced',
+      badgeColor: 'text-blue-600 dark:text-blue-400 bg-blue-500/15',
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-500/10',
+      borderHover: 'hover:border-blue-500/50',
+    },
+    {
+      id: 'meaning',
+      title: 'Meaning Recall',
+      description: 'See German vocabulary and type the English meaning under focus.',
+      mode: 'meaning' as const,
+      icon: BookOpen,
+      badge: 'Active Recall',
+      badgeColor: 'text-rose-600 dark:text-rose-400 bg-rose-500/15',
+      color: 'text-rose-500',
+      bgColor: 'bg-rose-500/10',
+      borderHover: 'hover:border-rose-500/50',
+    },
+    {
+      id: 'gender',
+      title: 'Gender Articles Test',
+      description: 'Rapid-fire der, die, and das noun classification and memory training.',
+      mode: 'gender' as const,
+      icon: Tag,
+      badge: 'Grammar',
+      badgeColor: 'text-amber-600 dark:text-amber-400 bg-amber-500/15',
+      color: 'text-amber-500',
+      bgColor: 'bg-amber-500/10',
+      borderHover: 'hover:border-amber-500/50',
+    },
+  ];
+
   if (mode === null) {
     return (
-      <div className="mx-auto max-w-4xl px-6 py-10 lg:px-8">
-        <PageHeader title="Practice" subtitle="Choose a mode to start" />
-        <Link href="/practice/words" onClick={() => sfx.tap()}>
-          <motion.div
-            className="mb-6 rounded-2xl border-2 border-dashed border-[var(--accent)]/40 bg-[var(--accent)]/5 p-6 transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)]/10"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
-            <div className="flex items-center gap-4">
-              <div className="rounded-xl bg-[var(--accent)]/20 p-3">
-                <BookOpen size={28} className="text-[var(--accent)]" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">Practice the Word</h3>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                  Learn → Practice Test → Word Exam. Duolingo-style batch flow.
-                </p>
-              </div>
-              <ArrowRight size={20} className="ml-auto text-[var(--accent)]" />
-            </div>
-          </motion.div>
-        </Link>
-        <Link href="/practice/listening" onClick={() => sfx.tap()}>
-          <motion.div
-            className="mb-6 rounded-2xl border-2 border-dashed border-purple-400/40 bg-purple-500/5 p-6 transition-colors hover:border-purple-500 hover:bg-purple-500/10"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
-            <div className="flex items-center gap-4">
-              <div className="rounded-xl bg-purple-500/20 p-3">
-                <Headphones size={28} className="text-purple-500" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">Listening Practice</h3>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                  AI-generated German audio with background noise, subtitles &amp; Goethe-style questions.
-                </p>
-              </div>
-              <ArrowRight size={20} className="ml-auto text-purple-500" />
-            </div>
-          </motion.div>
-        </Link>
-        <Link href="/practice/expressions" onClick={() => sfx.tap()}>
-          <motion.div
-            className="mb-6 rounded-2xl border-2 border-dashed border-teal-400/40 bg-teal-500/5 p-6 transition-colors hover:border-teal-500 hover:bg-teal-500/10"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
-            <div className="flex items-center gap-4">
-              <div className="rounded-xl bg-teal-500/20 p-3">
-                <MessageSquareQuote size={28} className="text-teal-500" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">Practice Expressions</h3>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                  Learn → Practice Test → Exam. Master fixed expressions, idioms &amp; phrases.
-                </p>
-              </div>
-              <ArrowRight size={20} className="ml-auto text-teal-500" />
-            </div>
-          </motion.div>
-        </Link>
-        <motion.div
-          className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            visible: {
-              transition: { staggerChildren: 0.08 },
-            },
-          }}
-        >
-          {MODES.map((m) => {
-            const Icon = m.icon;
-            return (
-              <motion.div
-                key={m.id}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0 },
-                }}
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <PageHeader
+          title="Practice Hub"
+          subtitle="Select a practice lab or quick drill to strengthen your German recall."
+        />
+
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {PRACTICE_MODULES.map((item) => {
+            const Icon = item.icon;
+            const isLink = !!item.href;
+
+            const cardContent = (
+              <GlassCard
+                hover={true}
+                className={cn(
+                  'h-full flex flex-col justify-between p-6 transition-all border-2 border-[var(--border)] cursor-pointer group',
+                  item.borderHover
+                )}
               >
-                <GlassCard
-                  hover={true}
-                  className="cursor-pointer"
-                  onClick={() => { sfx.tap(); setMode(m.id); }}
-                >
-                  <div className={`inline-flex rounded-xl p-3 ${m.bgColor}`}>
-                    <Icon size={24} className={m.color} />
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className={cn('rounded-2xl p-3.5', item.bgColor, item.color)}>
+                      <Icon size={24} />
+                    </div>
+                    <span className={cn('rounded-lg px-2.5 py-1 text-[11px] font-black', item.badgeColor)}>
+                      {item.badge}
+                    </span>
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold">{m.title}</h3>
-                  <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                    {m.description}
+                  <h3 className="mt-5 text-lg font-black text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="mt-2 text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed font-medium">
+                    {item.description}
                   </p>
-                  <div className="mt-4 flex items-center gap-1 text-sm font-medium text-[var(--accent)]">
-                    Start <ArrowRight size={16} />
-                  </div>
-                </GlassCard>
-              </motion.div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-[var(--border)]/60 flex items-center justify-between text-xs font-bold text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors">
+                  <span>{isLink ? 'Open Practice Lab' : 'Start Drill'}</span>
+                  <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </GlassCard>
+            );
+
+            if (isLink) {
+              return (
+                <Link key={item.id} href={item.href!} onClick={() => sfx.tap()} className="block h-full">
+                  {cardContent}
+                </Link>
+              );
+            }
+
+            return (
+              <div
+                key={item.id}
+                onClick={() => {
+                  sfx.tap();
+                  setMode(item.mode!);
+                }}
+                className="h-full"
+              >
+                {cardContent}
+              </div>
             );
           })}
-        </motion.div>
+        </div>
       </div>
     );
   }
