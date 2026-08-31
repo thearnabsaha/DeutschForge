@@ -124,7 +124,7 @@ const modeLabels: Record<string, string> = {
 };
 
 const fadeIn = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 12 },
   visible: { opacity: 1, y: 0 },
 };
 
@@ -147,19 +147,19 @@ function StatCard({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
+      transition={{ delay, duration: 0.3 }}
       className="h-full"
     >
-      <GlassCard hover={false} className="flex items-center gap-4 h-full">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${bgColor}`}>
-          <Icon size={20} className={color} />
+      <GlassCard hover={false} className="flex h-full items-center gap-3 p-3.5 sm:gap-4 sm:p-5">
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${bgColor}`}>
+          <Icon size={18} className={`sm:size-5 ${color}`} />
         </div>
-        <div className="min-w-0">
-          <p className="text-2xl font-bold tabular-nums">{value}</p>
-          <p className="text-xs text-[var(--text-tertiary)]">{label}</p>
-          {sub && <p className="mt-0.5 text-[10px] text-[var(--text-tertiary)]">{sub}</p>}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-lg font-black tracking-tight tabular-nums sm:text-2xl">{value}</p>
+          <p className="truncate text-[11px] font-medium text-[var(--text-tertiary)] sm:text-xs">{label}</p>
+          {sub && <p className="mt-0.5 truncate text-[10px] text-[var(--text-secondary)]">{sub}</p>}
         </div>
       </GlassCard>
     </motion.div>
@@ -171,15 +171,15 @@ function AccuracyBar({ label, value, color }: { label: string; value: number | n
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-xs">
-        <span className="text-[var(--text-secondary)]">{label}</span>
-        <span className="font-semibold tabular-nums">{value}%</span>
+        <span className="truncate text-[var(--text-secondary)]">{label}</span>
+        <span className="font-bold tabular-nums">{value}%</span>
       </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+      <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
         <motion.div
           className={`h-full rounded-full ${color}`}
           initial={{ width: 0 }}
-          animate={{ width: `${value}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
+          animate={{ width: `${Math.min(value, 100)}%` }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
         />
       </div>
     </div>
@@ -188,32 +188,32 @@ function AccuracyBar({ label, value, color }: { label: string; value: number | n
 
 function MiniBarChart({
   data,
-  maxHeight = 100,
+  maxHeight = 110,
 }: {
   data: { label: string; value: number; correct?: number }[];
   maxHeight?: number;
 }) {
   const maxVal = Math.max(...data.map(d => d.value), 1);
   return (
-    <div className="flex items-end gap-1" style={{ height: maxHeight }}>
+    <div className="flex w-full items-end gap-1 overflow-x-auto py-1 scrollbar-none" style={{ height: maxHeight }}>
       {data.map((d, i) => {
         const height = (d.value / maxVal) * 100;
         const correctPct = d.correct != null && d.value > 0 ? (d.correct / d.value) * 100 : 100;
         return (
-          <div key={i} className="group relative flex flex-1 flex-col items-center gap-1">
+          <div key={i} className="group relative flex min-w-[14px] flex-1 flex-col items-center gap-1">
             <span className="text-[8px] tabular-nums text-[var(--text-tertiary)] opacity-0 transition-opacity group-hover:opacity-100">
               {d.value}
             </span>
             <div
-              className="relative w-full overflow-hidden rounded-t-md bg-[var(--accent)]/20 transition-all"
-              style={{ height: `${Math.max(height, 4)}%`, minHeight: 4 }}
+              className="relative w-full overflow-hidden rounded-t-sm bg-[var(--accent)]/20 transition-all sm:rounded-t-md"
+              style={{ height: `${Math.max(height, 6)}%`, minHeight: 6 }}
             >
               <div
-                className="absolute bottom-0 left-0 w-full rounded-t-md bg-[var(--accent)] transition-all"
+                className="absolute bottom-0 left-0 w-full rounded-t-sm bg-[var(--accent)] transition-all sm:rounded-t-md"
                 style={{ height: `${correctPct}%` }}
               />
             </div>
-            <span className="text-[7px] text-[var(--text-tertiary)]">{d.label}</span>
+            <span className="text-[7px] font-medium text-[var(--text-tertiary)] sm:text-[8px]">{d.label}</span>
           </div>
         );
       })}
@@ -234,19 +234,19 @@ function WordRow({ word, showAccuracy = true }: {
         : '';
 
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-[var(--bg-tertiary)]/60 px-4 py-2.5">
+    <div className="flex items-center gap-2.5 rounded-xl bg-[var(--bg-tertiary)]/60 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{word.word}</p>
-        <p className="truncate text-xs text-[var(--text-tertiary)]">{word.meaning}</p>
+        <p className="truncate text-xs font-bold sm:text-sm">{word.word}</p>
+        <p className="truncate text-[11px] text-[var(--text-tertiary)]">{word.meaning}</p>
       </div>
       {word.gender && (
-        <span className={`rounded-lg px-2 py-0.5 text-[10px] font-medium ${genderBg}`}>
+        <span className={`shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-bold ${genderBg}`}>
           {word.gender === 'masculine' ? 'der' : word.gender === 'feminine' ? 'die' : 'das'}
         </span>
       )}
       {showAccuracy && (
-        <div className="flex items-center gap-1.5 text-right">
-          <div className="h-6 w-6">
+        <div className="flex shrink-0 items-center gap-1.5 text-right">
+          <div className="h-5 w-5 sm:h-6 sm:w-6">
             <svg viewBox="0 0 36 36" className="-rotate-90">
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
@@ -264,7 +264,7 @@ function WordRow({ word, showAccuracy = true }: {
               />
             </svg>
           </div>
-          <span className="text-xs font-semibold tabular-nums">{word.accuracy}%</span>
+          <span className="text-xs font-bold tabular-nums">{word.accuracy}%</span>
         </div>
       )}
     </div>
@@ -307,135 +307,149 @@ export default function AnalyticsPage() {
     : 0;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-6xl px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
       <PageHeader title="Analytics" subtitle="Comprehensive learning insights" />
 
       {/* Tab Navigation */}
-      <div className="mt-6 flex gap-1 overflow-x-auto rounded-2xl bg-[var(--bg-secondary)] p-1.5 scrollbar-none border border-[var(--border)]">
+      <div className="mt-4 flex gap-1.5 overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-1.5 scrollbar-none sm:mt-6">
         {TABS.map(tab => {
           const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? 'bg-[var(--accent)] text-white shadow-md'
+              className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all sm:gap-2 sm:px-4 sm:text-sm ${
+                isActive
+                  ? 'bg-[var(--accent)] text-white shadow-sm'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
               }`}
             >
-              <Icon size={16} />
-              <span className="hidden sm:inline">{tab.label}</span>
+              <Icon size={15} />
+              <span>{tab.label}</span>
             </button>
           );
         })}
       </div>
 
-      <div className="mt-8">
+      <div className="mt-5 sm:mt-8">
         <AnimatePresence mode="wait">
           {/* ═══════════ OVERVIEW TAB ═══════════ */}
           {activeTab === 'overview' && (
-            <motion.div key="overview" initial="hidden" animate="visible" exit="hidden" variants={{ visible: { transition: { staggerChildren: 0.04 } } }}>
-              {/* Hero Stats */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard icon={BookOpen} label="Total Words" value={data.vocabulary.totalWords} sub={`${data.vocabulary.dueWords} due for review`} delay={0} />
-                <StatCard icon={Flame} label="Day Streak" value={data.wordsPractice.streak} sub={`${data.wordsPractice.todayReviews} reviews today`} color="text-orange-500" bgColor="bg-orange-500/10" delay={0.05} />
-                <StatCard icon={TrendingUp} label="Total Reviews" value={data.wordsPractice.totalReviews} sub={`${data.wordsPractice.meaningAccuracy}% meaning accuracy`} color="text-emerald-500" bgColor="bg-emerald-500/10" delay={0.1} />
-                <StatCard icon={Award} label="Level" value={data.xp.level} sub={`${data.xp.total} XP earned`} color="text-purple-500" bgColor="bg-purple-500/10" delay={0.15} />
+            <motion.div key="overview" initial="hidden" animate="visible" exit="hidden" variants={{ visible: { transition: { staggerChildren: 0.04 } } }} className="space-y-4 sm:space-y-6">
+              {/* Hero Stats Bento - 2x2 on mobile, 4x1 on desktop */}
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+                <StatCard icon={BookOpen} label="Total Words" value={data.vocabulary.totalWords} sub={`${data.vocabulary.dueWords} due review`} delay={0} />
+                <StatCard icon={Flame} label="Day Streak" value={data.wordsPractice.streak} sub={`${data.wordsPractice.todayReviews} today`} color="text-orange-500" bgColor="bg-orange-500/10" delay={0.04} />
+                <StatCard icon={TrendingUp} label="Total Reviews" value={data.wordsPractice.totalReviews} sub={`${data.wordsPractice.meaningAccuracy}% accuracy`} color="text-emerald-500" bgColor="bg-emerald-500/10" delay={0.08} />
+                <StatCard icon={Award} label="Level" value={data.xp.level} sub={`${data.xp.total} XP earned`} color="text-purple-500" bgColor="bg-purple-500/10" delay={0.12} />
               </div>
 
-              {/* Mastery + Daily Activity */}
-              <div className="mt-6 grid gap-6 lg:grid-cols-3">
+              {/* Mastery Ring + 30-Day Activity Chart Bento */}
+              <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3">
+                {/* Mastery Card */}
                 <motion.div variants={fadeIn} className="h-full">
-                  <GlassCard hover={false} className="flex flex-col items-center h-full">
-                    <ProgressRing progress={masteryPct} label={`${masteryPct}%`} sublabel="Mastery" />
-                    <div className="mt-5 grid w-full grid-cols-2 gap-2 flex-1">
+                  <GlassCard hover={false} className="flex h-full flex-col justify-between p-4 sm:p-6">
+                    <div className="flex flex-col items-center">
+                      <ProgressRing progress={masteryPct} label={`${masteryPct}%`} sublabel="Mastery" />
+                    </div>
+                    
+                    <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-[var(--bg-tertiary)]/50 p-2.5">
                       {[
                         { label: 'New', count: data.vocabulary.byState.new, color: 'bg-gray-400' },
                         { label: 'Learning', count: data.vocabulary.byState.learning, color: 'bg-amber-400' },
                         { label: 'Review', count: data.vocabulary.byState.review, color: 'bg-emerald-400' },
                         { label: 'Relearning', count: data.vocabulary.byState.relearning, color: 'bg-red-400' },
                       ].map(s => (
-                        <div key={s.label} className="flex items-center gap-2 text-xs">
-                          <div className={`h-2 w-2 rounded-full ${s.color}`} />
-                          <span className="text-[var(--text-secondary)]">{s.label}: {s.count}</span>
+                        <div key={s.label} className="flex items-center gap-1.5 text-[11px]">
+                          <div className={`h-2 w-2 shrink-0 rounded-full ${s.color}`} />
+                          <span className="truncate text-[var(--text-secondary)] font-medium">{s.label}: <b>{s.count}</b></span>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-4 w-full border-t border-[var(--border)] pt-4">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-[var(--text-secondary)]">Mastered</span>
-                        <span className="font-semibold">{data.vocabulary.masteredWords}</span>
+
+                    <div className="mt-3 border-t border-[var(--border)] pt-3 text-xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[var(--text-secondary)]">Mastered Words</span>
+                        <span className="font-bold tabular-nums">{data.vocabulary.masteredWords}</span>
                       </div>
-                      <div className="mt-1 flex items-center justify-between text-xs">
-                        <span className="text-[var(--text-secondary)]">Remaining</span>
-                        <span className="font-semibold">{data.vocabulary.remainingWords}</span>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between text-xs">
-                        <span className="text-[var(--text-secondary)]">Memory Stability</span>
-                        <span className="font-semibold">{data.memory.avgStability}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[var(--text-secondary)]">Remaining Words</span>
+                        <span className="font-bold tabular-nums">{data.vocabulary.remainingWords}</span>
                       </div>
                     </div>
                   </GlassCard>
                 </motion.div>
 
-                <motion.div variants={fadeIn} className="lg:col-span-2 h-full">
-                  <GlassCard hover={false} className="h-full flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <Calendar size={18} className="text-[var(--accent)]" />
-                      <h2 className="text-base font-semibold">Review Activity (30 Days)</h2>
+                {/* 30-Day Activity Chart */}
+                <motion.div variants={fadeIn} className="h-full lg:col-span-2">
+                  <GlassCard hover={false} className="flex h-full flex-col justify-between p-4 sm:p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={18} className="text-[var(--accent)]" />
+                        <h2 className="text-sm font-bold sm:text-base">Review Activity</h2>
+                      </div>
+                      <span className="rounded-lg bg-[var(--bg-tertiary)] px-2 py-0.5 text-[10px] font-bold text-[var(--text-tertiary)]">
+                        Recent Days
+                      </span>
                     </div>
-                    <div className="mt-4">
+
+                    <div className="my-3 flex-1">
                       <MiniBarChart
-                        data={data.wordsPractice.dailyActivity.map(d => ({
+                        data={data.wordsPractice.dailyActivity.slice(-18).map(d => ({
                           label: new Date(d.date).toLocaleDateString('en', { day: '2-digit' }),
                           value: d.count,
                           correct: d.correct,
                         }))}
-                        maxHeight={120}
+                        maxHeight={110}
                       />
                     </div>
-                    <div className="mt-3 flex items-center gap-4 text-[10px] text-[var(--text-tertiary)]">
-                      <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-sm bg-[var(--accent)]" /> Correct</span>
-                      <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-sm bg-[var(--accent)]/20" /> Incorrect</span>
+
+                    <div className="flex items-center justify-between border-t border-[var(--border)] pt-2 text-[10px] text-[var(--text-tertiary)]">
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-sm bg-[var(--accent)]" /> Correct</span>
+                        <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-sm bg-[var(--accent)]/20" /> Incorrect</span>
+                      </div>
+                      <span>Hover / tap bar for count</span>
                     </div>
                   </GlassCard>
                 </motion.div>
               </div>
 
-              {/* Vocabulary Breakdown */}
-              <motion.div variants={fadeIn} className="mt-6">
-                <GlassCard hover={false}>
-                  <h2 className="text-base font-semibold">Vocabulary Breakdown</h2>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {/* Vocabulary Breakdown Bento */}
+              <motion.div variants={fadeIn}>
+                <GlassCard hover={false} className="p-4 sm:p-6">
+                  <h2 className="text-sm font-bold sm:text-base">Vocabulary Breakdown</h2>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div>
-                      <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-[var(--text-tertiary)]">By Part of Speech</h3>
+                      <h3 className="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">By Part of Speech</h3>
                       <div className="space-y-2">
                         {Object.entries(data.vocabulary.byPOS).sort(([,a],[,b]) => b - a).map(([pos, cnt]) => (
-                          <div key={pos} className="flex items-center gap-3">
-                            <span className="w-24 text-xs text-[var(--text-secondary)] capitalize">{pos}</span>
+                          <div key={pos} className="flex items-center gap-2 text-xs">
+                            <span className="w-20 truncate text-[var(--text-secondary)] font-medium capitalize">{pos}</span>
                             <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                               <motion.div
                                 className="h-full rounded-full bg-[var(--accent)]"
                                 initial={{ width: 0 }}
-                                animate={{ width: `${(cnt / data.vocabulary.totalWords) * 100}%` }}
+                                animate={{ width: `${(cnt / (data.vocabulary.totalWords || 1)) * 100}%` }}
                                 transition={{ duration: 0.6 }}
                               />
                             </div>
-                            <span className="w-8 text-right text-xs font-semibold tabular-nums">{cnt}</span>
+                            <span className="w-8 text-right font-bold tabular-nums">{cnt}</span>
                           </div>
                         ))}
                       </div>
                     </div>
+
                     <div>
-                      <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-[var(--text-tertiary)]">By CEFR Level</h3>
+                      <h3 className="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">By CEFR Level</h3>
                       <div className="space-y-2">
                         {['A1', 'A2', 'B1', 'B2'].map(level => {
                           const cnt = data.vocabulary.byCEFR[level] || 0;
-                          const colors: Record<string, string> = { A1: 'bg-emerald-400', A2: 'bg-blue-400', B1: 'bg-amber-400', B2: 'bg-purple-400' };
+                          const colors: Record<string, string> = { A1: 'bg-emerald-500', A2: 'bg-blue-500', B1: 'bg-amber-500', B2: 'bg-purple-500' };
                           return (
-                            <div key={level} className="flex items-center gap-3">
-                              <span className="w-24 text-xs font-medium">{level}</span>
+                            <div key={level} className="flex items-center gap-2 text-xs">
+                              <span className="w-20 font-bold">{level}</span>
                               <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                                 <motion.div
                                   className={`h-full rounded-full ${colors[level]}`}
@@ -444,7 +458,7 @@ export default function AnalyticsPage() {
                                   transition={{ duration: 0.6 }}
                                 />
                               </div>
-                              <span className="w-8 text-right text-xs font-semibold tabular-nums">{cnt}</span>
+                              <span className="w-8 text-right font-bold tabular-nums">{cnt}</span>
                             </div>
                           );
                         })}
@@ -454,16 +468,16 @@ export default function AnalyticsPage() {
                 </GlassCard>
               </motion.div>
 
-              {/* Weekly Trend */}
-              <motion.div variants={fadeIn} className="mt-6 grid gap-6 sm:grid-cols-2">
-                <div className="h-full">
-                  <GlassCard hover={false} className="h-full flex flex-col">
-                    <h2 className="text-base font-semibold">Weekly Trend</h2>
-                    <div className="mt-4 space-y-3 flex-1">
+              {/* Weekly Trend & Practice Modes Bento */}
+              <div className="grid grid-cols-1 gap-3 sm:gap-6 md:grid-cols-2">
+                <motion.div variants={fadeIn} className="h-full">
+                  <GlassCard hover={false} className="flex h-full flex-col justify-between p-4 sm:p-6">
+                    <h2 className="text-sm font-bold sm:text-base">Weekly Trend</h2>
+                    <div className="mt-3 space-y-2.5 flex-1">
                       {data.wordsPractice.weeklyTrend.map(w => (
-                        <div key={w.week} className="flex items-center gap-3">
-                          <span className="w-10 text-xs font-medium text-[var(--text-secondary)]">{w.week}</span>
-                          <div className="h-3 flex-1 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                        <div key={w.week} className="flex items-center gap-2.5 text-xs">
+                          <span className="w-10 font-bold text-[var(--text-secondary)]">{w.week}</span>
+                          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                             <motion.div
                               className="h-full rounded-full bg-[var(--accent)]"
                               initial={{ width: 0 }}
@@ -472,87 +486,91 @@ export default function AnalyticsPage() {
                             />
                           </div>
                           <div className="text-right">
-                            <span className="text-xs font-semibold tabular-nums">{w.accuracy}%</span>
-                            <span className="ml-2 text-[10px] text-[var(--text-tertiary)]">{w.reviews} reviews</span>
+                            <span className="font-bold tabular-nums">{w.accuracy}%</span>
+                            <span className="ml-1 text-[10px] text-[var(--text-tertiary)]">({w.reviews})</span>
                           </div>
                         </div>
                       ))}
                     </div>
                   </GlassCard>
-                </div>
+                </motion.div>
 
-                <div className="h-full">
-                  <GlassCard hover={false} className="h-full flex flex-col">
-                    <h2 className="text-base font-semibold">Practice Modes</h2>
-                  <div className="mt-4 space-y-3">
-                    {Object.entries(data.wordsPractice.modeBreakdown).map(([mode, stats]) => (
-                      <div key={mode} className="flex items-center gap-3 rounded-xl bg-[var(--bg-tertiary)]/60 px-3 py-2">
-                        <span className="w-24 text-xs font-medium capitalize">{modeLabels[mode] || mode}</span>
-                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
-                          <div
-                            className="h-full rounded-full bg-[var(--accent)]"
-                            style={{ width: `${stats.accuracy}%` }}
-                          />
+                <motion.div variants={fadeIn} className="h-full">
+                  <GlassCard hover={false} className="flex h-full flex-col justify-between p-4 sm:p-6">
+                    <h2 className="text-sm font-bold sm:text-base">Practice Modes</h2>
+                    <div className="mt-3 space-y-2 flex-1">
+                      {Object.entries(data.wordsPractice.modeBreakdown).map(([mode, stats]) => (
+                        <div key={mode} className="flex items-center gap-2.5 rounded-xl bg-[var(--bg-tertiary)]/60 px-3 py-2 text-xs">
+                          <span className="w-20 truncate font-semibold capitalize">{modeLabels[mode] || mode}</span>
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
+                            <div
+                              className="h-full rounded-full bg-[var(--accent)]"
+                              style={{ width: `${stats.accuracy}%` }}
+                            />
+                          </div>
+                          <span className="font-bold tabular-nums">{stats.accuracy}%</span>
+                          <span className="text-[10px] text-[var(--text-tertiary)]">({stats.total})</span>
                         </div>
-                        <span className="text-xs font-semibold tabular-nums">{stats.accuracy}%</span>
-                        <span className="text-[10px] text-[var(--text-tertiary)]">({stats.total})</span>
-                      </div>
-                    ))}
-                  </div>
-                </GlassCard>
-                </div>
-              </motion.div>
+                      ))}
+                    </div>
+                  </GlassCard>
+                </motion.div>
+              </div>
 
-              {/* Quick Summary Cards */}
-              <div className="mt-6 grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+              {/* Bottom Quick Summary Cards - 2x3 on mobile, 3x2 on tablet, 6x1 on desktop */}
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-3 lg:grid-cols-6">
                 <StatCard icon={Tag} label="Gender Accuracy" value={`${data.gender.accuracy}%`} color="text-amber-500" bgColor="bg-amber-500/10" />
                 <StatCard icon={Brain} label="Grammar" value={`${data.grammar.completion}%`} sub={`${data.grammar.completed}/${data.grammar.totalTopics}`} color="text-blue-500" bgColor="bg-blue-500/10" />
                 <StatCard icon={GraduationCap} label="Goethe Exams" value={data.goetheExams.totalAttempts} sub={data.goetheExams.avgScore > 0 ? `${data.goetheExams.avgScore}% avg` : 'No attempts'} color="text-red-500" bgColor="bg-red-500/10" />
                 <StatCard icon={Headphones} label="Listening" value={data.listening.completed} sub={data.listening.avgScore > 0 ? `${data.listening.avgScore}% avg` : 'No attempts'} color="text-teal-500" bgColor="bg-teal-500/10" />
                 <StatCard icon={MessageCircle} label="Conversations" value={data.conversations} color="text-indigo-500" bgColor="bg-indigo-500/10" />
-                <StatCard icon={Target} label="Batches" value={data.batches.total} sub={`${data.batches.learnedWords}/${data.batches.totalWords} learned`} color="text-pink-500" bgColor="bg-pink-500/10" />
+                <StatCard icon={Target} label="Batches" value={data.batches.total} sub={`${data.batches.learnedWords}/${data.batches.totalWords} words`} color="text-pink-500" bgColor="bg-pink-500/10" />
               </div>
             </motion.div>
           )}
 
           {/* ═══════════ GENDER TAB ═══════════ */}
           {activeTab === 'gender' && (
-            <motion.div key="gender" initial="hidden" animate="visible" exit="hidden" variants={{ visible: { transition: { staggerChildren: 0.05 } } }}>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <StatCard icon={Tag} label="Total Gender Reviews" value={data.gender.totalReviews} color="text-amber-500" bgColor="bg-amber-500/10" />
-                <StatCard icon={CheckCircle2} label="Overall Accuracy" value={`${data.gender.accuracy}%`} color="text-emerald-500" bgColor="bg-emerald-500/10" />
-                <StatCard icon={BookOpen} label="Total Nouns" value={data.vocabulary.nouns} sub="In your vocabulary" color="text-blue-500" bgColor="bg-blue-500/10" />
+            <motion.div key="gender" initial="hidden" animate="visible" exit="hidden" variants={{ visible: { transition: { staggerChildren: 0.05 } } }} className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-3">
+                <StatCard icon={Tag} label="Total Reviews" value={data.gender.totalReviews} color="text-amber-500" bgColor="bg-amber-500/10" />
+                <StatCard icon={CheckCircle2} label="Accuracy" value={`${data.gender.accuracy}%`} color="text-emerald-500" bgColor="bg-emerald-500/10" />
+                <div className="col-span-2 sm:col-span-1">
+                  <StatCard icon={BookOpen} label="Total Nouns" value={data.vocabulary.nouns} sub="In vocabulary" color="text-blue-500" bgColor="bg-blue-500/10" />
+                </div>
               </div>
 
-              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-2">
                 <motion.div variants={fadeIn} className="h-full">
-                  <GlassCard hover={false} className="h-full flex flex-col">
-                    <h2 className="text-base font-semibold">Gender Distribution</h2>
-                    <p className="text-xs text-[var(--text-tertiary)]">How your nouns split across genders</p>
-                    <div className="mt-6 flex items-center justify-center gap-6">
+                  <GlassCard hover={false} className="flex h-full flex-col justify-between p-4 sm:p-6">
+                    <div>
+                      <h2 className="text-sm font-bold sm:text-base">Gender Distribution</h2>
+                      <p className="text-[11px] text-[var(--text-tertiary)] sm:text-xs">How your nouns split across genders</p>
+                    </div>
+                    <div className="my-6 flex items-center justify-around gap-2">
                       {[
-                        { label: 'der', sublabel: 'Masculine', count: data.gender.distribution.masculine, color: 'text-blue-500', bg: 'bg-blue-500/10', ring: 'stroke-blue-500' },
-                        { label: 'die', sublabel: 'Feminine', count: data.gender.distribution.feminine, color: 'text-pink-500', bg: 'bg-pink-500/10', ring: 'stroke-pink-500' },
-                        { label: 'das', sublabel: 'Neuter', count: data.gender.distribution.neuter, color: 'text-emerald-500', bg: 'bg-emerald-500/10', ring: 'stroke-emerald-500' },
+                        { label: 'der', sublabel: 'Masc', count: data.gender.distribution.masculine, color: 'text-blue-500', ring: 'stroke-blue-500' },
+                        { label: 'die', sublabel: 'Fem', count: data.gender.distribution.feminine, color: 'text-pink-500', ring: 'stroke-pink-500' },
+                        { label: 'das', sublabel: 'Neut', count: data.gender.distribution.neuter, color: 'text-emerald-500', ring: 'stroke-emerald-500' },
                       ].map(g => {
                         const total = data.vocabulary.nouns || 1;
                         const pct = Math.round((g.count / total) * 100);
                         return (
                           <div key={g.label} className="flex flex-col items-center">
                             <div className="relative">
-                              <svg width={80} height={80} className="-rotate-90">
-                                <circle cx={40} cy={40} r={34} fill="none" stroke="var(--border)" strokeWidth={6} />
+                              <svg width={72} height={72} className="-rotate-90 sm:h-20 sm:w-20">
+                                <circle cx={36} cy={36} r={30} fill="none" stroke="var(--border)" strokeWidth={5} />
                                 <motion.circle
-                                  cx={40} cy={40} r={34} fill="none" className={g.ring} strokeWidth={6} strokeLinecap="round"
-                                  strokeDasharray={`${2 * Math.PI * 34}`}
-                                  initial={{ strokeDashoffset: 2 * Math.PI * 34 }}
-                                  animate={{ strokeDashoffset: 2 * Math.PI * 34 * (1 - pct / 100) }}
+                                  cx={36} cy={36} r={30} fill="none" className={g.ring} strokeWidth={5} strokeLinecap="round"
+                                  strokeDasharray={`${2 * Math.PI * 30}`}
+                                  initial={{ strokeDashoffset: 2 * Math.PI * 30 }}
+                                  animate={{ strokeDashoffset: 2 * Math.PI * 30 * (1 - pct / 100) }}
                                   transition={{ duration: 1 }}
                                 />
                               </svg>
-                              <span className={`absolute inset-0 flex items-center justify-center text-lg font-bold ${g.color}`}>{pct}%</span>
+                              <span className={`absolute inset-0 flex items-center justify-center text-base font-black ${g.color}`}>{pct}%</span>
                             </div>
-                            <span className={`mt-2 text-sm font-semibold ${g.color}`}>{g.label}</span>
+                            <span className={`mt-2 text-sm font-bold ${g.color}`}>{g.label}</span>
                             <span className="text-[10px] text-[var(--text-tertiary)]">{g.count} nouns</span>
                           </div>
                         );
@@ -562,15 +580,17 @@ export default function AnalyticsPage() {
                 </motion.div>
 
                 <motion.div variants={fadeIn} className="h-full">
-                  <GlassCard hover={false} className="h-full flex flex-col">
-                    <h2 className="text-base font-semibold">Accuracy by Gender</h2>
-                    <p className="text-xs text-[var(--text-tertiary)]">How well you recall each gender</p>
-                    <div className="mt-6 space-y-4">
+                  <GlassCard hover={false} className="flex h-full flex-col justify-between p-4 sm:p-6">
+                    <div>
+                      <h2 className="text-sm font-bold sm:text-base">Accuracy by Gender</h2>
+                      <p className="text-[11px] text-[var(--text-tertiary)] sm:text-xs">How well you recall each gender</p>
+                    </div>
+                    <div className="my-4 space-y-3.5">
                       <AccuracyBar label="der (Masculine)" value={data.gender.accuracyByType.masculine} color="bg-blue-500" />
                       <AccuracyBar label="die (Feminine)" value={data.gender.accuracyByType.feminine} color="bg-pink-500" />
                       <AccuracyBar label="das (Neuter)" value={data.gender.accuracyByType.neuter} color="bg-emerald-500" />
                       {data.gender.totalReviews === 0 && (
-                        <p className="py-4 text-center text-sm text-[var(--text-tertiary)]">
+                        <p className="py-4 text-center text-xs text-[var(--text-tertiary)]">
                           No gender practice sessions yet. Start a Gender Test to see accuracy here.
                         </p>
                       )}
@@ -583,22 +603,22 @@ export default function AnalyticsPage() {
 
           {/* ═══════════ WORDS TAB ═══════════ */}
           {activeTab === 'words' && (
-            <motion.div key="words" initial="hidden" animate="visible" exit="hidden" variants={{ visible: { transition: { staggerChildren: 0.05 } } }}>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <motion.div key="words" initial="hidden" animate="visible" exit="hidden" variants={{ visible: { transition: { staggerChildren: 0.05 } } }} className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
                 <StatCard icon={BookOpen} label="Total Words" value={data.vocabulary.totalWords} />
                 <StatCard icon={CheckCircle2} label="Learned" value={data.vocabulary.learnedWords} color="text-emerald-500" bgColor="bg-emerald-500/10" />
                 <StatCard icon={Star} label="Mastered" value={data.vocabulary.masteredWords} color="text-amber-500" bgColor="bg-amber-500/10" />
                 <StatCard icon={Clock} label="Due for Review" value={data.vocabulary.dueWords} color="text-red-500" bgColor="bg-red-500/10" />
               </div>
 
-              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-2">
                 <motion.div variants={fadeIn} className="h-full">
-                  <GlassCard hover={false} className="h-full flex flex-col">
-                    <h2 className="text-base font-semibold">Verb Analysis</h2>
-                    <div className="mt-4 space-y-3">
-                      <div className="flex items-center justify-between rounded-xl bg-[var(--bg-tertiary)]/60 px-3 py-2">
-                        <span className="text-sm">Total Verbs</span>
-                        <span className="font-semibold">{data.verbStats.total}</span>
+                  <GlassCard hover={false} className="flex h-full flex-col justify-between p-4 sm:p-6">
+                    <h2 className="text-sm font-bold sm:text-base">Verb Analysis</h2>
+                    <div className="mt-3 space-y-2.5">
+                      <div className="flex items-center justify-between rounded-xl bg-[var(--bg-tertiary)]/60 px-3 py-2 text-xs">
+                        <span className="font-semibold">Total Verbs</span>
+                        <span className="font-bold">{data.verbStats.total}</span>
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         {[
@@ -606,20 +626,20 @@ export default function AnalyticsPage() {
                           { label: 'Irregular', value: data.verbStats.irregular, color: 'bg-red-500/10 text-red-600' },
                           { label: 'Mixed', value: data.verbStats.mixed, color: 'bg-amber-500/10 text-amber-600' },
                         ].map(v => (
-                          <div key={v.label} className={`rounded-xl p-3 text-center ${v.color}`}>
-                            <p className="text-xl font-bold">{v.value}</p>
-                            <p className="text-[10px]">{v.label}</p>
+                          <div key={v.label} className={`rounded-xl p-2.5 text-center ${v.color}`}>
+                            <p className="text-lg font-black">{v.value}</p>
+                            <p className="text-[10px] font-semibold">{v.label}</p>
                           </div>
                         ))}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-xl bg-blue-500/10 p-3 text-center text-blue-600">
-                          <p className="text-xl font-bold">{data.verbStats.haben}</p>
-                          <p className="text-[10px]">haben auxiliary</p>
+                        <div className="rounded-xl bg-blue-500/10 p-2.5 text-center text-blue-600">
+                          <p className="text-lg font-black">{data.verbStats.haben}</p>
+                          <p className="text-[10px] font-semibold">haben</p>
                         </div>
-                        <div className="rounded-xl bg-purple-500/10 p-3 text-center text-purple-600">
-                          <p className="text-xl font-bold">{data.verbStats.sein}</p>
-                          <p className="text-[10px]">sein auxiliary</p>
+                        <div className="rounded-xl bg-purple-500/10 p-2.5 text-center text-purple-600">
+                          <p className="text-lg font-black">{data.verbStats.sein}</p>
+                          <p className="text-[10px] font-semibold">sein</p>
                         </div>
                       </div>
                     </div>
@@ -627,17 +647,17 @@ export default function AnalyticsPage() {
                 </motion.div>
 
                 <motion.div variants={fadeIn} className="h-full">
-                  <GlassCard hover={false} className="h-full flex flex-col">
-                    <h2 className="text-base font-semibold">Conjugation Accuracy</h2>
-                    <div className="mt-4 space-y-4">
+                  <GlassCard hover={false} className="flex h-full flex-col justify-between p-4 sm:p-6">
+                    <h2 className="text-sm font-bold sm:text-base">Accuracy Breakdown</h2>
+                    <div className="my-3 space-y-3">
                       <AccuracyBar label="Meaning / Flashcard" value={data.wordsPractice.meaningAccuracy} color="bg-blue-500" />
+                      <AccuracyBar label="Gender Accuracy" value={data.gender.accuracy} color="bg-amber-500" />
                       <AccuracyBar label="Conjugation" value={data.wordsPractice.conjugationAccuracy} color="bg-purple-500" />
-                      <AccuracyBar label="Gender" value={data.gender.accuracy} color="bg-amber-500" />
                     </div>
-                    <div className="mt-4 border-t border-[var(--border)] pt-4">
-                      <div className="flex items-center justify-between text-xs">
+                    <div className="border-t border-[var(--border)] pt-2.5 text-xs">
+                      <div className="flex items-center justify-between">
                         <span className="text-[var(--text-secondary)]">Sentence Practices</span>
-                        <span className="font-semibold">{data.wordsPractice.sentenceReviews}</span>
+                        <span className="font-bold">{data.wordsPractice.sentenceReviews}</span>
                       </div>
                     </div>
                   </GlassCard>
@@ -645,17 +665,17 @@ export default function AnalyticsPage() {
               </div>
 
               {/* Hardest + Best Words */}
-              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-2">
                 <motion.div variants={fadeIn} className="h-full">
-                  <GlassCard hover={false} className="h-full flex flex-col">
+                  <GlassCard hover={false} className="flex h-full flex-col p-4 sm:p-6">
                     <div className="flex items-center gap-2">
                       <AlertTriangle size={16} className="text-[var(--danger)]" />
-                      <h2 className="text-base font-semibold">Hardest Words</h2>
+                      <h2 className="text-sm font-bold sm:text-base">Hardest Words</h2>
                     </div>
-                    <p className="text-xs text-[var(--text-tertiary)]">Words you struggle with the most</p>
-                    <div className="mt-4 space-y-2">
+                    <p className="text-[11px] text-[var(--text-tertiary)]">Words you struggle with the most</p>
+                    <div className="mt-3 space-y-2">
                       {data.hardestWords.length === 0 && (
-                        <p className="py-4 text-center text-sm text-[var(--text-tertiary)]">Practice more to see your hardest words</p>
+                        <p className="py-4 text-center text-xs text-[var(--text-tertiary)]">Practice more to see your hardest words</p>
                       )}
                       {(showAllHard ? data.hardestWords : data.hardestWords.slice(0, 4)).map((w, i) => (
                         <WordRow key={i} word={w} />
@@ -663,7 +683,7 @@ export default function AnalyticsPage() {
                       {data.hardestWords.length > 4 && (
                         <button
                           onClick={() => setShowAllHard(!showAllHard)}
-                          className="flex w-full items-center justify-center gap-1 pt-2 text-xs font-medium text-[var(--accent)]"
+                          className="flex w-full items-center justify-center gap-1 pt-1 text-xs font-semibold text-[var(--accent)]"
                         >
                           {showAllHard ? <><ChevronUp size={14} /> Show Less</> : <><ChevronDown size={14} /> Show All ({data.hardestWords.length})</>}
                         </button>
@@ -673,15 +693,15 @@ export default function AnalyticsPage() {
                 </motion.div>
 
                 <motion.div variants={fadeIn} className="h-full">
-                  <GlassCard hover={false} className="h-full flex flex-col">
+                  <GlassCard hover={false} className="flex h-full flex-col p-4 sm:p-6">
                     <div className="flex items-center gap-2">
                       <Star size={16} className="text-amber-500" />
-                      <h2 className="text-base font-semibold">Best Words</h2>
+                      <h2 className="text-sm font-bold sm:text-base">Best Words</h2>
                     </div>
-                    <p className="text-xs text-[var(--text-tertiary)]">Words you know best</p>
-                    <div className="mt-4 space-y-2">
+                    <p className="text-[11px] text-[var(--text-tertiary)]">Words you know best</p>
+                    <div className="mt-3 space-y-2">
                       {data.bestWords.length === 0 && (
-                        <p className="py-4 text-center text-sm text-[var(--text-tertiary)]">Practice more to see your best words</p>
+                        <p className="py-4 text-center text-xs text-[var(--text-tertiary)]">Practice more to see your best words</p>
                       )}
                       {(showAllBest ? data.bestWords : data.bestWords.slice(0, 4)).map((w, i) => (
                         <WordRow key={i} word={w} />
@@ -689,7 +709,7 @@ export default function AnalyticsPage() {
                       {data.bestWords.length > 4 && (
                         <button
                           onClick={() => setShowAllBest(!showAllBest)}
-                          className="flex w-full items-center justify-center gap-1 pt-2 text-xs font-medium text-[var(--accent)]"
+                          className="flex w-full items-center justify-center gap-1 pt-1 text-xs font-semibold text-[var(--accent)]"
                         >
                           {showAllBest ? <><ChevronUp size={14} /> Show Less</> : <><ChevronDown size={14} /> Show All ({data.bestWords.length})</>}
                         </button>
@@ -703,35 +723,35 @@ export default function AnalyticsPage() {
 
           {/* ═══════════ EXAMS TAB ═══════════ */}
           {activeTab === 'exams' && (
-            <motion.div key="exams" initial="hidden" animate="visible" exit="hidden" variants={{ visible: { transition: { staggerChildren: 0.05 } } }}>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <motion.div key="exams" initial="hidden" animate="visible" exit="hidden" variants={{ visible: { transition: { staggerChildren: 0.05 } } }} className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
                 <StatCard icon={GraduationCap} label="Goethe Exams" value={data.goetheExams.totalAttempts} color="text-red-500" bgColor="bg-red-500/10" />
-                <StatCard icon={TrendingUp} label="Avg Goethe Score" value={data.goetheExams.avgScore > 0 ? `${data.goetheExams.avgScore}%` : '—'} color="text-emerald-500" bgColor="bg-emerald-500/10" />
+                <StatCard icon={TrendingUp} label="Avg Score" value={data.goetheExams.avgScore > 0 ? `${data.goetheExams.avgScore}%` : '—'} color="text-emerald-500" bgColor="bg-emerald-500/10" />
                 <StatCard icon={Target} label="Batch Exams" value={data.batchExams.totalExams} color="text-blue-500" bgColor="bg-blue-500/10" />
-                <StatCard icon={Award} label="Avg Batch Score" value={data.batchExams.avgScore > 0 ? `${data.batchExams.avgScore}%` : '—'} color="text-purple-500" bgColor="bg-purple-500/10" />
+                <StatCard icon={Award} label="Avg Batch" value={data.batchExams.avgScore > 0 ? `${data.batchExams.avgScore}%` : '—'} color="text-purple-500" bgColor="bg-purple-500/10" />
               </div>
 
-              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-2">
                 <motion.div variants={fadeIn} className="h-full">
-                  <GlassCard hover={false} className="h-full flex flex-col">
-                    <h2 className="text-base font-semibold">Goethe Exam by Level</h2>
-                    <div className="mt-4 space-y-3">
+                  <GlassCard hover={false} className="flex h-full flex-col p-4 sm:p-6">
+                    <h2 className="text-sm font-bold sm:text-base">Goethe Exam by Level</h2>
+                    <div className="mt-3 space-y-2.5">
                       {Object.keys(data.goetheExams.byLevel).length === 0 && (
-                        <p className="py-4 text-center text-sm text-[var(--text-tertiary)]">No Goethe exams completed yet</p>
+                        <p className="py-4 text-center text-xs text-[var(--text-tertiary)]">No Goethe exams completed yet</p>
                       )}
                       {Object.entries(data.goetheExams.byLevel).map(([level, stats]) => (
-                        <div key={level} className="rounded-xl bg-[var(--bg-tertiary)]/60 p-4">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold">{level}</span>
-                            <span className="text-xs text-[var(--text-tertiary)]">{stats.attempts} attempt{stats.attempts !== 1 ? 's' : ''}</span>
+                        <div key={level} className="rounded-xl bg-[var(--bg-tertiary)]/60 p-3">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold">{level}</span>
+                            <span className="text-[var(--text-tertiary)]">{stats.attempts} attempt{stats.attempts !== 1 ? 's' : ''}</span>
                           </div>
-                          <div className="mt-2 flex items-center gap-4">
+                          <div className="mt-2 flex items-center gap-3">
                             <div className="flex-1">
                               <AccuracyBar label="Average" value={stats.avgScore} color="bg-[var(--accent)]" />
                             </div>
                             <div className="text-right">
-                              <p className="text-xs text-[var(--text-tertiary)]">Best</p>
-                              <p className="text-lg font-bold text-[var(--success)]">{stats.best}%</p>
+                              <p className="text-[10px] text-[var(--text-tertiary)]">Best</p>
+                              <p className="text-base font-black text-[var(--success)]">{stats.best}%</p>
                             </div>
                           </div>
                         </div>
@@ -741,34 +761,34 @@ export default function AnalyticsPage() {
                 </motion.div>
 
                 <motion.div variants={fadeIn} className="h-full">
-                  <GlassCard hover={false} className="h-full flex flex-col">
-                    <h2 className="text-base font-semibold">Batch Exam Breakdown</h2>
-                    <div className="mt-4 space-y-4">
+                  <GlassCard hover={false} className="flex h-full flex-col p-4 sm:p-6">
+                    <h2 className="text-sm font-bold sm:text-base">Batch Exam Breakdown</h2>
+                    <div className="mt-3 space-y-3.5">
                       <AccuracyBar label="Vocabulary Accuracy" value={data.batchExams.avgVocabAccuracy} color="bg-blue-500" />
                       <AccuracyBar label="Gender Accuracy" value={data.batchExams.avgGenderAccuracy} color="bg-amber-500" />
                       <AccuracyBar label="Verb Accuracy" value={data.batchExams.avgVerbAccuracy} color="bg-purple-500" />
                       {data.batchExams.totalExams === 0 && (
-                        <p className="py-4 text-center text-sm text-[var(--text-tertiary)]">No batch exams completed yet</p>
+                        <p className="py-4 text-center text-xs text-[var(--text-tertiary)]">No batch exams completed yet</p>
                       )}
                     </div>
                   </GlassCard>
                 </motion.div>
               </div>
 
-              {/* Recent exams list */}
+              {/* Recent exams */}
               {data.goetheExams.recentExams.length > 0 && (
-                <motion.div variants={fadeIn} className="mt-6">
-                  <GlassCard hover={false}>
-                    <h2 className="text-base font-semibold">Recent Goethe Exams</h2>
-                    <div className="mt-4 space-y-2">
+                <motion.div variants={fadeIn}>
+                  <GlassCard hover={false} className="p-4 sm:p-6">
+                    <h2 className="text-sm font-bold sm:text-base">Recent Goethe Exams</h2>
+                    <div className="mt-3 space-y-2">
                       {data.goetheExams.recentExams.map(e => (
-                        <div key={e.id} className="flex items-center gap-4 rounded-xl bg-[var(--bg-tertiary)]/60 px-4 py-3">
-                          <span className="text-sm font-medium">{e.level}</span>
+                        <div key={e.id} className="flex items-center gap-3 rounded-xl bg-[var(--bg-tertiary)]/60 px-3 py-2 text-xs sm:px-4 sm:py-2.5">
+                          <span className="w-10 font-bold">{e.level}</span>
                           <div className="h-2 flex-1 overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
                             <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${e.score}%` }} />
                           </div>
-                          <span className="text-sm font-bold tabular-nums">{e.score}%</span>
-                          <span className="text-xs text-[var(--text-tertiary)]">
+                          <span className="font-bold tabular-nums">{e.score}%</span>
+                          <span className="text-[10px] text-[var(--text-tertiary)]">
                             {new Date(e.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
@@ -782,31 +802,31 @@ export default function AnalyticsPage() {
 
           {/* ═══════════ GRAMMAR TAB ═══════════ */}
           {activeTab === 'grammar' && (
-            <motion.div key="grammar" initial="hidden" animate="visible" exit="hidden" variants={{ visible: { transition: { staggerChildren: 0.05 } } }}>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard icon={Brain} label="Grammar Topics" value={data.grammar.totalTopics} />
+            <motion.div key="grammar" initial="hidden" animate="visible" exit="hidden" variants={{ visible: { transition: { staggerChildren: 0.05 } } }} className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+                <StatCard icon={Brain} label="Topics" value={data.grammar.totalTopics} />
                 <StatCard icon={CheckCircle2} label="Completed" value={data.grammar.completed} color="text-emerald-500" bgColor="bg-emerald-500/10" />
                 <StatCard icon={Target} label="Completion" value={`${data.grammar.completion}%`} color="text-blue-500" bgColor="bg-blue-500/10" />
                 <StatCard icon={TrendingUp} label="Avg Score" value={data.grammar.avgScore > 0 ? `${data.grammar.avgScore}%` : '—'} color="text-purple-500" bgColor="bg-purple-500/10" />
               </div>
 
-              <motion.div variants={fadeIn} className="mt-6">
-                <GlassCard hover={false}>
-                  <h2 className="text-base font-semibold">Grammar Progress</h2>
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-[var(--text-secondary)]">Topics Completed</span>
-                      <span className="font-semibold">{data.grammar.completed} / {data.grammar.totalTopics}</span>
+              <motion.div variants={fadeIn}>
+                <GlassCard hover={false} className="p-4 sm:p-6">
+                  <h2 className="text-sm font-bold sm:text-base">Grammar Progress</h2>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
+                      <span className="text-[var(--text-secondary)] font-medium">Topics Completed</span>
+                      <span className="font-bold">{data.grammar.completed} / {data.grammar.totalTopics}</span>
                     </div>
-                    <div className="mt-2 h-4 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                    <div className="h-3 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                       <motion.div
                         className="h-full rounded-full bg-[var(--accent)]"
                         initial={{ width: 0 }}
                         animate={{ width: `${data.grammar.completion}%` }}
-                        transition={{ duration: 1 }}
+                        transition={{ duration: 0.8 }}
                       />
                     </div>
-                    <div className="mt-4 flex items-center justify-between text-xs text-[var(--text-tertiary)]">
+                    <div className="flex items-center justify-between pt-2 text-xs text-[var(--text-tertiary)]">
                       <span>Total Attempts: {data.grammar.totalAttempts}</span>
                       <span>Average Score: {data.grammar.avgScore}%</span>
                     </div>
@@ -818,43 +838,45 @@ export default function AnalyticsPage() {
 
           {/* ═══════════ LISTENING TAB ═══════════ */}
           {activeTab === 'listening' && (
-            <motion.div key="listening" initial="hidden" animate="visible" exit="hidden" variants={{ visible: { transition: { staggerChildren: 0.05 } } }}>
-              <div className="grid gap-4 sm:grid-cols-3">
+            <motion.div key="listening" initial="hidden" animate="visible" exit="hidden" variants={{ visible: { transition: { staggerChildren: 0.05 } } }} className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-3">
                 <StatCard icon={Headphones} label="Total Attempts" value={data.listening.totalAttempts} color="text-teal-500" bgColor="bg-teal-500/10" />
                 <StatCard icon={CheckCircle2} label="Completed" value={data.listening.completed} color="text-emerald-500" bgColor="bg-emerald-500/10" />
-                <StatCard icon={TrendingUp} label="Avg Score" value={data.listening.avgScore > 0 ? `${data.listening.avgScore}%` : '—'} color="text-purple-500" bgColor="bg-purple-500/10" />
+                <div className="col-span-2 sm:col-span-1">
+                  <StatCard icon={TrendingUp} label="Avg Score" value={data.listening.avgScore > 0 ? `${data.listening.avgScore}%` : '—'} color="text-purple-500" bgColor="bg-purple-500/10" />
+                </div>
               </div>
 
-              <motion.div variants={fadeIn} className="mt-6">
-                <GlassCard hover={false}>
-                  <h2 className="text-base font-semibold">Listening by Level</h2>
-                  <div className="mt-4 space-y-3">
+              <motion.div variants={fadeIn}>
+                <GlassCard hover={false} className="p-4 sm:p-6">
+                  <h2 className="text-sm font-bold sm:text-base">Listening by Level</h2>
+                  <div className="mt-3 space-y-2">
                     {Object.keys(data.listening.byLevel).length === 0 && (
-                      <p className="py-4 text-center text-sm text-[var(--text-tertiary)]">No listening practice completed yet</p>
+                      <p className="py-4 text-center text-xs text-[var(--text-tertiary)]">No listening practice completed yet</p>
                     )}
                     {Object.entries(data.listening.byLevel).map(([level, stats]) => (
-                      <div key={level} className="flex items-center gap-4 rounded-xl bg-[var(--bg-tertiary)]/60 px-4 py-3">
-                        <span className="text-sm font-semibold">{level}</span>
-                        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
+                      <div key={level} className="flex items-center gap-3 rounded-xl bg-[var(--bg-tertiary)]/60 px-3 py-2 text-xs sm:px-4 sm:py-2.5">
+                        <span className="w-8 font-bold">{level}</span>
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
                           <div className="h-full rounded-full bg-teal-500" style={{ width: `${stats.avgScore}%` }} />
                         </div>
-                        <span className="text-sm font-bold tabular-nums">{stats.avgScore}%</span>
-                        <span className="text-xs text-[var(--text-tertiary)]">{stats.attempts} attempt{stats.attempts !== 1 ? 's' : ''}</span>
+                        <span className="font-bold tabular-nums">{stats.avgScore}%</span>
+                        <span className="text-[10px] text-[var(--text-tertiary)]">{stats.attempts} attempts</span>
                       </div>
                     ))}
                   </div>
                 </GlassCard>
               </motion.div>
 
-              <motion.div variants={fadeIn} className="mt-6">
-                <GlassCard hover={false}>
-                  <h2 className="text-base font-semibold">Conversation Practice</h2>
-                  <div className="mt-4 flex items-center gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10">
-                      <MessageCircle size={28} className="text-indigo-500" />
+              <motion.div variants={fadeIn}>
+                <GlassCard hover={false} className="p-4 sm:p-6">
+                  <h2 className="text-sm font-bold sm:text-base">Conversation Practice</h2>
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10">
+                      <MessageCircle size={22} className="text-indigo-500" />
                     </div>
                     <div>
-                      <p className="text-3xl font-bold">{data.conversations}</p>
+                      <p className="text-2xl font-black">{data.conversations}</p>
                       <p className="text-xs text-[var(--text-tertiary)]">Total conversation sessions</p>
                     </div>
                   </div>
