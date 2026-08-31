@@ -9,9 +9,7 @@ import { RatingButtons } from '@/components/practice/rating-buttons';
 import {
   Brain,
   BookOpen,
-  PenTool,
   Tag,
-  Zap,
   Loader2,
   CheckCircle2,
   XCircle,
@@ -23,7 +21,7 @@ import {
 import { sfx } from '@/lib/sounds';
 import { cn } from '@/lib/utils';
 
-type PracticeMode = 'flashcard' | 'meaning' | 'sentence' | 'gender' | 'conjugation' | null;
+type PracticeMode = 'flashcard' | 'meaning' | 'gender' | null;
 
 interface UserWord {
   id: string;
@@ -62,14 +60,6 @@ const MODES: Array<{
     bgColor: 'bg-emerald-500/10',
   },
   {
-    id: 'sentence',
-    title: 'Sentence Creation',
-    description: 'Use the word in a sentence',
-    icon: PenTool,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-500/10',
-  },
-  {
     id: 'gender',
     title: 'Gender Test',
     description: 'der/die/das for nouns only',
@@ -77,21 +67,11 @@ const MODES: Array<{
     color: 'text-amber-600',
     bgColor: 'bg-amber-500/10',
   },
-  {
-    id: 'conjugation',
-    title: 'Conjugation Drill',
-    description: 'Conjugate verbs correctly',
-    icon: Zap,
-    color: 'text-red-600',
-    bgColor: 'bg-red-500/10',
-  },
 ];
 
 function stripArticle(word: string): string {
   return word.replace(/^(der|die|das|ein|eine|einen|einem|einer)\s+/i, '').trim();
 }
-
-const PRONOUNS = ['ich', 'du', 'er', 'wir', 'ihr', 'sie'] as const;
 
 function matchesMeaning(userInput: string, meaning: string): boolean {
   const normalized = (s: string) =>
@@ -121,15 +101,8 @@ export default function PracticePage() {
   // Meaning mode
   const [meaningInput, setMeaningInput] = useState('');
 
-  // Sentence mode
-  const [sentenceInput, setSentenceInput] = useState('');
-
   // Gender mode
   const [genderInput, setGenderInput] = useState('');
-
-  // Conjugation mode
-  const [conjugationPronoun, setConjugationPronoun] = useState<string>('');
-  const [conjugationInput, setConjugationInput] = useState('');
 
   const fetchQueue = useCallback(async () => {
     if (!mode) return;
@@ -143,9 +116,7 @@ export default function PracticePage() {
       setAnswered(false);
       setCorrect(false);
       setMeaningInput('');
-      setSentenceInput('');
       setGenderInput('');
-      setConjugationInput('');
       if (!data.words || data.words.length === 0) {
         setSessionComplete(true);
       }
@@ -161,12 +132,6 @@ export default function PracticePage() {
   }, [mode, fetchQueue]);
 
   const currentWord = queue[currentIndex];
-
-  useEffect(() => {
-    if (mode === 'conjugation' && currentWord) {
-      setConjugationPronoun(PRONOUNS[Math.floor(Math.random() * PRONOUNS.length)]);
-    }
-  }, [mode, currentWord]);
   const progress = queue.length > 0 ? (currentIndex / queue.length) * 100 : 0;
 
   const handleRate = async (rating: 1 | 2 | 3 | 4) => {
@@ -204,9 +169,7 @@ export default function PracticePage() {
           setCurrentIndex((i) => i + 1);
           setAnswered(false);
           setMeaningInput('');
-          setSentenceInput('');
           setGenderInput('');
-          setConjugationInput('');
           setIsTransitioning(false);
         }, 320);
       } else {
@@ -214,9 +177,7 @@ export default function PracticePage() {
         setCurrentIndex((i) => i + 1);
         setAnswered(false);
         setMeaningInput('');
-        setSentenceInput('');
         setGenderInput('');
-        setConjugationInput('');
       }
     } else {
       setRevealed(false);
@@ -246,23 +207,6 @@ export default function PracticePage() {
     setCorrect(ok);
     setAnswered(true);
     ok ? sfx.correct() : sfx.wrong();
-  };
-
-  const handleCheckConjugation = () => {
-    if (!currentWord || !conjugationPronoun) return;
-    const conj = currentWord.conjugation;
-    const expected = conj?.[conjugationPronoun]?.toLowerCase().trim();
-    const user = conjugationInput.trim().toLowerCase();
-    const ok = !!expected && expected === user;
-    setCorrect(ok);
-    setAnswered(true);
-    ok ? sfx.correct() : sfx.wrong();
-  };
-
-  const handleSentenceSubmit = () => {
-    setAnswered(true);
-    setCorrect(true);
-    sfx.tap();
   };
 
   const speak = useCallback((text: string) => {
@@ -711,35 +655,6 @@ export default function PracticePage() {
                 </GlassCard>
               )}
 
-              {/* Sentence Creation */}
-              {mode === 'sentence' && (
-                <GlassCard hover={false} className="text-center">
-                  <h2 className="text-2xl font-semibold">{currentWord.word}</h2>
-                  <p className="mt-2 text-sm text-[var(--text-tertiary)]">
-                    {currentWord.meaning}
-                  </p>
-                  <div className="mt-6">
-                    <input
-                      type="text"
-                      placeholder="Write a German sentence using this word..."
-                      value={sentenceInput}
-                      onChange={(e) => setSentenceInput(e.target.value)}
-                      disabled={answered}
-                      className="input-field w-full"
-                    />
-                    {!answered && (
-                      <button
-                        className="btn-primary mt-4"
-                        onClick={handleSentenceSubmit}
-                        disabled={!sentenceInput.trim()}
-                      >
-                        I did it
-                      </button>
-                    )}
-                  </div>
-                </GlassCard>
-              )}
-
               {/* Gender Test */}
               {mode === 'gender' && (
                 <GlassCard hover={false} className="text-center">
@@ -777,44 +692,7 @@ export default function PracticePage() {
                 </GlassCard>
               )}
 
-              {/* Conjugation Drill */}
-              {mode === 'conjugation' && (
-                <GlassCard hover={false} className="text-center">
-                  <h2 className="text-2xl font-semibold">{currentWord.word}</h2>
-                  <p className="mt-2 text-lg text-[var(--text-secondary)]">
-                    ({currentWord.meaning})
-                  </p>
-                  <p className="mt-4 text-xl font-medium">
-                    {conjugationPronoun} → ?
-                  </p>
-                  <div className="mt-6">
-                    <input
-                      type="text"
-                      placeholder="Conjugated form..."
-                      value={conjugationInput}
-                      onChange={(e) => setConjugationInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleCheckConjugation()}
-                      disabled={answered}
-                      className="input-field w-full"
-                    />
-                    {!answered && (
-                      <button
-                        className="btn-primary mt-4"
-                        onClick={handleCheckConjugation}
-                      >
-                        Check
-                      </button>
-                    )}
-                  </div>
-                  {answered && currentWord.conjugation && (
-                    <p className="mt-4 text-sm text-[var(--text-secondary)]">
-                      Correct: {currentWord.conjugation[conjugationPronoun] || '—'}
-                    </p>
-                  )}
-                </GlassCard>
-              )}
-
-              {/* FSRS rating (after answer for meaning/gender/conjugation/sentence, after reveal for flashcard) */}
+              {/* FSRS rating (after answer for meaning/gender, after reveal for flashcard) */}
               <AnimatePresence>
                 {((mode === 'flashcard' && revealed) ||
                   (mode !== 'flashcard' && answered)) && (
@@ -824,7 +702,7 @@ export default function PracticePage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
                   >
-                    {(mode === 'meaning' || mode === 'gender' || mode === 'conjugation') && (
+                    {(mode === 'meaning' || mode === 'gender') && (
                       <div className="mb-6 flex items-center justify-center gap-2">
                         {correct ? (
                           <CheckCircle2 size={24} className="text-emerald-500" />

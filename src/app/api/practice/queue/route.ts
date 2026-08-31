@@ -16,9 +16,7 @@ export async function GET(request: NextRequest) {
     const posFilter =
       mode === 'gender'
         ? eq(userWords.partOfSpeech, 'noun')
-        : mode === 'conjugation'
-          ? eq(userWords.partOfSpeech, 'verb')
-          : undefined;
+        : undefined;
 
     const baseConditions = [eq(userWords.userId, userId), lte(userWords.nextReview, now)];
     const fullConditions = posFilter ? and(...baseConditions, posFilter) : and(...baseConditions);
