@@ -236,7 +236,7 @@ export default function GrammarTopicPage() {
       <div className="mx-auto max-w-4xl px-6 py-16 text-center">
         <Loader2 size={36} className="mx-auto animate-spin text-[var(--accent)]" />
         <p className="mt-4 text-sm font-semibold text-[var(--text-secondary)]">Loading grammar chapter...</p>
-        <Link href="/grammar" className="btn-3d btn-duo-secondary mt-6 inline-flex items-center gap-2">
+        <Link href="/grammar" className="btn-duo-secondary mt-6 py-2.5 px-5 text-sm font-black rounded-xl inline-flex items-center gap-2">
           <ArrowLeft size={16} /> Back to Grammar
         </Link>
       </div>
@@ -528,7 +528,7 @@ export default function GrammarTopicPage() {
                           setDrillRevealed((prev) => ({ ...prev, [idx]: !prev[idx] }));
                           sfx.click();
                         }}
-                        className="btn-3d btn-duo-secondary text-xs shrink-0 self-start"
+                        className="btn-duo-secondary py-1.5 px-3 text-xs font-black rounded-xl shrink-0 self-start"
                       >
                         {isRevealed ? 'Hide Answer' : 'Show Answer'}
                       </button>
@@ -644,7 +644,7 @@ export default function GrammarTopicPage() {
                     <div className="mt-6 flex flex-wrap justify-center gap-3">
                       <button
                         onClick={handleRestartLevel}
-                        className="btn-3d btn-duo-secondary flex items-center gap-2"
+                        className="btn-duo-secondary py-2.5 px-5 text-sm font-black rounded-xl flex items-center gap-2"
                       >
                         <RotateCcw size={16} />
                         <span>Retry Level {selectedLevelIdx + 1}</span>
@@ -653,7 +653,7 @@ export default function GrammarTopicPage() {
                       {levelScore >= 7 && selectedLevelIdx < 9 && (
                         <button
                           onClick={() => handleSelectLevel(selectedLevelIdx + 1)}
-                          className="btn-3d btn-duo-primary flex items-center gap-2"
+                          className="btn-duo-primary py-2.5 px-5 text-sm font-black rounded-xl flex items-center gap-2"
                         >
                           <span>Next Level ({selectedLevelIdx + 2})</span>
                           <ChevronRight size={16} />
@@ -744,14 +744,14 @@ export default function GrammarTopicPage() {
                         <button
                           onClick={handleCheckAnswer}
                           disabled={selectedOpt === null}
-                          className="btn-3d btn-duo-primary disabled:opacity-50"
+                          className="btn-duo-primary py-2.5 px-6 text-sm font-black rounded-xl disabled:opacity-50"
                         >
                           Check Answer
                         </button>
                       ) : (
                         <button
                           onClick={handleNextQuestion}
-                          className="btn-3d btn-duo-primary flex items-center gap-2"
+                          className="btn-duo-primary py-2.5 px-6 text-sm font-black rounded-xl flex items-center gap-2"
                         >
                           <span>{currentQIdx < currentLevelQuestions.length - 1 ? 'Next Question' : 'Finish Level'}</span>
                           <ChevronRight size={16} />
@@ -841,7 +841,7 @@ export default function GrammarTopicPage() {
               <div className="mt-5 flex justify-end">
                 <button
                   onClick={handleLaunchChat}
-                  className="btn-3d btn-duo-primary text-sm font-extrabold"
+                  className="btn-duo-primary py-2.5 px-6 text-sm font-black rounded-xl"
                 >
                   <MessageSquare size={16} />
                   <span>Start AI Chat Session</span>

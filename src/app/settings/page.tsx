@@ -394,22 +394,20 @@ export default function SettingsPage() {
         title="More & Settings"
         subtitle="Manage your credentials, password, learning tracks, and app preferences."
         action={
-          <motion.button
+          <button
             onClick={handleSave}
             disabled={saving}
-            className="btn-3d btn-duo-primary flex items-center gap-2"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            className="btn-duo-primary py-2 px-4 text-xs sm:text-sm font-black flex items-center gap-2 rounded-xl"
           >
             {saving ? (
-              <Loader2 size={16} className="animate-spin" />
+              <Loader2 size={15} className="animate-spin" />
             ) : saved ? (
-              <Check size={16} />
+              <Check size={15} />
             ) : (
-              <Save size={16} />
+              <Save size={15} />
             )}
-            {saved ? 'Saved!' : 'Save'}
-          </motion.button>
+            <span>{saved ? 'Saved!' : 'Save'}</span>
+          </button>
         }
       />
 
@@ -559,7 +557,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleCopyUsername}
-                        className="btn-3d btn-duo-secondary text-xs font-bold flex items-center gap-1.5 py-2 px-3"
+                        className="btn-duo-secondary text-xs font-black flex items-center gap-1.5 py-2 px-3 rounded-xl"
                       >
                         {copiedUsername ? <CheckCheck size={14} /> : <Copy size={14} />}
                         <span>{copiedUsername ? 'Copied' : 'Copy'}</span>
@@ -588,7 +586,7 @@ export default function SettingsPage() {
 
                     <button
                       onClick={() => setShowPasswordChange(!showPasswordChange)}
-                      className="btn-3d btn-duo-secondary text-xs font-bold flex items-center gap-1.5 py-2 px-3 self-start sm:self-auto"
+                      className="btn-duo-secondary text-xs font-black flex items-center gap-1.5 py-2 px-3 rounded-xl self-start sm:self-auto"
                     >
                       <Lock size={14} />
                       <span>{showPasswordChange ? 'Cancel' : 'Change Password'}</span>
@@ -689,14 +687,14 @@ export default function SettingsPage() {
                           <button
                             type="button"
                             onClick={() => setShowPasswordChange(false)}
-                            className="btn-3d btn-duo-secondary text-xs"
+                            className="btn-duo-secondary text-xs font-black py-2 px-3.5 rounded-xl"
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
                             disabled={passwordSaving}
-                            className="btn-3d btn-duo-primary text-xs"
+                            className="btn-duo-primary text-xs font-black py-2 px-4 rounded-xl flex items-center gap-1.5"
                           >
                             {passwordSaving ? (
                               <>
@@ -1006,14 +1004,14 @@ export default function SettingsPage() {
                 <button
                   onClick={() => setResetModal(null)}
                   disabled={resetLoading}
-                  className="btn-3d btn-duo-secondary flex-1"
+                  className="btn-duo-secondary py-2.5 px-4 text-xs sm:text-sm font-black flex-1 rounded-xl"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => handleResetConfirm(resetModal)}
                   disabled={resetInput !== 'RESET' || resetLoading}
-                  className="btn-3d btn-duo-primary flex-1 bg-[var(--danger)] hover:bg-[var(--danger)]/90 border-red-700 disabled:opacity-50"
+                  className="btn-duo-danger py-2.5 px-4 text-xs sm:text-sm font-black flex-1 rounded-xl"
                 >
                   {resetLoading ? (
                     <Loader2 size={18} className="animate-spin" />

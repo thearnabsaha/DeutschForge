@@ -1470,7 +1470,7 @@ export default function PracticeWordsPage() {
                     setSelectedBatch(null);
                     fetchBatches();
                   }}
-                  className="btn-3d btn-duo-primary mt-6 text-sm font-bold px-6 py-2.5"
+                  className="btn-duo-primary mt-6 text-sm font-black px-6 py-2.5 rounded-xl"
                 >
                   Back to Batches
                 </button>
