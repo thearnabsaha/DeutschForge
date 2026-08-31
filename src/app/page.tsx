@@ -118,7 +118,7 @@ export default function LandingPage() {
             >
               Master German with
               <br />
-              <span className="bg-gradient-to-r from-[var(--accent)] to-purple-500 bg-clip-text text-transparent">
+              <span className="text-[var(--accent)] font-extrabold">
                 Intelligence
               </span>
             </motion.h1>

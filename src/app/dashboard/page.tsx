@@ -191,7 +191,7 @@ export default function DashboardPage() {
           <GlassCard hover={false} className="relative overflow-hidden">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/20">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/20">
                   <Star size={22} className="text-white" />
                 </div>
                 <div>
@@ -208,7 +208,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-3 h-3 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500"
+                className="h-full rounded-full bg-amber-500"
                 initial={{ width: 0 }}
                 animate={{ width: `${(data.xp.xpInLevel / data.xp.xpForNextLevel) * 100}%` }}
                 transition={{ duration: 1, ease: 'easeOut' }}

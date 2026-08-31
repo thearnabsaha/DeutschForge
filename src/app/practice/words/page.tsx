@@ -846,7 +846,7 @@ export default function PracticeWordsPage() {
                           </p>
                           <div className="mt-3 h-2 w-full max-w-[200px] overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                             <motion.div
-                              className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[#5856D6]"
+                              className="h-full rounded-full bg-[var(--accent)]"
                               initial={{ width: 0 }}
                               animate={{
                                 width: `${(batch.learnedCount / batch.wordCount) * 100}%`,
@@ -1509,7 +1509,7 @@ export default function PracticeWordsPage() {
                 </div>
                 <div className="h-2 mb-6 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[#5856D6]"
+                    className="h-full rounded-full bg-[var(--accent)]"
                     animate={{
                       width: `${((practiceIndex + 1) / practiceWords.length) * 100}%`,
                     }}
@@ -1846,7 +1846,7 @@ export default function PracticeWordsPage() {
                 </div>
                 <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[#5856D6]"
+                    className="h-full rounded-full bg-[var(--accent)]"
                     animate={{ width: `${((drillIndex + 1) / drillWords.length) * 100}%` }}
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   />
@@ -2030,7 +2030,7 @@ export default function PracticeWordsPage() {
 
                 <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"
+                    className="h-full rounded-full bg-[var(--accent)]"
                     animate={{ width: `${((woIndex + 1) / woWords.length) * 100}%` }}
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   />

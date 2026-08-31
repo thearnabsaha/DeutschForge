@@ -465,7 +465,7 @@ export default function AnalyticsPage() {
                           <span className="w-10 text-xs font-medium text-[var(--text-secondary)]">{w.week}</span>
                           <div className="h-3 flex-1 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                             <motion.div
-                              className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-purple-500"
+                              className="h-full rounded-full bg-[var(--accent)]"
                               initial={{ width: 0 }}
                               animate={{ width: `${Math.min(w.accuracy, 100)}%` }}
                               transition={{ duration: 0.6 }}
@@ -800,7 +800,7 @@ export default function AnalyticsPage() {
                     </div>
                     <div className="mt-2 h-4 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                       <motion.div
-                        className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-purple-500"
+                        className="h-full rounded-full bg-[var(--accent)]"
                         initial={{ width: 0 }}
                         animate={{ width: `${data.grammar.completion}%` }}
                         transition={{ duration: 1 }}

@@ -347,7 +347,7 @@ export default function PracticeExpressionsPage() {
                           ) : (<h3 className="text-lg font-semibold">{batch.name}</h3>)}
                           <p className="mt-1 text-sm text-[var(--text-secondary)]">{batch.learnedCount} / {batch.expressionCount} expressions · {new Date(batch.createdAt).toLocaleDateString('de-DE')}</p>
                           <div className="mt-3 h-2 w-full max-w-[200px] overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-                            <motion.div className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[#5856D6]" initial={{ width: 0 }} animate={{ width: `${(batch.learnedCount / Math.max(batch.expressionCount, 1)) * 100}%` }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
+                            <motion.div className="h-full rounded-full bg-[var(--accent)]" initial={{ width: 0 }} animate={{ width: `${(batch.learnedCount / Math.max(batch.expressionCount, 1)) * 100}%` }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
                             <motion.button onClick={() => { setEditingBatchId(batch.id); setEditingBatchName(batch.name); }} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]" whileTap={{ scale: 0.98 }}><Pencil size={14} />Rename</motion.button>
@@ -434,7 +434,7 @@ export default function PracticeExpressionsPage() {
             <div className="mb-6 flex items-center gap-4 text-sm">
               <span className="shrink-0 text-[var(--text-tertiary)]">{learnIndex + 1} / {selectedBatch.expressions.length}</span>
               <div className="h-2 min-w-0 flex-1 max-w-[200px] overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-                <motion.div className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[#5856D6]" animate={{ width: `${((learnIndex + 1) / selectedBatch.expressions.length) * 100}%` }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
+                <motion.div className="h-full rounded-full bg-[var(--accent)]" animate={{ width: `${((learnIndex + 1) / selectedBatch.expressions.length) * 100}%` }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
               </div>
             </div>
             {learnIndex < selectedBatch.expressions.length ? (
@@ -479,7 +479,7 @@ export default function PracticeExpressionsPage() {
                   <span className="text-[var(--accent)] font-medium">{practiceCorrectCount} correct</span>
                 </div>
                 <div className="h-2 mb-6 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-                  <motion.div className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[#5856D6]" animate={{ width: `${((practiceIndex + 1) / practiceExprs.length) * 100}%` }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
+                  <motion.div className="h-full rounded-full bg-[var(--accent)]" animate={{ width: `${((practiceIndex + 1) / practiceExprs.length) * 100}%` }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
                 </div>
                 {practiceQuestions[practiceIndex] && (
                   <motion.div key={practiceExprs[practiceIndex]?.id ?? practiceIndex} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
@@ -593,7 +593,7 @@ export default function PracticeExpressionsPage() {
                   ))}
                 </div>
                 <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-                  <motion.div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600" animate={{ width: `${((eoIndex + 1) / eoExprs.length) * 100}%` }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
+                  <motion.div className="h-full rounded-full bg-[var(--accent)]" animate={{ width: `${((eoIndex + 1) / eoExprs.length) * 100}%` }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
                 </div>
                 <p className="mb-4 text-xs text-[var(--text-tertiary)] text-right">{eoIndex + 1} / {eoExprs.length} · {eoCorrectCount} correct</p>
                 <AnimatePresence mode="wait">

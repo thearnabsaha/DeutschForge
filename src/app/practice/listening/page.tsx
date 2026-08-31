@@ -981,7 +981,7 @@ export default function ListeningPracticePage() {
               </div>
               <div className="h-2 flex-1 max-w-xs mx-4 rounded-full bg-[var(--border)] overflow-hidden">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[#409CFF]"
+                  className="h-full rounded-full bg-[var(--accent)]"
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.3 }}

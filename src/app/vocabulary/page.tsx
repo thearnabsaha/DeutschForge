@@ -679,7 +679,7 @@ export default function VocabularyPage() {
                           {/* Progress Bar */}
                           <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)] border border-[var(--border)]">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[#5856D6] transition-all"
+                              className="h-full rounded-full bg-[var(--accent)] transition-all"
                               style={{
                                 width: `${set.wordCount > 0 ? (set.learnedCount / set.wordCount) * 100 : 0}%`,
                               }}

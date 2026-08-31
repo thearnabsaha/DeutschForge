@@ -346,7 +346,7 @@ export default function GrammarTopicPage() {
           >
             {/* Rule Callout Banner */}
             {chapter.rule && (
-              <div className="rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-transparent p-5 sm:p-6 shadow-sm">
+              <div className="rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 p-5 sm:p-6 shadow-sm">
                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
                   <Lightbulb size={18} />
                   <span>The Fundamental Rule</span>
@@ -675,7 +675,7 @@ export default function GrammarTopicPage() {
 
                     <div className="mb-6 h-2.5 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-[var(--accent)] to-emerald-400"
+                        className="h-full bg-[var(--accent)]"
                         initial={{ width: 0 }}
                         animate={{ width: `${((currentQIdx + 1) / currentLevelQuestions.length) * 100}%` }}
                         transition={{ duration: 0.3 }}

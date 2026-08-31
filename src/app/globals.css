@@ -858,6 +858,17 @@ body.focus-mode [data-focus-hide] {
   font-weight: 900 !important;
 }
 
+/* ── Neo-Brutalist Progress Bars ── */
+.neo-brutalist [class*="overflow-hidden"][class*="rounded-full"] {
+  border: 2px solid #000000 !important;
+  background-color: #FFFFFF !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+}
+.neo-brutalist [class*="overflow-hidden"][class*="rounded-full"] > div {
+  background-color: #58CC02 !important;
+  background-image: none !important;
+}
+
 /* ── Neo-Brutalist 3D Flashcards ── */
 .neo-brutalist .flashcard-front > div,
 .neo-brutalist .flashcard-back > div {
