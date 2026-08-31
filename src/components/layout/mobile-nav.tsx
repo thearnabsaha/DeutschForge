@@ -10,6 +10,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sfx } from '@/lib/sounds';
 
 const tabs = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
@@ -95,8 +96,9 @@ export function MobileNav() {
             <Link
               key={tab.href}
               href={tab.href}
+              onClick={() => sfx.tap()}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-1 transition-colors',
+                'flex flex-1 flex-col items-center justify-center gap-1 transition-colors active:scale-95',
                 isActive
                   ? 'text-[var(--accent)]'
                   : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'

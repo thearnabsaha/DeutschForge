@@ -1,10 +1,20 @@
 let ctx: AudioContext | null = null;
 let muted = false;
 
-function getCtx(): AudioContext {
-  if (!ctx) ctx = new AudioContext();
-  if (ctx.state === 'suspended') ctx.resume();
-  return ctx;
+function getCtx(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    if (!ctx) {
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (AudioCtx) ctx = new AudioCtx();
+    }
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    return ctx;
+  } catch {
+    return null;
+  }
 }
 
 function loadMuteState(): boolean {
@@ -33,6 +43,7 @@ function play(fn: (ac: AudioContext, t: number) => void) {
   if (loadMuteState()) return;
   try {
     const ac = getCtx();
+    if (!ac) return;
     fn(ac, ac.currentTime);
   } catch {}
 }
