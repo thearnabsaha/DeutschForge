@@ -194,7 +194,7 @@ export default function SettingsPage() {
 
   const [activeSectionTab, setActiveSectionTab] = useState<'all' | 'explore' | 'account' | 'preferences'>('all');
 
-  const { setTheme } = useTheme();
+  const { setTheme, theme: activeTheme } = useTheme();
   const { refresh } = useAuth();
   const [username, setUsername] = useState('learner');
   const [name, setName] = useState('Learner');
@@ -226,6 +226,12 @@ export default function SettingsPage() {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
+    if (activeTheme) {
+      setThemeChoice(activeTheme as ThemeId);
+    }
+  }, [activeTheme]);
+
+  useEffect(() => {
     fetch('/api/settings')
       .then((r) => {
         if (r.status === 401) {
@@ -239,15 +245,13 @@ export default function SettingsPage() {
         setUsername(data.username || 'learner');
         setName(data.name || 'Learner');
         setTargetLevel(data.targetLevel || 'A1');
-        setThemeChoice(data.theme || 'system');
         setSoundEnabled(data.soundEnabled ?? true);
         setDailyGoal(data.dailyGoal ?? 20);
         setHasExistingPassword(data.hasPassword ?? true);
-        if (data.theme) setTheme(data.theme);
         setMuted(!(data.soundEnabled ?? true));
       })
       .catch(() => {});
-  }, [router, setTheme]);
+  }, [router]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -333,6 +337,8 @@ export default function SettingsPage() {
   const handleThemeSelect = (id: ThemeId) => {
     setThemeChoice(id);
     setTheme(id);
+    const label = themes.find((t) => t.id === id)?.label || id;
+    toast.success(`Theme switched to ${label}`);
     fetch('/api/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
