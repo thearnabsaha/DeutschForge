@@ -1,4 +1,4 @@
-// ─── DeutschForge Vocabulary Book ─────────────────────────────────────────────
+// ─── Moin Moin Vocabulary Book ─────────────────────────────────────────────
 // 28 sections of A1/A2 German vocabulary with English translations
 
 export interface BookWord {

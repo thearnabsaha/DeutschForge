@@ -1,6 +1,6 @@
 {
-  "name": "DeutschForge – Cognitive German Mastery",
-  "short_name": "DeutschForge",
+  "name": "Moin Moin – Cognitive German Mastery",
+  "short_name": "Moin Moin",
   "description": "Personal CEFR A1→B2 German mastery platform with spaced repetition, grammar masterclass, and Goethe exam preparation.",
   "start_url": "/dashboard",
   "scope": "/",

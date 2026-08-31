@@ -53,8 +53,8 @@ export default function LoginPage() {
             <Flame size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">DeutschForge</h1>
-            <p className="text-xs text-[var(--text-tertiary)]">Cognitive Mastery</p>
+            <h1 className="text-xl font-semibold tracking-tight">Moin Moin</h1>
+            <p className="text-xs text-[var(--text-tertiary)]">German Mastery</p>
           </div>
         </div>
 

@@ -8,7 +8,7 @@ import { AuthProvider } from '@/components/auth/auth-guard';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'DeutschForge – Cognitive German Mastery',
+  title: 'Moin Moin – Cognitive German Mastery',
   description: 'Personal CEFR A1→B2 German learning system with spaced repetition and Goethe exam preparation.',
   manifest: '/manifest.json',
   icons: {
@@ -28,9 +28,9 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'DeutschForge',
+    title: 'Moin Moin',
   },
-  applicationName: 'DeutschForge',
+  applicationName: 'Moin Moin',
 };
 
 export const viewport: Viewport = {
@@ -57,7 +57,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="DeutschForge" />
+        <meta name="apple-mobile-web-app-title" content="Moin Moin" />
       </head>
       <body className="bg-[var(--bg-primary)] antialiased" style={{ minHeight: '100dvh' }}>
         <ThemeProvider>

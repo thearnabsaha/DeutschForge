@@ -1,4 +1,4 @@
-# DeutschForge – Personal Cognitive German Mastery System
+# Moin Moin – Personal Cognitive German Mastery System
 
 A production-ready personal learning application for mastering German from CEFR A1 to B2, with Goethe-Zertifikat exam preparation.
 

@@ -79,7 +79,7 @@ export default function LandingPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)]">
               <Flame size={18} className="text-white" />
             </div>
-            <span className="text-lg font-semibold tracking-tight">DeutschForge</span>
+            <span className="text-lg font-semibold tracking-tight">Moin Moin</span>
           </Link>
           <div className="flex items-center gap-3">
             <Link
@@ -282,10 +282,10 @@ export default function LandingPage() {
               </div>
             </motion.div>
             <motion.h2 variants={fadeUp} className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Ready to forge your German?
+              Ready to master German?
             </motion.h2>
             <motion.p variants={fadeUp} className="mx-auto mt-4 max-w-lg text-[var(--text-secondary)]">
-              Join DeutschForge and start mastering German with AI-powered tools built for real results.
+              Join Moin Moin and start mastering German with AI-powered tools built for real results.
             </motion.p>
             <motion.div variants={fadeUp} className="mt-8">
               <Link
@@ -307,7 +307,7 @@ export default function LandingPage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent)]">
               <Flame size={14} className="text-white" />
             </div>
-            <span className="text-sm font-semibold">DeutschForge</span>
+            <span className="text-sm font-semibold">Moin Moin</span>
           </div>
           <p className="text-xs text-[var(--text-tertiary)]">
             Built for serious German learners. CEFR A1 to B2.

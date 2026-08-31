@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import BookGrid from './book-grid';
 
 export const metadata = {
-  title: 'Vocabulary Book - DeutschForge',
+  title: 'Vocabulary Book - Moin Moin',
   description: 'Browse and add curated A1/A2 vocabulary sections',
 };
 

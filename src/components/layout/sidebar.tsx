@@ -65,8 +65,8 @@ export function Sidebar() {
             <Flame size={18} className="text-white" />
           </div>
           <div>
-            <h1 className="text-base font-semibold tracking-tight">DeutschForge</h1>
-            <p className="text-[11px] text-[var(--text-tertiary)]">Cognitive Mastery</p>
+            <h1 className="text-base font-semibold tracking-tight">Moin Moin</h1>
+            <p className="text-[11px] text-[var(--text-tertiary)]">German Learning</p>
           </div>
         </div>
 
