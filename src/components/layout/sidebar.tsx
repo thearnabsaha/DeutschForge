@@ -13,9 +13,7 @@ import {
   Moon,
   Flame,
   BookOpen,
-  MessageCircle,
   BookMarked,
-  Mic,
   Volume2,
   VolumeX,
   MessageSquareQuote,
@@ -28,8 +26,6 @@ import { isMuted, toggleMute } from '@/lib/sounds';
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/practice', label: 'Practice', icon: Brain },
-  { href: '/chat', label: 'Chat', icon: MessageCircle },
-  { href: '/chat/voice', label: 'Voice Chat', icon: Mic },
   { href: '/vocabulary', label: 'Vocabulary', icon: BookOpen },
   { href: '/vocabulary/book', label: 'Vocab Book', icon: BookMarked },
   { href: '/expressions', label: 'Expressions', icon: MessageSquareQuote },

@@ -142,15 +142,6 @@ const featureHubItems = [
     border: 'border-emerald-500/25',
   },
   {
-    title: 'AI Conversation & Voice',
-    desc: 'Interactive chat & real-time spoken German practice',
-    href: '/chat',
-    icon: MessageCircle,
-    color: 'text-amber-500',
-    bg: 'bg-amber-500/10',
-    border: 'border-amber-500/25',
-  },
-  {
     title: 'Goethe Exam Simulator',
     desc: 'Full A1-B2 mock exams with Lesen, Hören, Schreiben, Sprechen',
     href: '/exam',
