@@ -96,13 +96,17 @@ const GENDER_LABELS: Record<string, string> = {
 
 
 
+import { cachedFetch } from '@/lib/client-cache';
+
 function HardWordsCard() {
   const [hardWords, setHardWords] = useState<Array<{ word: string; meaning: string; accuracy: number }>>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('/api/vocabulary/analytics')
-      .then((r) => r.json())
+    cachedFetch<{ hardWords: Array<{ word: string; meaning: string; accuracy: number }> }>(
+      '/api/vocabulary/analytics',
+      30000
+    )
       .then((d) => {
         setHardWords(d.hardWords || []);
         setLoaded(true);
@@ -160,10 +164,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/dashboard')
-      .then((r) => r.json())
+    cachedFetch<DashboardData | { error?: string }>('/api/dashboard', 30000)
       .then((d) => {
-        setData(d.error ? null : d);
+        setData(d && !('error' in d) ? (d as DashboardData) : null);
         setLoading(false);
       })
       .catch(() => setLoading(false));

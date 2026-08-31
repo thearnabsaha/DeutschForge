@@ -30,22 +30,33 @@ export async function GET() {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-    const batches = await db
-      .select()
-      .from(wordBatches)
-      .where(eq(wordBatches.userId, session.id))
-      .orderBy(desc(wordBatches.createdAt));
-
-    const result = [];
-    for (const b of batches) {
-      const words = await db
+    const [batches, allUserWords] = await Promise.all([
+      db
+        .select()
+        .from(wordBatches)
+        .where(eq(wordBatches.userId, session.id))
+        .orderBy(desc(wordBatches.createdAt)),
+      db
         .select()
         .from(userWords)
-        .where(and(eq(userWords.batchId, b.id), eq(userWords.userId, session.id)))
-        .orderBy(desc(userWords.createdAt));
+        .where(eq(userWords.userId, session.id))
+        .orderBy(desc(userWords.createdAt)),
+    ]);
 
+    // Group words by batchId in-memory in 0ms
+    const wordsByBatch = new Map<string, typeof allUserWords>();
+    for (const word of allUserWords) {
+      if (word.batchId) {
+        const list = wordsByBatch.get(word.batchId) || [];
+        list.push(word);
+        wordsByBatch.set(word.batchId, list);
+      }
+    }
+
+    const result = batches.map((b) => {
+      const words = wordsByBatch.get(b.id) || [];
       const learnedCount = words.filter((w) => w.learned).length;
-      result.push({
+      return {
         id: b.id,
         name: b.name,
         wordCount: words.length,
@@ -54,8 +65,8 @@ export async function GET() {
         examUnlocked: b.examUnlocked,
         createdAt: b.createdAt,
         words,
-      });
-    }
+      };
+    });
 
     return NextResponse.json({ sets: result });
   } catch (error) {

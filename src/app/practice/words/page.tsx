@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { sfx } from '@/lib/sounds';
+import { cachedFetch, invalidateCache } from '@/lib/client-cache';
 
 interface UserWord {
   id: string;
@@ -259,11 +260,11 @@ export default function PracticeWordsPage() {
   const [woStartTime, setWoStartTime] = useState(0);
   const [woTotalTime, setWoTotalTime] = useState(0);
 
-  const fetchBatches = useCallback(async () => {
+  const fetchBatches = useCallback(async (forceRefresh = false) => {
+    if (forceRefresh) invalidateCache('/api/practice/batches');
     setLoading(true);
     try {
-      const res = await fetch('/api/practice/batches');
-      const data = await res.json();
+      const data = await cachedFetch<{ batches: WordBatch[] }>('/api/practice/batches', 30000);
       setBatches(data.batches || []);
     } catch {
       setBatches([]);

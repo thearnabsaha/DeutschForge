@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { sfx } from '@/lib/sounds';
+import { cachedFetch, invalidateCache } from '@/lib/client-cache';
 
 interface UserExpression {
   id: string;
@@ -163,11 +164,11 @@ export default function PracticeExpressionsPage() {
   const [eoStartTime, setEoStartTime] = useState(0);
   const [eoTotalTime, setEoTotalTime] = useState(0);
 
-  const fetchBatches = useCallback(async () => {
+  const fetchBatches = useCallback(async (forceRefresh = false) => {
+    if (forceRefresh) invalidateCache('/api/practice/expression-batches');
     setLoading(true);
     try {
-      const res = await fetch('/api/practice/expression-batches');
-      const data = await res.json();
+      const data = await cachedFetch<{ batches: ExprBatch[] }>('/api/practice/expression-batches', 30000);
       setBatches(data.batches || []);
     } catch {
       setBatches([]);

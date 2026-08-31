@@ -9,18 +9,33 @@ export async function GET() {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-    const batches = await db
-      .select()
-      .from(expressionBatches)
-      .where(eq(expressionBatches.userId, session.id))
-      .orderBy(desc(expressionBatches.createdAt));
+    const [batches, allUserExpressions] = await Promise.all([
+      db
+        .select()
+        .from(expressionBatches)
+        .where(eq(expressionBatches.userId, session.id))
+        .orderBy(desc(expressionBatches.createdAt)),
+      db
+        .select()
+        .from(userExpressions)
+        .where(eq(userExpressions.userId, session.id))
+        .orderBy(desc(userExpressions.createdAt)),
+    ]);
 
-    const result = [];
-    for (const b of batches) {
-      const expressions = await db.select().from(userExpressions).where(eq(userExpressions.batchId, b.id));
-      const learnedCount = expressions.filter((e) => e.learned).length;
-      result.push({ ...b, learnedCount, expressions });
+    const exprsByBatch = new Map<string, typeof allUserExpressions>();
+    for (const expr of allUserExpressions) {
+      if (expr.batchId) {
+        const list = exprsByBatch.get(expr.batchId) || [];
+        list.push(expr);
+        exprsByBatch.set(expr.batchId, list);
+      }
     }
+
+    const result = batches.map((b) => {
+      const expressions = exprsByBatch.get(b.id) || [];
+      const learnedCount = expressions.filter((e) => e.learned).length;
+      return { ...b, learnedCount, expressions };
+    });
 
     return NextResponse.json({ batches: result });
   } catch {

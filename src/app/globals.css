@@ -267,12 +267,11 @@
     border: 1px solid var(--border);
     border-radius: 1rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.04);
-    transition: box-shadow 0.25s ease, transform 0.25s ease;
+    transition: box-shadow 0.2s ease;
   }
 
   .card-surface:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
-    transform: translateY(-1px);
   }
 
   .dark .card-surface,

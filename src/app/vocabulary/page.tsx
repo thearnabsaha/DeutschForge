@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { sfx } from '@/lib/sounds';
 import { cn } from '@/lib/utils';
+import { cachedFetch, invalidateCache } from '@/lib/client-cache';
 
 interface UserWord {
   id: string;
@@ -114,11 +115,11 @@ export default function VocabularyPage() {
   }, []);
 
   // Fetch Word Sets
-  const fetchSets = useCallback(async () => {
+  const fetchSets = useCallback(async (forceRefresh = false) => {
+    if (forceRefresh) invalidateCache('/api/vocabulary/sets');
     setSetsLoading(true);
     try {
-      const res = await fetch('/api/vocabulary/sets');
-      const data = await res.json();
+      const data = await cachedFetch<{ sets: WordSet[] }>('/api/vocabulary/sets', 30000);
       setSets(data.sets || []);
     } catch {
       setSets([]);
@@ -129,11 +130,11 @@ export default function VocabularyPage() {
   }, []);
 
   // Fetch All Words
-  const fetchWords = useCallback(async () => {
+  const fetchWords = useCallback(async (forceRefresh = false) => {
+    if (forceRefresh) invalidateCache('/api/vocabulary');
     setLibraryLoading(true);
     try {
-      const res = await fetch('/api/vocabulary');
-      const data = await res.json();
+      const data = await cachedFetch<{ words: UserWord[]; analytics: Analytics }>('/api/vocabulary', 30000);
       setWords(data.words || []);
       setAnalytics(data.analytics || null);
     } catch {

@@ -71,6 +71,7 @@ export const userWords = pgTable('user_words', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => ({
   userWordIdx: index('user_words_user_idx').on(t.userId),
+  userBatchIdx: index('user_words_batch_idx').on(t.batchId),
   userNextReviewIdx: index('user_words_next_review_idx').on(t.userId, t.nextReview),
   userPosIdx: index('user_words_pos_idx').on(t.userId, t.partOfSpeech),
 }));
@@ -232,6 +233,7 @@ export const userExpressions = pgTable('user_expressions', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => ({
   userExprIdx: index('user_expressions_user_idx').on(t.userId),
+  userBatchIdx: index('user_expressions_batch_idx').on(t.batchId),
   userNextReviewIdx: index('user_expressions_next_review_idx').on(t.userId, t.nextReview),
   userCategoryIdx: index('user_expressions_category_idx').on(t.userId, t.category),
 }));

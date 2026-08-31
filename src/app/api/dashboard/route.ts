@@ -8,8 +8,35 @@ import { getCurrentUserId } from '@/lib/get-user';
 export async function GET() {
   try {
     const userId = await getCurrentUserId();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    ninetyDaysAgo.setHours(0, 0, 0, 0);
+
+    // Run all independent queries in parallel
+    const [
+      allWords,
+      todayReviews,
+      recentReviews,
+      allGrammarAttempts,
+      exams,
+      latestInsights,
+      conversations,
+      userRecords,
+    ] = await Promise.all([
+      db.select().from(userWords).where(eq(userWords.userId, userId)),
+      db.select({ id: wordReviewLogs.id }).from(wordReviewLogs).where(and(eq(wordReviewLogs.userId, userId), gte(wordReviewLogs.reviewedAt, today))),
+      db.select({ reviewedAt: wordReviewLogs.reviewedAt }).from(wordReviewLogs).where(and(eq(wordReviewLogs.userId, userId), gte(wordReviewLogs.reviewedAt, ninetyDaysAgo))).orderBy(desc(wordReviewLogs.reviewedAt)),
+      db.select({ topicId: grammarAttempts.topicId, score: grammarAttempts.score, maxScore: grammarAttempts.maxScore }).from(grammarAttempts).where(eq(grammarAttempts.userId, userId)),
+      db.select().from(examAttempts).where(eq(examAttempts.userId, userId)).orderBy(desc(examAttempts.startedAt)).limit(10),
+      db.select().from(aiInsights).where(eq(aiInsights.userId, userId)).orderBy(desc(aiInsights.generatedAt)).limit(1),
+      db.select({ id: conversationSessions.id }).from(conversationSessions).where(eq(conversationSessions.userId, userId)),
+      db.select({ xp: users.xp, level: users.level }).from(users).where(eq(users.id, userId)),
+    ]);
+
     // 1. Vocabulary stats
-    const allWords = await db.select().from(userWords).where(eq(userWords.userId, userId));
     const totalWords = allWords.length;
     const byPOS: Record<string, number> = {};
     const byGender: Record<string, number> = { masculine: 0, feminine: 0, neuter: 0 };
@@ -33,25 +60,7 @@ export async function GET() {
       sein: verbs.filter(w => w.auxiliaryType === 'sein').length,
     };
 
-    // 2. Review stats (today and streak)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayReviews = await db.select().from(wordReviewLogs)
-      .where(and(eq(wordReviewLogs.userId, userId), gte(wordReviewLogs.reviewedAt, today)));
-
-    // Calculate streak: only look back 90 days max instead of loading all reviews
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    ninetyDaysAgo.setHours(0, 0, 0, 0);
-
-    const recentReviews = await db.select({ reviewedAt: wordReviewLogs.reviewedAt })
-      .from(wordReviewLogs)
-      .where(and(
-        eq(wordReviewLogs.userId, userId),
-        gte(wordReviewLogs.reviewedAt, ninetyDaysAgo)
-      ))
-      .orderBy(desc(wordReviewLogs.reviewedAt));
-
+    // 2. Calculate streak
     let streak = 0;
     if (recentReviews.length > 0) {
       const checkDate = new Date();
@@ -76,24 +85,16 @@ export async function GET() {
       topicsByLevel[level] = (topicsByLevel[level] || 0) + 1;
     }
 
-    const allGrammarAttempts = await db.select().from(grammarAttempts)
-      .where(eq(grammarAttempts.userId, userId));
     const completedTopicIds = new Set(allGrammarAttempts.filter(a => a.score / a.maxScore >= 0.6).map(a => a.topicId));
     const grammarCompletion = allTopics.length > 0 ? Math.round((completedTopicIds.size / allTopics.length) * 100) : 0;
 
-    // 4. Exam history — batch-fetch sections to avoid N+1 queries
-    const exams = await db.select().from(examAttempts)
-      .where(eq(examAttempts.userId, userId))
-      .orderBy(desc(examAttempts.startedAt))
-      .limit(10);
-
+    // 4. Exam history
     let examHistory: Array<typeof exams[number] & { sections: any[] }> = [];
     if (exams.length > 0) {
       const examIds = exams.map(e => e.id);
       const allSections = await db.select().from(examSectionScores)
         .where(inArray(examSectionScores.attemptId, examIds));
 
-      // Group sections by attemptId
       const sectionsByAttempt = new Map<string, typeof allSections>();
       for (const section of allSections) {
         const existing = sectionsByAttempt.get(section.attemptId) || [];
@@ -108,27 +109,19 @@ export async function GET() {
     }
 
     // 5. Latest insights
-    const [latestInsight] = await db.select().from(aiInsights)
-      .where(eq(aiInsights.userId, userId))
-      .orderBy(desc(aiInsights.generatedAt))
-      .limit(1);
+    const latestInsight = latestInsights[0] || null;
 
-    // 6. Memory stability index (avg stability of all words)
+    // 6. Memory stability index
     const avgStability = allWords.length > 0
       ? Math.round(allWords.reduce((s, w) => s + w.stability, 0) / allWords.length * 10) / 10
       : 0;
 
-    // 7. Conversation count
-    const conversations = await db.select().from(conversationSessions)
-      .where(eq(conversationSessions.userId, userId));
-
-    // 8. Words due for review
+    // 7. Words due for review
     const now = new Date();
     const dueWords = allWords.filter(w => new Date(w.nextReview) <= now).length;
 
-    // 9. User XP
-    const [user] = await db.select({ xp: users.xp, level: users.level })
-      .from(users).where(eq(users.id, userId));
+    // 8. User XP
+    const user = userRecords[0];
     const xp = user?.xp ?? 0;
     const level = Math.floor(xp / 100) + 1;
     const xpInLevel = xp % 100;
@@ -138,7 +131,7 @@ export async function GET() {
       reviews: { today: todayReviews.length, streak },
       grammar: { totalTopics: allTopics.length, completed: completedTopicIds.size, completion: grammarCompletion, byLevel: topicsByLevel },
       exams: { history: examHistory, totalAttempts: exams.length },
-      insights: latestInsight || null,
+      insights: latestInsight,
       memoryStability: avgStability,
       conversations: conversations.length,
       xp: { total: xp, level, xpInLevel, xpForNextLevel: 100 },
